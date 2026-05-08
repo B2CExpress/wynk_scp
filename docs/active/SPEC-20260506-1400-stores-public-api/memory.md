@@ -8,12 +8,12 @@
 
 ## TL;DR (sobrescrever ao fim de cada sessão)
 
-**Última atualização:** 2026-05-08 13:45 (sessão #2)
-**Onde tô:** Re-bootstrap concluído. **Descoberta crítica:** branch entrega só LISTAGEM, mas SPEC declara listagem+detalhe — commit `759eca5` removeu `[slug]/route.ts` sem ajustar contrato.
-**Próximo passo:** Pedir decisão ao dev sobre escopo: (a) revert do trecho de remoção em `759eca5` para reaplicar detalhe, OU (b) re-escopar SPEC para listagem-only (atualizar `main.md`+`feature.md`+critério de aceite).
-**Última decisão:** Re-bootstrap da estrutura SPEC veio antes de qualquer correção de código (destrava `audit-docs.sh`). Falso-archive `SPEC-route-stories` deletado por R.5 (correção de erro em minutos).
-**Bloqueio atual:** (1) Decisão de escopo. (2) Imports `@/lib/db` e `@/lib/schema` são placeholders — depende de outra SPEC entregar base do `backend/`.
-**Se retomar, ler:** `state.md` entradas `[refactor]` em 2026-05-08 11:06 e `[MARCO] [descoberta]` em 2026-05-08 13:45.
+**Última atualização:** 2026-05-08 13:55 (sessão #2)
+**Onde tô:** Re-bootstrap + re-escopo concluídos. SPEC agora é listagem-only. Detalhe (path-based) vai para SPEC futura. Restam correções de código + testes para encerrar.
+**Próximo passo:** Aplicar correções de código apontadas na review — escape de `%`/`_` no `search` e normalização lowercase+trim para cache key. Depois, testes mínimos.
+**Última decisão:** SPEC re-escopada para listagem-only após dev confirmar que detalhe subiu por engano em `96b5a33`. Path-based mantido para a SPEC futura do detalhe (header descartado).
+**Bloqueio atual:** Imports `@/lib/db` e `@/lib/schema` são placeholders — depende de SPEC externa entregar base do `backend/`.
+**Se retomar, ler:** `state.md` entradas `[unblock]` em 2026-05-08 13:50 e `[decisão] Path-based` em 2026-05-08 13:52.
 
 ---
 
@@ -21,26 +21,33 @@
 
 ### O que está sendo feito AGORA
 
-Sessão de revisão da PR #3 ("feat: implement public API endpoints for stores with Redis caching"). A revisão identificou problemas de processo (estrutura SPEC inteiramente fora do lugar) e de código (duplicação entre os 2 route.ts, wildcards SQL não escapados, cache key não normalizada, invalidação não cobre rename de slug, sem testes).
+Sessão de revisão da PR #3 ("feat: implement public API endpoints for stores with Redis caching"). A revisão identificou problemas de processo (estrutura SPEC fora do lugar) e de código (wildcards SQL não escapados, cache key não normalizada, sem testes).
 
-**Twist descoberto durante o re-bootstrap:** commit `759eca5` removeu o endpoint detalhe e moveu o `main.md` mal-posicionado para um falso-archive. Branch atual entrega só listagem, mas a SPEC declara os 2 endpoints. Decisão de escopo pendente.
+**Twist descoberto e resolvido nesta sessão:** commit `759eca5` havia removido o endpoint detalhe (subiu por engano em `96b5a33`). SPEC re-escopada para **listagem-only**; detalhe vai para SPEC futura, path-based mantido.
 
-A sessão atual focou em **corrigir a estrutura SPEC** primeiro — sem isso, `audit-docs.sh` bloqueia o merge. Correções de código + decisão de escopo vêm em sessão seguinte.
+A sessão corrigiu a estrutura SPEC e o escopo do contrato. Restam: correções de código (escape, normalização) + testes mínimos. Bloqueio externo: schema Drizzle real ainda não existe.
 
 ### Hipóteses em jogo
 
 - **PR depende de SPEC-20260503-1505-base-plataforma-multitenant** (status: testando). Schema Drizzle (`@/lib/db`, `@/lib/schema`) e bootstrap do `backend/` (package.json, tsconfig) provavelmente vêm de lá. Validar com dev.
 - **Middleware que injeta `x-tenant-id` não está nesta SPEC** (status: testando). Header é assumido pelos handlers; alguma SPEC paralela ou futura entrega o middleware. Validar com dev.
-- **Endpoint detalhe foi removido por decisão de escopo intencional** (status: testando). Mensagem do commit `759eca5` chama o detalhe de "deprecated" — sugere que dev decidiu adiar para SPEC futura. Mas sem registro formal, não dá para confirmar. Validar com dev.
+- ~~**Endpoint detalhe foi removido por decisão de escopo intencional**~~ (status: **descartada**, 2026-05-08 13:50) — dev confirmou que foi por engano, não escopo intencional. SPEC re-escopada.
 
 ### Decisões recentes que importam pra continuar
 
 - [2026-05-08 13:35] Falso-archive `docs/archive/SPEC-route-stories/` deletado em vez de mantido com nota — foi nunca-válido (ID inválido, sem state/memory). R.5 permite "correção de erro em minutos".
-- [2026-05-08 13:35] Critério de aceite expandido com 6 itens novos derivados da review: escape de wildcards, normalização da cache key, slug-rename na invalidação, extração de helpers, schema real, testes mínimos.
+- [2026-05-08 13:50] SPEC re-escopada para listagem-only após confirmação do dev. Detalhe (`/[slug]`) sai do "DENTRO" e entra no "FORA" com nota explicativa.
+- [2026-05-08 13:52] Endpoint de detalhe (SPEC futura) **mantém path-based** (`GET /api/v1/stores/[slug]`). Header foi avaliado e descartado por (a) `Vary` explode chaves de CDN, (b) não-bookmarkável/debugável, (c) fricção com clientes HTTP. "Limpeza" de duplicação resolve via helpers, não via fusão de endpoints.
+- [2026-05-08 14:00] Criada `SPEC-20260508-1400-stores-public-detail` em `docs/future/`. Captura: 404 unificado (segurança contra enumeração), invalidação cobrindo rename, extração de helpers compartilhados. `Depende de: SPEC-20260506-1400`. Feature atualizada com link.
 - [2026-05-08 13:35] Não foi adicionada dependência formal (`Depende de:`) à SPEC-1505 sem confirmar com dev — preservou §R.8 (não ler future/ por iniciativa).
-- [2026-05-08 13:45] `main.md` da SPEC NÃO foi alterado para refletir a remoção do detalhe (escopo divergente registrado em "Dúvidas em aberto" do `state.md`). Decisão de escopo é responsabilidade do dev — IA não re-escopa contrato sem confirmação.
 
 ### Respostas-chave do usuário
+
+- [2026-05-08 13:50] Usuário: *"Eu sei porque, subiu por engano."*
+  Contexto: explicando a remoção do `[slug]/route.ts` em `759eca5`. Resolveu a dúvida de escopo divergente — habilitou re-escopo da SPEC para listagem-only.
+
+- [2026-05-08 13:52] Usuário: *"Ok, mantemos."*
+  Contexto: confirmação de manter path-based (`/[slug]`) para o endpoint de detalhe na SPEC futura, após apresentação dos trade-offs de header vs path.
 
 - [2026-05-08 13:30] Usuário: *"Sim, essa é a ideia mesmo, fazer essas correções"*
   Contexto: confirmação do plano de re-bootstrap apresentado (criar 4 arquivos novos, remover 2 caminhos errados, opção (a) de deletar o falso-archive).
@@ -54,27 +61,23 @@ A sessão atual focou em **corrigir a estrutura SPEC** primeiro — sem isso, `a
 
 ### Arquivos ativamente sendo tocados
 
-- `docs/active/SPEC-20260506-1400-stores-public-api/main.md` (criado nesta sessão)
-- `docs/active/SPEC-20260506-1400-stores-public-api/state.md` (criado nesta sessão)
-- `docs/active/SPEC-20260506-1400-stores-public-api/memory.md` (criado nesta sessão — este arquivo)
-- `docs/features/stores-public-api.md` (a criar)
-- `backend/app/api/v1/stores/main.md` (a remover)
-- `docs/archive/SPEC-route-stories/` (a remover)
+- `docs/active/SPEC-20260506-1400-stores-public-api/main.md` (criado + re-escopado nesta sessão)
+- `docs/active/SPEC-20260506-1400-stores-public-api/state.md` (criado + atualizado nesta sessão)
+- `docs/active/SPEC-20260506-1400-stores-public-api/memory.md` (criado + atualizado nesta sessão — este arquivo)
+- `docs/features/stores-public-api.md` (criado + atualizado nesta sessão)
+- ~~`backend/app/api/v1/stores/main.md`~~ (já removido em `759eca5`)
+- ~~`docs/archive/SPEC-route-stories/`~~ (removido nesta sessão)
 
 Em sessão futura (correções de código):
-- `backend/app/api/v1/stores/route.ts`
-- `backend/app/api/v1/stores/[slug]/route.ts`
-- `backend/lib/cache.ts`
-- `backend/lib/api-helpers.ts` (a criar — para helpers extraídos)
-- testes (caminho a definir)
+- `backend/app/api/v1/stores/route.ts` (escape de `%`/`_` no `search`, normalização da cache key)
+- `backend/lib/cache.ts` (limpeza eventual com base no escopo final)
+- testes mínimos (caminho a definir — depende da SPEC-1505 entregar bootstrap do `backend/`)
+
+Em SPEC futura (a criar): endpoint `GET /api/v1/stores/[slug]`, path-based.
 
 ### Onde parei exatamente
 
-Acabei de criar `state.md` e `memory.md`. Próximas ações nesta sessão:
-1. Criar `docs/features/stores-public-api.md`
-2. Deletar `backend/app/api/v1/stores/main.md`
-3. Deletar `docs/archive/SPEC-route-stories/`
-4. Mostrar diff completo ao dev antes de commitar
+Re-escopo concluído. Próxima ação: mostrar diff final ao dev e perguntar se quer commitar agora ou seguir para correções de código.
 
 ---
 

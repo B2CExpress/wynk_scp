@@ -37,7 +37,7 @@
 - [ ] Decidir se vale extrair helpers (`requireTenantId`, `cacheHeaders`) — com só 1 endpoint, talvez não compense (avaliar quando detalhe voltar via SPEC futura)
 - [ ] Confirmar com dev se SPEC depende de `SPEC-20260503-1505-base-plataforma-multitenant` (ou outra) para schema Drizzle
 - [ ] Adicionar testes mínimos cobrindo isolamento por tenant, fallback Redis, cache HIT/MISS
-- [ ] Criar SPEC futura para endpoint detalhe `GET /api/v1/stores/[slug]` (path-based mantido)
+- [x] Criar SPEC futura para endpoint detalhe `GET /api/v1/stores/[slug]` — `SPEC-20260508-1400-stores-public-detail` em `docs/future/` (2026-05-08 14:00)
 - [ ] Marcar critérios de aceite com timestamp + commit conforme forem entregues
 
 ### Bloqueios ativos
@@ -158,6 +158,17 @@ Dev levantou se valeria header em vez de path. Trade-offs apresentados:
 - "Limpeza" de não-duplicação resolve-se via helpers compartilhados, não via fusão de endpoints.
 
 Decisão do dev: *"Ok, mantemos."* Path-based confirmado para SPEC futura.
+
+## 2026-05-08 14:00 — [MARCO] [decisão] SPEC futura criada para o detalhe
+
+Criada `docs/future/SPEC-20260508-1400-stores-public-detail/main.md` com contrato do endpoint detalhe extraído. Vincula à mesma feature `stores-public-api`, declara dependência de SPEC-20260506-1400 (base do `lib/cache.ts`), e captura todos os critérios que saíram desta SPEC no re-escopo:
+
+- 404 unificado (regra de segurança contra enumeração cross-tenant).
+- Invalidação cobrindo rename de slug (slug antigo + novo).
+- Extração de helpers compartilhados (`requireTenantId`, `cacheHeaders`, `fetchStoreCategories`) — adiada nesta SPEC porque com 1 endpoint não há duplicação real.
+- Cache de `null` aceito como decisão consciente (anti-stampede).
+
+`docs/features/stores-public-api.md` atualizado com a SPEC futura na seção "Planejadas" e gotchas correspondentes.
 
 ## 2026-05-08 13:35 — [nota] Pendências da review da PR #3
 

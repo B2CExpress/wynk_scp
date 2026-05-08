@@ -16,7 +16,7 @@
 ### Planejadas (future/)
 | ID | Título | Motivo |
 |---|---|---|
-| _(nenhuma)_ | — | — |
+| SPEC-20260508-1400 | Endpoint público de detalhe de loja por slug | Detalhe `/api/v1/stores/[slug]` foi extraído da SPEC-20260506-1400 após escopo divergente — vai entrar como SPEC própria com 404 unificado, invalidação por rename e helpers compartilhados |
 
 ### Em execução (só em branches — não aparece em main)
 | ID | Título | Branch |
@@ -54,8 +54,9 @@ Forma planejada (SPEC-20260506-1400 — listagem-only):
 ## Gotchas
 
 - **Wildcards SQL no `search`** (2026-05-08 13:35, SPEC-20260506-1400) — `%` e `_` no input são interpretados como wildcards LIKE. Buscar por `"50%"` retorna tudo. Escapar antes de passar ao ILIKE; e normalizar (lowercase + trim) antes de compor cache key.
-- **Cache de `null` (slug inexistente)** (2026-05-08 13:35, SPEC-20260506-1400) — `cached()` armazena 404 por 5 min. Anti-stampede, mas atenção pós-criação: até a invalidação rodar, novo slug retorna 404 cacheado.
-- **Rename de slug invalida só o slug informado** (2026-05-08 13:35, SPEC-20260506-1400) — `invalidateAllStoresCaches(tenantId, slug?)` recebe um único slug; se admin mudar slug, antigo continua quente até TTL expirar. Endpoint admin precisa invalidar **antigo + novo**.
+- **404 unificado para o detalhe** (2026-05-08 14:00, SPEC-20260508-1400) — diferenciar 404 (não existe) de 403 (existe mas é de outro tenant) expõe enumeração cross-tenant. Manter sempre o mesmo 404 para slug inexistente, slug de outro tenant e loja com `status != active`.
+- **Cache de `null` (slug inexistente)** (2026-05-08 14:00, SPEC-20260508-1400) — `cached()` armazena 404 por 5 min. Anti-stampede, mas atenção pós-criação: até a invalidação rodar, novo slug retorna 404 cacheado.
+- **Rename de slug invalida só o slug informado** (2026-05-08 14:00, SPEC-20260508-1400) — `invalidateAllStoresCaches(tenantId, slug?)` recebe um único slug; se admin mudar slug, antigo continua quente até TTL expirar. Endpoint admin precisa invalidar **antigo + novo**.
 - **Header `Vary: x-tenant-id` é crítico para CDN** (2026-05-08 13:35, SPEC-20260506-1400) — sem ele, CDN serve resposta de um tenant para outro. Não remover sob nenhum pretexto.
 - **`limit > 50` é silenciosamente clampado** (2026-05-08 13:35, SPEC-20260506-1400) — não retorna 400. Documentar no contrato público quando houver doc OpenAPI.
 
