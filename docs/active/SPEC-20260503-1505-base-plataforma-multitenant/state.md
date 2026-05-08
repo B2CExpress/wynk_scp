@@ -8,12 +8,12 @@
 
 ## TL;DR (sobrescrever ao fim de cada sessão)
 
-**Última atualização:** 2026-05-08 15:13
-**Onde tô:** SPEC ativada + stack decidida + referências à guia limpa. Fase 0 fechada. Pronto pra fase 1 (bootstrap dos 3 apps). Sessão fechando com commit da ativação.
-**Próximo passo:** Iniciar fase 1: pnpm workspace na raiz + `backend/` (NestJS) + `portal/` (Next.js App Router) + `backoffice/` (Vite + React) + lint/format + CI mínimo. **Não há nada a ler em Nível 1+** (a "guia" `scp-spec.md` nunca existiu como arquivo).
-**Última decisão:** Stack confirmada — NestJS / Next App Router / Vite+React / pnpm workspaces. Sem Turborepo no início.
+**Última atualização:** 2026-05-08 15:33
+**Onde tô:** SPEC ativada + stack decidida + white-label decidido (Modelo A — flavor folder). `main.md` reescrito (Resumo, Escopo, Implementação, Critério de aceite). Pronto pra fase 1.
+**Próximo passo:** Iniciar fase 1: **npm workspaces** na raiz (Node nativo, sem instalar pnpm) + `backend/` (NestJS) + `portal/` (Next.js App Router) + `backoffice/` (Vite + React) + lint/format + CI mínimo + estrutura inicial de `portal/flavors/_default/`.
+**Última decisão:** White-label = Modelo A (build-time). Identidade visual em `portal/flavors/<slug>/{theme.json, logo.svg, favicon.ico}`, versionada em git. Tabela `tenants` perde colunas de branding e fica só com identidade operacional (`id, slug, host, flavor_slug`). Edição de branding só via PR + deploy.
 **Bloqueio atual:** nenhum.
-**Se retomar, ler:** TL;DR + entradas `[ativação]` (14:22), `[MARCO] [decisão] Stack` (14:31) e `[descoberta] guia fantasma` (15:13).
+**Se retomar, ler:** TL;DR + entradas `[MARCO] [decisão] Stack` (14:31), `[descoberta] guia fantasma` (15:13), `[MARCO] [decisão] White-label Modelo A` (15:33).
 
 ---
 
@@ -24,10 +24,10 @@
 | # | Descrição | Status | Atualizado | Commit |
 |---|-----------|--------|-----------|--------|
 | 0 | Quebra de fases + stack definidas com o dev | concluído | 2026-05-08 14:31 | — |
-| 1 | Bootstrap monorepo pnpm: `backend/` (NestJS), `portal/` (Next.js App Router), `backoffice/` (Vite + React), lint/format, CI | pendente | 2026-05-08 14:31 | — |
-| 2 | Schema multitenant + helper `db/withTenant` (proíbe queries sem `tenant_id`) | pendente | 2026-05-08 14:22 | — |
-| 3 | Tabela `tenants` + resolução por `host` + cache Redis (`tenant:config:{host}`, TTL 10 min) | pendente | 2026-05-08 14:22 | — |
-| 4 | `app/layout.tsx` aplica CSS vars do tenant resolvido | pendente | 2026-05-08 14:22 | — |
+| 1 | Bootstrap monorepo **npm workspaces**: `backend/` (NestJS), `portal/` (Next.js App Router), `backoffice/` (Vite + React), lint/format, CI, estrutura inicial `portal/flavors/_default/` | pendente | 2026-05-08 15:33 | — |
+| 2 | Schema multitenant + helper `db/withTenant` (proíbe queries sem `tenant_id`); tabela `tenants(id, slug, host, flavor_slug, ...)` | pendente | 2026-05-08 15:33 | — |
+| 3 | Endpoint `GET /tenant/resolve` (host → tenant) + cache Redis (`tenant:resolve:{host}`, TTL 10 min) | pendente | 2026-05-08 15:33 | — |
+| 4 | `app/layout.tsx` lê `theme.json` do flavor + aplica CSS vars + injeta `<link rel="icon">`/meta. Schema TS de `theme.json` + validação CI da correspondência `tenants.flavor_slug` ↔ `portal/flavors/<slug>/` | pendente | 2026-05-08 15:33 | — |
 | 5 | Auth JWT (15 min) + refresh (7 dias) em cookies HttpOnly + Secure | pendente | 2026-05-08 14:22 | — |
 | 6 | Seed de 1 tenant + validação E2E (todos os critérios de aceite) | pendente | 2026-05-08 14:22 | — |
 | 7 | Atualização das 4 features tocadas (R.7) + arquivamento | pendente | 2026-05-08 14:22 | — |
@@ -86,6 +86,69 @@ Arquivos identificados como relevantes para próximas sessões (ainda não lidos
 - `docs/specs/scp-spec.md` (spec-mãe — §6.2 host resolution, §8 theme, §9 cache, §10 auth)
 
 Commit: — (a fazer no fim da sessão de ativação)
+
+## 2026-05-08 15:33 — [MARCO] [decisão] White-label = Modelo A (build-time / flavor folder) + monorepo via npm workspaces
+
+Duas decisões arquiteturais grandes nesta entrada:
+
+### 1. White-label: build-time, NÃO runtime
+
+**Decisão:** identidade visual de cada tenant vive em `portal/flavors/<slug>/`, versionada em git. Edição só via PR + deploy.
+
+Estrutura:
+```
+portal/flavors/
+  _default/                    # fallback de assets ausentes
+    theme.json
+    logo.svg
+    favicon.ico
+  shopping-x/
+    theme.json                 # cores, fontes, meta, social, contato
+    logo.svg                   # obrigatório
+    favicon.ico                # obrigatório
+    og-image.jpg               # opcional
+```
+
+`theme.json` carrega: cores (primary/secondary/text/background), `font_primary` (Google Font), meta (title/description/og), social (instagram/facebook/...), contact (phone/email/address).
+
+**Implicação no schema:** tabela `tenants` perde TODAS as colunas de branding. Fica só `id, slug, host, flavor_slug, name, created_at, updated_at` — identidade operacional. Branding nunca passa pelo banco.
+
+**Endpoint backend:** `GET /tenant/config` → renomeado pra `GET /tenant/resolve`. Retorna `{ id, slug, flavorSlug }`. Cache Redis `tenant:resolve:{host}` (TTL 10 min, invalidado em alteração de host/flavor_slug — operação rara, não rotineira).
+
+**Validação CI:** pra cada `flavor_slug` na tabela `tenants`, deve existir pasta `portal/flavors/<slug>/` com `theme.json` (válido contra schema TS), `logo.svg` e `favicon.ico`. Pasta `_default/` também é checada.
+
+**Alternativas consideradas:**
+- **Modelo B (runtime/DB)** — proposta original da SPEC. Permite editar branding em produção sem deploy. **Rejeitada** pelo dev: "se deixamos tudo na base podemos alterar em produção sem testar antes; em arquivos a única forma é publicando uma nova versão e promovendo".
+- **Modelo C (híbrido)** — assets em flavor folder, dados estruturados (cores, meta) no DB. **Rejeitada** pelo mesmo motivo: cores no DB violariam a regra "branding só via deploy".
+
+**Trade-off aceito:**
+- (+) Branding 100% rastreável, revisável, com rollback trivial via git. Sem painel de branding.
+- (+) Sem dependência de S3/CDN no MVP — assets estáticos servidos pelo Next.
+- (+) Tipagem forte de `theme.json` em build (TS schema), CI valida correspondência.
+- (−) Trocar logo/cor de um tenant = PR + deploy (esperado e desejado pelo dev).
+- (−) Onboarding de novo tenant = SQL insert (operacional) + PR criando `portal/flavors/<slug>/` (visual). Não dá pra subir tenant 100% via DB.
+
+Resposta literal do dev (15:30): "Eu prefiro o b pois se deixamos tudo na base podemos altera em produção sem testar antes, então sendo em aquivos flavors/<slug>/theme.json a unica forma de alterar é publicando uma nova versão em TI e depois promove-la". (Errou letra — quis dizer A; confirmou em seguida com "Isso, modelo A".)
+
+### 2. npm workspaces (não pnpm)
+
+**Decisão:** monorepo via `workspaces` no `package.json` raiz, com Node nativo. Não instalar pnpm.
+
+**Motivação:** pnpm não está instalado no PC do dev e instalá-lo via corepack falhou por permissão (`/usr/bin` não-writable; precisaria `sudo` ou `~/.local/bin` + PATH). Em vez de tomar ação intrusiva no sistema, dev sugeriu aproveitar o Node já presente. npm workspaces (npm 7+, sólido desde 2020) cobre o caso de uso pra 3 apps.
+
+**Trade-off aceito:**
+- (+) Zero instalação extra, sem mexer em PATH/sudo.
+- (+) Comando familiar (`npm run X -w app`).
+- (−) Sem strict peer deps (phantom dependencies possíveis em runtime). Mitigação: TS estrito + lint pegam a maioria.
+- (−) `node_modules` duplicado entre apps (sem cache global content-addressable). Custo de disco aceitável pra 3 apps.
+
+Migração futura pra pnpm (se CI ficar lenta com mais apps) é trivial (~1 dia).
+
+### Implicação no plano
+
+`main.md` reescrito: §Resumo, §Escopo (DENTRO + FORA), §Implementação, §Critério de aceite. Tabela de fases atualizada (fase 1 mudou pra "npm workspaces" + criar `portal/flavors/_default/`; fase 3 agora é endpoint `/tenant/resolve` em vez de `/tenant/config`).
+
+Commit: — (a fazer ao consolidar com início da fase 1)
 
 ## 2026-05-08 15:13 — [descoberta] A "guia" `docs/specs/scp-spec.md` nunca existiu como arquivo
 
