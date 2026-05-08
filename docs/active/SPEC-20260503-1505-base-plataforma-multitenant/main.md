@@ -45,12 +45,15 @@ Entregar a base mínima sobre a qual todos os módulos posteriores se apoiam: re
 
 **Arquitetura:** monorepo com 3 apps + npm workspaces. Identidade visual é **build-time** (Modelo A — flavor folder); dados operacionais são runtime.
 
-- **`backend/`** — NestJS + Postgres + Redis + JWT.
-  - Schema: `tenants(id, slug, host, flavor_slug, name, created_at, updated_at)` — **somente identidade operacional**. Toda tabela multitenant carrega `tenant_id`.
-  - Tenant context propagado via interceptor + `AsyncLocalStorage`. Repositório tenant-aware injetado por DI; helper `withTenant` (camada de query) injeta `WHERE tenant_id = $1` automaticamente — queries cruas sem ele são proibidas (assert em dev, erro em prod).
+- **`backend/`** — Express 4 + TypeORM 0.3 + Postgres + Redis (ioredis) + JWT (jsonwebtoken). Stack alinhada com `wynk_ecommerce/backend/` para reuso de patterns e familiaridade do time.
+  - Estrutura de pastas: `controllers/`, `services/`, `repositories/`, `routes/`, `entities/`, `migrations/`, `subscribers/`, `middleware/`, `dtos/`, `config/`, `utils/` (espelha `wynk_ecommerce/backend/src/`).
+  - Schema em **schema dedicado** `scp` (configurável via env). Tabela `tb_tenant(tenant_id uuid pk, tenant_slug, tenant_host, tenant_flavor_slug, tenant_name, tenant_created_at, tenant_updated_at)` — **somente identidade operacional**. Toda tabela multitenant carrega `tenant_id`.
+  - Convenções de naming alinhadas com wynk_ecommerce: tabelas com prefixo `tb_`, colunas com prefixo do nome da entity (`tenant_slug`, `tenant_host`, etc.), property TS em camelCase com mapeamento via `name:` no decorator.
+  - Tenant context propagado via **middleware Express** + `AsyncLocalStorage` (Node nativo, sem framework de DI). Helper `withTenant(qb, ctx)` aplica `WHERE tenant_id = $1` em `QueryBuilder`/`Repository`. Subscriber TypeORM (`@EventSubscriber`) injeta `tenant_id` em insert/update/delete pegando do `AsyncLocalStorage`. Queries cruas sem `tenant_id` são proibidas (assert em dev, erro em prod).
   - Endpoint `GET /tenant/resolve` recebe `host` da request e retorna `{ id, slug, flavorSlug }`. Cache Redis em `tenant:resolve:{host}` (TTL 10 min, invalidado em mudança de host/flavor_slug — operação rara).
-  - Auth JWT (15 min) + refresh (7 dias) emitidos como cookies `HttpOnly` + `Secure` + `SameSite=Lax`.
-  - Guard global rejeita cross-tenant (tenant resolvido pelo host ≠ tenant dos dados acessados).
+  - Auth JWT (15 min) + refresh (7 dias) com `jsonwebtoken`, emitidos como cookies `HttpOnly` + `Secure` + `SameSite=Lax`. Middleware `requireAuth` valida e popula `req.user`.
+  - Middleware `requireSameTenant` rejeita cross-tenant (tenant resolvido pelo host ≠ tenant dos dados acessados).
+  - Migrations: SQL puro via `queryRunner.query()`, com schema dinâmico (`${schemaName}.tb_X`), `CREATE TABLE IF NOT EXISTS`, constraints nomeadas (`pk_tb_X`, `uq_tb_X_<col>`, `fk_tb_X_<col>`).
 
 - **`portal/`** — Next.js (App Router) + TypeScript.
   - **Flavors versionados em `portal/flavors/<slug>/`** — uma pasta por tenant:
@@ -74,7 +77,7 @@ Entregar a base mínima sobre a qual todos os módulos posteriores se apoiam: re
 - **`backoffice/`** — Vite + React + TypeScript.
   - SPA logada — fora do escopo desta SPEC além do shell mínimo (login JWT que reusa o backend).
 
-- **Tooling:** npm workspaces na raiz; cada app com seu `package.json`. CI roda lint + typecheck + testes em todos + valida correspondência entre tabela `tenants` e pastas em `portal/flavors/`.
+- **Tooling:** npm workspaces na raiz; cada app com seu `package.json`. CI roda lint + typecheck + testes em todos + valida correspondência entre tabela `tb_tenant` e pastas em `portal/flavors/`. Postgres 16 + Redis 7 locais via `docker-compose.yml` na raiz.
 
 ## Critério de aceite
 
@@ -84,7 +87,7 @@ Entregar a base mínima sobre a qual todos os módulos posteriores se apoiam: re
 - [ ] Login JWT + refresh token funcionando, cookies marcados HttpOnly + Secure + SameSite=Lax
 - [ ] Tentativa de query sem `tenant_id` falha em dev (assert) e em prod (erro do helper)
 - [ ] Trocar host → trocar tenant sem reload manual de cache
-- [ ] CI valida que cada `flavor_slug` na tabela `tenants` tem pasta `portal/flavors/<slug>/` com `theme.json`, `logo.svg`, `favicon.ico` (e `theme.json` válido contra o schema TS)
+- [ ] CI valida que cada `tenant_flavor_slug` na tabela `tb_tenant` tem pasta `portal/flavors/<slug>/` com `theme.json`, `logo.svg`, `favicon.ico` (e `theme.json` válido contra o schema TS)
 - [ ] `theme.json` do flavor `_default` existe e cobre todos os campos obrigatórios
 - [ ] **Features tocadas (infra-base, tenant-resolution, auth, theme-system) atualizadas** com timestamp e referência a esta SPEC
 - [ ] `state.md` com entrada `[conclusão]`

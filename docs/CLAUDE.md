@@ -33,15 +33,15 @@ Antes de qualquer código, qualquer resposta substantiva:
 
 Monorepo gerenciado por **npm workspaces** (Node 22+).
 
-- **Backend** (`backend/`): **NestJS** + TypeScript — API multitenant. Resolve tenant por `host`, owns o schema com `tenant_id` e o helper `withTenant`. Tenant context via interceptor + `AsyncLocalStorage`.
+- **Backend** (`backend/`): **Express 4 + TypeORM 0.3** + TypeScript — API multitenant. Stack alinhada com `wynk_ecommerce/backend/`. Resolve tenant por `host`, owns o schema com `tenant_id` e o helper `withTenant`. Tenant context via middleware Express + `AsyncLocalStorage`. Estrutura: `controllers/services/repositories/routes/entities/migrations/subscribers/middleware/dtos/config/utils/`.
 - **Portal** (`portal/`): **Next.js (App Router)** + TypeScript — site público de cada shopping. SSR para SEO; `app/layout.tsx` lê `host` via `headers()` server-side, chama `GET /tenant/resolve` no backend, importa `portal/flavors/<slug>/theme.json` e aplica CSS variables.
 - **Backoffice** (`backoffice/`): **Vite + React** + TypeScript — painel de gestão (Tenant Admin, Editor, Superadmin). SPA logada, sem SSR.
 - **White-label:** **build-time** (Modelo A). Identidade visual de cada tenant em `portal/flavors/<slug>/{theme.json, logo.svg, favicon.ico}`, versionada em git. Edição só via PR + deploy. Branding **nunca** passa pelo banco.
-- **Banco:** PostgreSQL (com `tenant_id` em todas as tabelas multitenant). Tabela `tenants` guarda só identidade operacional (`id, slug, host, flavor_slug, ...`).
-- **Cache:** Redis (mapeamento `tenant:resolve:{host}` → `{id, slug, flavor_slug}`, TTL 10 min)
-- **Auth:** JWT (15 min) + refresh token (7 dias) em cookies HttpOnly + Secure + SameSite=Lax
+- **Banco:** PostgreSQL (com `tenant_id` em todas as tabelas multitenant). Schema dedicado `scp`. Tabela `tb_tenant` guarda só identidade operacional (`tenant_id, tenant_slug, tenant_host, tenant_flavor_slug, ...`). Naming: `tb_<entity>` + colunas com prefixo `<entity>_<col>` (alinhado com wynk_ecommerce).
+- **Cache:** Redis (mapeamento `tenant:resolve:{host}` → `{id, slug, flavor_slug}`, TTL 10 min). Cliente: `ioredis`.
+- **Auth:** JWT (15 min, `jsonwebtoken`) + refresh token (7 dias) em cookies HttpOnly + Secure + SameSite=Lax
 
-> Decisões registradas em SPEC-20260503-1505 (stack: 2026-05-08 14:31; white-label Modelo A + npm workspaces: 2026-05-08 15:33).
+> Decisões registradas em SPEC-20260503-1505: stack inicial 2026-05-08 14:31 → revisão Express 16:43; white-label Modelo A 15:33; npm workspaces 15:33.
 
 ## Comandos
 
@@ -49,12 +49,15 @@ Monorepo gerenciado por **npm workspaces** (Node 22+).
 # Setup inicial (na raiz)
 npm install
 
-# Backend (NestJS)
-npm run start:dev -w backend
+# Backend (Express + TypeORM)
+npm run dev -w backend                  # ts-node-dev --respawn src/server.ts
 npm run build -w backend
 npm test -w backend
 npm run lint -w backend
 npm run typecheck -w backend
+npm run migration:run -w backend        # aplicar migrations pendentes
+npm run migration:revert -w backend     # desfazer última migration
+npm run migration:create -w backend -- <NomePascalCase>   # criar migration vazia
 
 # Portal (Next.js, site público)
 npm run dev -w portal
