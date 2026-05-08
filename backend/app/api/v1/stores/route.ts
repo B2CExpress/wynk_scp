@@ -22,6 +22,12 @@ const CACHE_TTL = 300          // 5 minutos
 const DEFAULT_LIMIT = 20
 const MAX_LIMIT = 50
 
+// Escape de wildcards LIKE: `%` e `_` no input do usuário NÃO devem virar wildcards SQL.
+// `\` é escapado primeiro porque é o próprio caractere de escape do Postgres LIKE.
+function escapeLikePattern(s: string): string {
+  return s.replace(/[\\%_]/g, '\\$&')
+}
+
 // ---------------------------------------------------------------------------
 // Tipos de resposta
 // ---------------------------------------------------------------------------
@@ -66,11 +72,17 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   const rawLimit = parseInt(searchParams.get('limit') ?? String(DEFAULT_LIMIT), 10)
   const rawPage = parseInt(searchParams.get('page') ?? '1', 10)
 
+  // search normalizado (lowercase + trim) ANTES de virar params — cache key e query
+  // precisam ver o mesmo valor, senão `"a "` e `"a"` geram chaves diferentes mas resultados
+  // iguais (cache duplicado e hit-rate ruim).
+  const rawSearch = searchParams.get('search')
+  const normalizedSearch = rawSearch ? rawSearch.toLowerCase().trim() : ''
+
   const params: StoreListParams = {
     category: searchParams.get('category') ?? undefined,
     featured: searchParams.get('featured') ?? undefined,
     isRestaurant: searchParams.get('is_restaurant') ?? undefined,
-    search: searchParams.get('search') ?? undefined,
+    search: normalizedSearch || undefined,
     page: Math.max(1, isNaN(rawPage) ? 1 : rawPage),
     limit: Math.min(MAX_LIMIT, Math.max(1, isNaN(rawLimit) ? DEFAULT_LIMIT : rawLimit)),
   }
@@ -115,7 +127,7 @@ async function fetchStores(tenantId: string, params: StoreListParams): Promise<S
     conditions.push(eq(stores.isRestaurant, false))
   }
   if (search) {
-    conditions.push(ilike(stores.name, `%${search}%`))
+    conditions.push(ilike(stores.name, `%${escapeLikePattern(search)}%`))
   }
 
   // --- Filtro por categoria via subquery ---
