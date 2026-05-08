@@ -8,12 +8,12 @@
 
 ## TL;DR (sobrescrever ao fim de cada sessão)
 
-**Última atualização:** 2026-05-08 19:03
-**Onde tô:** Fase 3 **concluída**. Endpoint `GET /tenant/resolve` funcionando ponta-a-ponta com cache Redis. Smoke E2E real: cache miss 77ms → cache hit 3ms (25x speedup). 13/13 testes passam. Pronto pra fase 4.
-**Próximo passo:** Fase 4 — portal Next.js consumindo `/tenant/resolve`: `app/layout.tsx` lê `host` via `headers()` server-side, chama backend, importa `portal/flavors/<flavorSlug>/theme.json` estaticamente, aplica CSS variables na `<html>`, injeta favicon/title/meta. Schema TS pra `theme.json`. Validação CI da correspondência `tb_tenant.tenant_flavor_slug` ↔ `portal/flavors/<slug>/`.
-**Última decisão:** Fase 3 fechada. `TenantResolverService` injeta deps via construtor (`TenantRepository` + `Redis`). `createApp(deps)` aceita `AppDeps` pra facilitar testes (mock do resolver). Pipeline middleware: resolveByHost → tenantContext → routes. `/health` bypassa via Set explícito (pra responder mesmo sem DB). `@types/superagent` adicionado pra `.set()` tipar em testes supertest.
-**Bloqueio atual:** nenhum.
-**Se retomar, ler:** TL;DR + entrada `[conclusão] Fase 3` (19:03).
+**Última atualização:** 2026-05-08 22:15
+**Onde tô:** Fase 4 **código completo + checks verdes, smoke E2E browser PENDENTE**. Sessão fechada pelo dev antes de validar o portal SSR contra DB+Redis reais. Commitado pelo dev manualmente como `44677ba` (sem coautoria, padrão IDE/Copilot).
+**Próximo passo:** Smoke E2E da fase 4: subir backend (`npm run dev -w backend`) + portal (`npm run dev -w portal`) com containers Docker já up; `curl -H "Host: shopping-x.local" http://localhost:3000` deve renderizar SSR com cores `#7C3AED`/`#F59E0B`, fonte Poppins, title "Shopping X — Compre, viva, descubra"; `curl http://localhost:3000/flavors/shopping-x/logo.svg` deve servir o asset. Host desconhecido → 404 via `notFound()`. Após smoke OK, fechar fase 4 e seguir pra fase 5 (auth JWT).
+**Última decisão:** Flavors movidos pra `portal/public/flavors/` (não `portal/flavors/`) — Next serve assets nativamente em `/flavors/<slug>/...`. `theme.json` lido server-side via `node:fs/promises` em `portal/src/lib/theme/load.ts`. Manifesto canonical `seeds/tenants.json` na raiz é fonte da verdade pra CI validar correspondência tabela↔pasta (sem precisar DB no CI).
+**Bloqueio atual:** nenhum (containers Docker ainda up e DB com tenant `shopping-x` inserido — pronto pra próxima sessão).
+**Se retomar, ler:** TL;DR + entrada `[nota] Fase 4 — código pronto, smoke pendente` (22:15).
 
 ---
 
@@ -28,7 +28,7 @@
 | 1.5 | **Revisão de stack do backend:** apagar scaffold NestJS, recriar `backend/` em Express 4 + TypeORM 0.3 espelhando estrutura do `wynk_ecommerce/backend/src/`. Manter versões alinhadas (express ^4.18.2, typeorm ^0.3.17, jsonwebtoken ^9.0.2, ioredis ^5.8.2, etc.) | concluído | 2026-05-08 17:04 | — |
 | 2 | Docker compose (Postgres 15 + Redis 7); schema `scp`; entity `Tenant` (`tb_tenant`); migrations inicial (schema + extension) e CreateTenantTable; helper `withTenant` + middleware de tenant context com `AsyncLocalStorage`; subscriber TypeORM injetando `tenant_id` | concluído | 2026-05-08 17:42 | — |
 | 3 | Endpoint `GET /tenant/resolve` (host → tenant) + cache Redis (`tenant:resolve:{host}`, TTL 10 min) | concluído | 2026-05-08 19:03 | — |
-| 4 | `app/layout.tsx` lê `theme.json` do flavor + aplica CSS vars + injeta `<link rel="icon">`/meta. Schema TS de `theme.json` + validação CI da correspondência `tb_tenant.tenant_flavor_slug` ↔ `portal/flavors/<slug>/` | pendente | 2026-05-08 16:43 | — |
+| 4 | `app/layout.tsx` lê `theme.json` do flavor + aplica CSS vars + injeta `<link rel="icon">`/meta. Schema TS de `theme.json` + validação CI da correspondência `tb_tenant.tenant_flavor_slug` ↔ `portal/public/flavors/<slug>/` | em progresso (código + checks OK; smoke E2E browser pendente) | 2026-05-08 22:15 | `44677ba` |
 | 5 | Auth JWT (15 min) + refresh (7 dias) em cookies HttpOnly + Secure | pendente | 2026-05-08 14:22 | — |
 | 6 | Seed de 1 tenant + validação E2E (todos os critérios de aceite) | pendente | 2026-05-08 14:22 | — |
 | 7 | Atualização das 4 features tocadas (R.7) + arquivamento | pendente | 2026-05-08 14:22 | — |
@@ -87,6 +87,61 @@ Arquivos identificados como relevantes para próximas sessões (ainda não lidos
 - `docs/specs/scp-spec.md` (spec-mãe — §6.2 host resolution, §8 theme, §9 cache, §10 auth)
 
 Commit: — (a fazer no fim da sessão de ativação)
+
+## 2026-05-08 22:15 — [nota] Fase 4 — código pronto, smoke E2E browser pendente; sessão fechada pelo dev
+
+**Estado da fase 4 ao parar:**
+
+Código completo, todos os checks automatizados verdes, smoke E2E manual no browser ainda **não validado**. Dev decidiu fechar a sessão antes da validação visual. Containers Docker (Postgres + Redis) seguem up; DB tem o tenant exemplo `shopping-x` inserido na fase 2.
+
+**Implementado (commit `44677ba`, feito pelo dev via IDE/Copilot — sem coautoria):**
+
+- `portal/flavors/` → `portal/public/flavors/` (movido pra Next servir assets nativamente em `/flavors/<slug>/...`)
+- Novo flavor `portal/public/flavors/shopping-x/` com `theme.json` (cores `#7C3AED`/`#F59E0B`, fonte Poppins), `logo.svg` (placeholder visual diferente do `_default`) e `favicon.ico`
+- `portal/src/lib/theme/types.ts` — schema TypeScript de `theme.json`
+- `portal/src/lib/theme/load.ts` — `loadTheme(slug)` (lê via `node:fs/promises`, fallback pra `_default`) + `flavorAssets(slug)` (URLs canônicas)
+- `portal/src/lib/tenant/resolve.ts` — `resolveTenantByHost(host)` chama backend `GET /tenant/resolve` com `cache: 'no-store'` (Redis no backend já cacheia; evita camada extra do Next data cache)
+- `portal/src/app/layout.tsx` reescrito: `generateMetadata()` dinâmico + RootLayout com CSS vars no `<html style={...}>` + Google Font preconnect + `notFound()` em host desconhecido
+- `portal/src/app/page.tsx` — homepage temporária mostrando logo, nome, swatches de cor, fonte (validação visual)
+- `portal/src/app/page.module.css` — usa `var(--color-*)` e `var(--font-primary)`
+- `portal/src/app/globals.css` — limpo: sem default cores hard-coded; tudo via CSS vars do flavor
+- `portal/.env.example` — `BACKEND_URL=http://localhost:3001`
+- `seeds/tenants.json` na raiz — manifesto canonical (fonte da verdade pra CI)
+- `scripts/validate-flavors.mjs` — valida que cada `flavorSlug` no manifesto tem pasta com `theme.json`/`logo.svg`/`favicon.ico` + valida shape do `theme.json`. Roda como `npm run validate:flavors`
+- `.github/workflows/ci.yml` — job novo `validate-flavors`
+- `package.json` raiz — script `validate:flavors`
+
+**Checks no estado atual:**
+- `npm run validate:flavors` ✓
+- `npm run typecheck` ✓ (3 apps)
+- `npm run lint` ✓
+- `npm test` ✓ (4 suites, 13 testes — não há testes novos pra portal nesta fase, intencional)
+- `npm run format:check` ✓
+
+**Smoke E2E browser PENDENTE (pra próxima sessão):**
+
+1. `npm run dev -w backend` (backend conecta no DB existente)
+2. `cp portal/.env.example portal/.env` (se ainda não existir)
+3. `npm run dev -w portal`
+4. `curl -H "Host: shopping-x.local" http://localhost:3000` → deve render HTML com:
+   - `<title>Shopping X — Compre, viva, descubra</title>`
+   - `<meta name="description" ...>`
+   - `<link rel="icon" href="/flavors/shopping-x/favicon.ico" />`
+   - `style="--color-primary:#7C3AED; --color-secondary:#F59E0B; ..."` no `<html>`
+   - Logo SVG referenciada via Image
+5. `curl http://localhost:3000/flavors/shopping-x/logo.svg` → 200 OK (SVG)
+6. `curl -H "Host: bogus.local" http://localhost:3000` → 404 (Next `notFound()`)
+7. Browser: abrir com `/etc/hosts` apontando `127.0.0.1 shopping-x.local` e ver visualmente cores roxo/laranja + fonte Poppins
+8. Trocar host do tenant pra `bogus.local` no DB, hit cache invalidate (`docker exec scp_redis redis-cli del tenant:resolve:shopping-x.local`), confirmar comportamento
+
+**Critérios de aceite que ainda dependem de smoke:**
+- [ ] Acessar `tenant1.local` carrega config do tenant 1 (cores, fontes, favicon corretos) — validar
+- [ ] Trocar host → trocar tenant sem reload manual de cache — confirmado em fase 3 via curl ao backend; falta validar via portal end-to-end
+
+**Estado de infraestrutura ao parar:**
+- Containers Docker ainda up: `scp_postgres` (5435), `scp_redis` (6382). Health = healthy.
+- DB tem tenant `shopping-x` inserido manualmente na fase 2 (`tenant_id=931bb6f7-7631-4abf-9b74-88264561378a`).
+- Próxima sessão pode descer com `docker-compose stop` se quiser liberar recursos, ou manter pra continuar.
 
 ## 2026-05-08 19:03 — [conclusão] Fase 3 — Resolução de tenant por host com cache Redis
 

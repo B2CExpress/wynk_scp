@@ -8,12 +8,12 @@
 
 ## TL;DR (sobrescrever ao fim de cada sessão)
 
-**Última atualização:** 2026-05-08 19:03 (sessão #1)
-**Onde tô:** **Fase 3 fechada.** Endpoint `GET /tenant/resolve` funcional. Cache Redis dá 25x speedup na segunda chamada (77ms → 3ms). 13/13 testes passam.
-**Próximo passo:** Fase 4 — portal Next.js consumindo `/tenant/resolve` no `app/layout.tsx` (via `headers()` SSR), importando `portal/flavors/<flavorSlug>/theme.json`, aplicando CSS vars, injetando favicon/title/meta. Schema TS pra `theme.json`. Validação CI da correspondência tabela ↔ pasta de flavor.
-**Última decisão:** `createApp(deps: AppDeps)` exige `{ tenantResolver }` (composition root em `server.ts`). Pipeline middleware: `bypassFor(['/health'], resolveTenantByHost)` → `bypassFor(['/health'], tenantContext)` → routes. Sem framework de DI — instanciação manual. `@types/superagent` necessário pra `.set()` tipar em supertest.
-**Bloqueio atual:** nenhum.
-**Se retomar, ler:** state.md TL;DR + entrada `[conclusão] Fase 3` (19:03).
+**Última atualização:** 2026-05-08 22:15 (sessão #1 fechada)
+**Onde tô:** **Fase 4 código completo + checks verdes; smoke E2E browser pendente.** Sessão fechada antes da validação visual no portal SSR. Commit `44677ba` (feito pelo dev manualmente via IDE/Copilot).
+**Próximo passo (próxima sessão):** smoke E2E — subir backend + portal (containers Docker já up, DB com tenant `shopping-x`), `curl -H "Host: shopping-x.local" http://localhost:3000` deve retornar HTML com CSS vars + meta corretos; assets `/flavors/shopping-x/logo.svg` 200; host desconhecido → 404. Detalhes completos em `state.md` entrada de 22:15.
+**Última decisão:** Flavors em `portal/public/flavors/` (Next serve nativo). `theme.json` lido via `node:fs/promises` server-side. Manifesto `seeds/tenants.json` na raiz é fonte canônica pra CI validar (sem precisar DB). Script `scripts/validate-flavors.mjs` rodando no novo job CI `validate-flavors`.
+**Bloqueio atual:** nenhum. Containers Docker seguem up.
+**Se retomar, ler:** state.md TL;DR + entrada `[nota] Fase 4 — código pronto, smoke pendente` (22:15).
 
 ---
 
@@ -148,4 +148,4 @@ Pendência externa pra dev decidir antes da fase 1 começar: mini-SPEC de limpez
 
 | # | Início | Duração | Tipo | Sumário 1 linha |
 |---|--------|---------|------|-----------------|
-| 1 | 2026-05-08 14:22 | em curso | ativação | Move future→active, atualiza main.md, cria state/memory + 4 stubs de feature |
+| 1 | 2026-05-08 14:22 | ~8h | ativação + fases 1, 1.5, 2, 3, 4 (parcial) | Bootstrap monorepo + revisão de stack pra Express + schema multitenant + endpoint resolve + portal SSR (sem smoke) |
