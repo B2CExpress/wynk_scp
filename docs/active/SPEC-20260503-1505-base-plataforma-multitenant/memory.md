@@ -8,12 +8,12 @@
 
 ## TL;DR (sobrescrever ao fim de cada sessão)
 
-**Última atualização:** 2026-05-08 15:33 (sessão #1)
-**Onde tô:** SPEC ativada + stack + npm workspaces + white-label Modelo A definidos. `main.md` reescrito refletindo flavor folder. Pronto pra fase 1.
-**Próximo passo:** Iniciar fase 1: `npm init -w` na raiz + scaffolds (NestJS / Next App Router / Vite+React) + lint/format + CI mínimo + criar `portal/flavors/_default/{theme.json, logo.svg, favicon.ico}`.
-**Última decisão:** White-label = **Modelo A (build-time)**. Branding em `portal/flavors/<slug>/`, versionado, edição só por PR + deploy. Tabela `tenants` fica só com identidade operacional (`id, slug, host, flavor_slug, ...`).
+**Última atualização:** 2026-05-08 15:53 (sessão #1)
+**Onde tô:** Fase 1 fechada. Monorepo bootstrapped, 909 pacotes instalados, lint/typecheck/test/format passam nos 3 apps. CI workflow no lugar.
+**Próximo passo:** Fase 2 — schema Postgres (tabela `tenants` enxuta) + helper `db/withTenant` no backend. **Decisão pendente:** ORM (TypeORM, Drizzle, ou Prisma).
+**Última decisão:** Aplicada em fase 1: ESLint+Prettier configurados, `.prettierignore` exclui `docs/` (SPEC-driven tem convenção própria). `portal/CLAUDE.md` deletado (conflitava com `docs/CLAUDE.md`); `portal/AGENTS.md` mantido (aviso útil sobre Next 15+).
 **Bloqueio atual:** nenhum. **Pendência externa:** dev decide depois se mini-SPEC de limpeza pra referências fantasma nas SPECs 1506-1510 ou deixa pra cada ativação.
-**Se retomar, ler:** state.md TL;DR + entrada `[MARCO] [decisão] White-label Modelo A + npm workspaces` (15:33).
+**Se retomar, ler:** state.md TL;DR + entrada `[conclusão] Fase 1` (15:53).
 
 ---
 
@@ -71,18 +71,21 @@ _(nenhuma ainda — sessão de ativação)_
 
 ### Onde parei exatamente
 
-Decisão de white-label Modelo A + npm workspaces consolidada no `main.md`, `state.md`, `memory.md`. Próxima ação imediata = fase 1:
+Fase 1 fechada. Monorepo funcional. Próxima sessão começa fase 2:
 
-1. `npm init -y` na raiz + adicionar `"workspaces": ["backend", "portal", "backoffice"]` + `"private": true`
-2. Limpar pastas `backend/`, `portal/`, `backoffice/` (só têm `.gitkeep`) — scaffolds vão recriar
-3. Scaffold `backend/` com Nest CLI: `npx @nestjs/cli@latest new backend --strict --skip-git --package-manager npm`
-4. Scaffold `portal/` com Next.js: `npx create-next-app@latest portal --ts --app --src-dir --no-tailwind --no-eslint --use-npm --import-alias "@/*"`
-5. Scaffold `backoffice/` com Vite: `npm create vite@latest backoffice -- --template react-ts`
-6. Criar `portal/flavors/_default/{theme.json, logo.svg, favicon.ico}` como esqueleto
-7. ESLint flat config + Prettier na raiz; cada app estende
-8. `.github/workflows/ci.yml` — matrix nos 3 apps, lint + typecheck + test
-9. Atualizar `CLAUDE.md` (substituir comandos pnpm → npm)
-10. Commit consolidado da fase 1
+1. **Decisão pendente — ORM:** TypeORM (oficial do Nest, batteries-included), **Drizzle** (TypeScript-first, sem SQL gerado por classes, mais leve), ou **Prisma** (gera client, ergonomia top, mas é mais "framework"). Apresentar trade-offs ao dev e bater martelo antes de codar.
+2. Setup de Postgres + Redis local (docker-compose? script?).
+3. Schema inicial: tabela `tenants(id uuid pk, slug text unique, host text unique, flavor_slug text not null, name text, created_at timestamptz, updated_at timestamptz)`. Constraint: `flavor_slug` precisa bater com pasta em `portal/flavors/<slug>/`.
+4. Helper `db/withTenant` no backend — DI de repositório tenant-aware via `AsyncLocalStorage`. Queries cruas sem `tenant_id` lançam exceção (assert em dev, erro em prod).
+5. Validação CI da correspondência tabela ↔ flavor folder — script ou job no workflow.
+6. Migração inicial e seed de 1 tenant exemplo (com `flavor_slug: "_default"` ou criar `flavors/exemplo/`).
+
+**Conhecimento útil pra retomada:**
+- Versões instaladas: Nest 11, Next 16.2.6, Vite 8, React 19.2, TS 5.7 (backend) / 6 (backoffice).
+- `npm install` na raiz consolida tudo no `node_modules` topo (workspaces).
+- `npm run X -w app` roda script em workspace específico; `npm run X` na raiz roda em todos com `--workspaces --if-present`.
+- Backend usa Jest 30 + ts-jest. Portal e backoffice ainda sem test runner — Vitest seria a escolha natural pra ambos.
+- ESLint 9 flat config (`eslint.config.mjs` / `.js`) em todos os 3.
 
 Pendência externa pra dev decidir antes da fase 1 começar: mini-SPEC de limpeza pras referências fantasma em SPEC-1506/1507/1508/1509/1510, ou deixa pra ativação de cada uma.
 

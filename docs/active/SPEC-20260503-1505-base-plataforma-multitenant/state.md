@@ -8,12 +8,12 @@
 
 ## TL;DR (sobrescrever ao fim de cada sessão)
 
-**Última atualização:** 2026-05-08 15:33
-**Onde tô:** SPEC ativada + stack decidida + white-label decidido (Modelo A — flavor folder). `main.md` reescrito (Resumo, Escopo, Implementação, Critério de aceite). Pronto pra fase 1.
-**Próximo passo:** Iniciar fase 1: **npm workspaces** na raiz (Node nativo, sem instalar pnpm) + `backend/` (NestJS) + `portal/` (Next.js App Router) + `backoffice/` (Vite + React) + lint/format + CI mínimo + estrutura inicial de `portal/flavors/_default/`.
-**Última decisão:** White-label = Modelo A (build-time). Identidade visual em `portal/flavors/<slug>/{theme.json, logo.svg, favicon.ico}`, versionada em git. Tabela `tenants` perde colunas de branding e fica só com identidade operacional (`id, slug, host, flavor_slug`). Edição de branding só via PR + deploy.
+**Última atualização:** 2026-05-08 15:53
+**Onde tô:** Fase 1 concluída — bootstrap do monorepo funciona ponta-a-ponta. `npm install` (909 pacotes) OK; `lint`, `typecheck`, `test`, `format:check` passam nos 3 apps. Pronto pra fase 2.
+**Próximo passo:** Fase 2 — schema multitenant em Postgres (tabela `tenants(id, slug, host, flavor_slug, ...)`), helper `db/withTenant` no backend (proíbe queries sem `tenant_id`), e infra de migration. Decidir ORM (TypeORM oficial do Nest? Drizzle? Prisma?) antes de codar.
+**Última decisão:** Fase 1 fechada com 64 arquivos novos/modificados, ESLint+Prettier configurados, CI workflow `.github/workflows/ci.yml` com matrix [backend, portal, backoffice] × [lint, typecheck, test] + format check. `portal/flavors/_default/` populado (theme.json, logo.svg, favicon.ico).
 **Bloqueio atual:** nenhum.
-**Se retomar, ler:** TL;DR + entradas `[MARCO] [decisão] Stack` (14:31), `[descoberta] guia fantasma` (15:13), `[MARCO] [decisão] White-label Modelo A` (15:33).
+**Se retomar, ler:** TL;DR + entrada `[conclusão] fase 1` (2026-05-08 15:53).
 
 ---
 
@@ -24,7 +24,7 @@
 | # | Descrição | Status | Atualizado | Commit |
 |---|-----------|--------|-----------|--------|
 | 0 | Quebra de fases + stack definidas com o dev | concluído | 2026-05-08 14:31 | — |
-| 1 | Bootstrap monorepo **npm workspaces**: `backend/` (NestJS), `portal/` (Next.js App Router), `backoffice/` (Vite + React), lint/format, CI, estrutura inicial `portal/flavors/_default/` | pendente | 2026-05-08 15:33 | — |
+| 1 | Bootstrap monorepo **npm workspaces**: `backend/` (NestJS), `portal/` (Next.js App Router), `backoffice/` (Vite + React), lint/format, CI, estrutura inicial `portal/flavors/_default/` | concluído | 2026-05-08 15:53 | — |
 | 2 | Schema multitenant + helper `db/withTenant` (proíbe queries sem `tenant_id`); tabela `tenants(id, slug, host, flavor_slug, ...)` | pendente | 2026-05-08 15:33 | — |
 | 3 | Endpoint `GET /tenant/resolve` (host → tenant) + cache Redis (`tenant:resolve:{host}`, TTL 10 min) | pendente | 2026-05-08 15:33 | — |
 | 4 | `app/layout.tsx` lê `theme.json` do flavor + aplica CSS vars + injeta `<link rel="icon">`/meta. Schema TS de `theme.json` + validação CI da correspondência `tenants.flavor_slug` ↔ `portal/flavors/<slug>/` | pendente | 2026-05-08 15:33 | — |
@@ -86,6 +86,43 @@ Arquivos identificados como relevantes para próximas sessões (ainda não lidos
 - `docs/specs/scp-spec.md` (spec-mãe — §6.2 host resolution, §8 theme, §9 cache, §10 auth)
 
 Commit: — (a fazer no fim da sessão de ativação)
+
+## 2026-05-08 15:53 — [conclusão] Fase 1 — Bootstrap do monorepo
+
+Bootstrap end-to-end funcional. `npm install` (909 pacotes), `npm run lint/typecheck/test/format:check` passam em todos.
+
+**Arquivos criados na raiz:**
+- `package.json` (privado, workspaces: backend/portal/backoffice, scripts agregadores: lint, typecheck, test, build, format, format:check)
+- `.gitignore`, `.editorconfig`, `.prettierrc.json`, `.prettierignore`
+- `.github/workflows/ci.yml` — CI com matrix `app × task` ([backend, portal, backoffice] × [lint, typecheck, test]) + job `format:check` separado
+- `package-lock.json` (consolidado pelo workspace)
+
+**Scaffolds:**
+- `backend/` — Nest CLI 11 (`@nestjs/cli@latest new --strict --skip-git --skip-install --package-manager npm`). ESLint flat config (eslint 9 + typescript-eslint 8), Jest 30, TS 5.7. Adicionado script `typecheck`. Fix em `src/main.ts`: `bootstrap()` → `void bootstrap()` (remove warning de floating promise).
+- `portal/` — `create-next-app@latest --ts --app --src-dir --no-tailwind --eslint --use-npm --import-alias "@/*" --skip-install`. Next 16.2.6, React 19.2.4. Removido `portal/CLAUDE.md` (era só `@AGENTS.md` e conflitava com a convenção SPEC-driven do repo onde CLAUDE.md vive em `docs/`); mantido `portal/AGENTS.md` (aviso útil sobre breaking changes do Next 15+). Adicionado script `typecheck`.
+- `backoffice/` — `create-vite@latest -- --template react-ts`. Vite 8, React 19, TS 6 (sim, TS major 6 — Vite ecosystem foi mais agressivo). Adicionado script `typecheck`.
+
+**White-label — estrutura inicial:**
+- `portal/flavors/_default/theme.json` — config completa com cores Slate (primary `#0F172A`, secondary `#64748B`), font Inter, meta padrão, social/contact null
+- `portal/flavors/_default/logo.svg` — placeholder SVG com texto "Plataforma"
+- `portal/flavors/_default/favicon.ico` — copiado do scaffold do Next (`portal/src/app/favicon.ico`)
+- `portal/flavors/README.md` — documentação da convenção (estrutura, princípio, schema de `theme.json`, processo de adicionar tenant)
+
+**Atualizações de docs:**
+- `docs/CLAUDE.md` — seção Stack e Comandos atualizadas (pnpm → npm workspaces, white-label Modelo A explicitado)
+
+**Verificações finais:**
+- `npm run typecheck`: ✓ passa nos 3
+- `npm run lint`: ✓ zero warnings (após fix em main.ts)
+- `npm test`: ✓ backend/jest passa (1 spec); portal/backoffice ainda sem testes (com `--if-present` skip)
+- `npm run format:check`: ✓ 100% conforme (após adicionar `docs/`, `SKILL.md`, `*.ico` ao `.prettierignore` e rodar `format --write`)
+
+**Decisão técnica registrada nesta entrada:**
+- `.prettierignore` exclui `docs/` porque docs SPEC-driven seguem convenção própria (lint-docs.sh) — Prettier formatando markdown poderia bagunçar timestamps e checkboxes.
+
+**Diff:** 64 arquivos (a maioria dos scaffolds). Commit pendente.
+
+Commit: — (a fazer agora)
 
 ## 2026-05-08 15:33 — [MARCO] [decisão] White-label = Modelo A (build-time / flavor folder) + monorepo via npm workspaces
 

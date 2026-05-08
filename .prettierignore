@@ -1,0 +1,16 @@
+node_modules/
+dist/
+build/
+.next/
+out/
+coverage/
+*.tsbuildinfo
+package-lock.json
+
+# Docs seguem convenções próprias do SPEC-driven (lint-docs.sh valida)
+docs/
+SKILL.md
+
+# Scaffolds geram seus próprios estilos — Prettier passa em conteúdo manual
+*.lock
+*.ico

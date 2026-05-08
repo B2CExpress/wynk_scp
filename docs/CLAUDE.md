@@ -31,47 +31,50 @@ Antes de qualquer código, qualquer resposta substantiva:
 
 ## Stack
 
-Monorepo gerenciado por **pnpm workspaces**.
+Monorepo gerenciado por **npm workspaces** (Node 22+).
 
 - **Backend** (`backend/`): **NestJS** + TypeScript — API multitenant. Resolve tenant por `host`, owns o schema com `tenant_id` e o helper `withTenant`. Tenant context via interceptor + `AsyncLocalStorage`.
-- **Portal** (`portal/`): **Next.js (App Router)** + TypeScript — site público de cada shopping. SSR para SEO; `app/layout.tsx` lê `host` via `headers()` server-side, consome `GET /tenant/config` do backend e aplica CSS variables.
+- **Portal** (`portal/`): **Next.js (App Router)** + TypeScript — site público de cada shopping. SSR para SEO; `app/layout.tsx` lê `host` via `headers()` server-side, chama `GET /tenant/resolve` no backend, importa `portal/flavors/<slug>/theme.json` e aplica CSS variables.
 - **Backoffice** (`backoffice/`): **Vite + React** + TypeScript — painel de gestão (Tenant Admin, Editor, Superadmin). SPA logada, sem SSR.
-- **Banco:** PostgreSQL (com `tenant_id` em todas as tabelas multitenant)
-- **Cache:** Redis (config de tenant em `tenant:config:{host}`, TTL 10 min — TTLs em SPEC-1505 §9)
+- **White-label:** **build-time** (Modelo A). Identidade visual de cada tenant em `portal/flavors/<slug>/{theme.json, logo.svg, favicon.ico}`, versionada em git. Edição só via PR + deploy. Branding **nunca** passa pelo banco.
+- **Banco:** PostgreSQL (com `tenant_id` em todas as tabelas multitenant). Tabela `tenants` guarda só identidade operacional (`id, slug, host, flavor_slug, ...`).
+- **Cache:** Redis (mapeamento `tenant:resolve:{host}` → `{id, slug, flavor_slug}`, TTL 10 min)
 - **Auth:** JWT (15 min) + refresh token (7 dias) em cookies HttpOnly + Secure + SameSite=Lax
-- **CDN:** assets versionados em `cdn.plataforma.com/{tenant-id}/...`
 
-> Decisão de stack registrada em SPEC-20260503-1505 (2026-05-08 14:31). Turborepo não adotado — entra só se a CI doer.
+> Decisões registradas em SPEC-20260503-1505 (stack: 2026-05-08 14:31; white-label Modelo A + npm workspaces: 2026-05-08 15:33).
 
 ## Comandos
 
 ```bash
 # Setup inicial (na raiz)
-pnpm install
+npm install
 
-# Backend
-pnpm --filter backend dev          # dev server (NestJS)
-pnpm --filter backend build
-pnpm --filter backend test
-pnpm --filter backend db:migrate
+# Backend (NestJS)
+npm run start:dev -w backend
+npm run build -w backend
+npm test -w backend
+npm run lint -w backend
+npm run typecheck -w backend
 
 # Portal (Next.js, site público)
-pnpm --filter portal dev
-pnpm --filter portal build
-pnpm --filter portal test
+npm run dev -w portal
+npm run build -w portal
+npm run lint -w portal
+npm run typecheck -w portal
 
 # Backoffice (Vite, painel de gestão)
-pnpm --filter backoffice dev
-pnpm --filter backoffice build
-pnpm --filter backoffice test
+npm run dev -w backoffice
+npm run build -w backoffice
+npm run lint -w backoffice
+npm run typecheck -w backoffice
 
-# Tudo de uma vez
-pnpm -r lint
-pnpm -r typecheck
-pnpm -r test
+# Em todos os workspaces (na raiz)
+npm run lint
+npm run typecheck
+npm test
+npm run format        # prettier --write
+npm run format:check  # CI
 ```
-
-_(Os `package.json` de cada projeto serão criados na fase 1 da SPEC-20260503-1505. Os comandos acima refletem o contrato pretendido.)_
 
 ---
 
