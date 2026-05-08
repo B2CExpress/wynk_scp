@@ -1,6 +1,7 @@
 import 'reflect-metadata';
 import { DataSource } from 'typeorm';
 import { config } from './index';
+import { Tenant } from '../entities/Tenant';
 
 /**
  * AppDataSource — instância única do TypeORM compartilhada por toda a aplicação.
@@ -22,9 +23,7 @@ export const AppDataSource = new DataSource({
   schema: config.database.schema,
   synchronize: false,
   logging: process.env.TYPEORM_LOGGING === 'true',
-  entities: [
-    // Entidades serão adicionadas aqui na fase 2 (Tenant, etc.)
-  ],
+  entities: [Tenant],
   migrations: [
     config.nodeEnv === 'production' ? 'dist/migrations/**/*.js' : 'src/migrations/**/*.{ts,js}',
   ],

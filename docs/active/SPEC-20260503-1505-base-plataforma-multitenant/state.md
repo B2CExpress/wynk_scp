@@ -8,12 +8,12 @@
 
 ## TL;DR (sobrescrever ao fim de cada sessão)
 
-**Última atualização:** 2026-05-08 17:04
-**Onde tô:** Fase 1.5 (revisão de stack do backend) **concluída**. Backend Express+TypeORM rodando: typecheck, lint, test e format passam. Estrutura espelha `wynk_ecommerce/backend/`. Pronto pra fase 2.
-**Próximo passo:** Fase 2 — `docker-compose.yml` (Postgres 16 + Redis 7); entity `Tenant` em `backend/src/entities/Tenant.ts`; migration inicial `<ts>-CreateTenantTable.ts`; `UuidHelper` em `backend/src/utils/uuid-helper.ts`; middleware `tenant-context.ts` com AsyncLocalStorage; helper `withTenant` em `backend/src/utils/with-tenant.ts`; subscriber TypeORM injetando `tenant_id`.
-**Última decisão:** Fase 1.5 fechada. Express 4.22 + TypeORM 0.3.27 + jsonwebtoken 9 + ioredis 5 instalados. `@types/express` forçado pra 4.x via `overrides` na raiz (transitive 5.x do `@types/cookie-parser` invadia). `safer-buffer` adicionado como dep direta do backend (workaround pra hoisting npm workspaces — Jest não subia árvore pra resolver dep transitive de `iconv-lite`). `tsconfig` com `module: NodeNext`, `strictPropertyInitialization: false` (TypeORM), `isolatedModules: true` (ts-jest).
+**Última atualização:** 2026-05-08 17:42
+**Onde tô:** Fase 2 **concluída**. Postgres+Redis rodando via docker-compose; schema `scp` criado; migrations `InitialSchema` + `CreateTenantTable` aplicadas; entity `Tenant` mapeada; middleware/helper/subscriber de tenant context implementados e testados. Backend conecta no DB e responde `/health` 200. Pronto pra fase 3.
+**Próximo passo:** Fase 3 — endpoint `GET /tenant/resolve` (recebe `host` da request, retorna `{ id, slug, flavorSlug }`); cache Redis `tenant:resolve:{host}` (TTL 10 min); middleware `resolveTenantByHost` (anexa `req.tenant` antes do `tenantContextMiddleware`); invalidação ao mudar host/flavor_slug; testes E2E.
+**Última decisão:** Fase 2 fechada. `docker-compose.yml` na raiz (Postgres 15 + Redis 7, portas 5435/6382 pra evitar conflito com wynk_ecommerce 5434/6381). `prepare:schema` script (`scripts/ensure-schema.ts`) cria o schema antes de migrations rodarem (evita chicken-and-egg da tabela `migrations` do TypeORM). `db:setup` orquestra. Migrations usam SQL puro com schema dinâmico. `ts-node` instalado na raiz (typeorm CLI hoisted lá precisa achar). `@types/pg` adicionado.
 **Bloqueio atual:** nenhum.
-**Se retomar, ler:** TL;DR + entradas `[conclusão] Fase 1.5` (17:04), `[MARCO] [refactor] Revisão de stack: Express` (16:43), `[MARCO] [decisão] White-label Modelo A` (15:33).
+**Se retomar, ler:** TL;DR + entrada `[conclusão] Fase 2` (17:42).
 
 ---
 
@@ -26,7 +26,7 @@
 | 0 | Quebra de fases + stack definidas com o dev | concluído | 2026-05-08 14:31 | — |
 | 1 | Bootstrap monorepo **npm workspaces**: `backend/` (NestJS — **a ser refeito em Express, ver fase 1.5**), `portal/` (Next.js App Router), `backoffice/` (Vite + React), lint/format, CI, estrutura inicial `portal/flavors/_default/` | concluído (com revisão pendente) | 2026-05-08 16:43 | — |
 | 1.5 | **Revisão de stack do backend:** apagar scaffold NestJS, recriar `backend/` em Express 4 + TypeORM 0.3 espelhando estrutura do `wynk_ecommerce/backend/src/`. Manter versões alinhadas (express ^4.18.2, typeorm ^0.3.17, jsonwebtoken ^9.0.2, ioredis ^5.8.2, etc.) | concluído | 2026-05-08 17:04 | — |
-| 2 | Docker compose (Postgres 16 + Redis 7); schema `scp`; entity `Tenant` (`tb_tenant`); migration inicial; helper `withTenant` + middleware de tenant context com `AsyncLocalStorage`; subscriber TypeORM injetando `tenant_id` | pendente | 2026-05-08 16:43 | — |
+| 2 | Docker compose (Postgres 15 + Redis 7); schema `scp`; entity `Tenant` (`tb_tenant`); migrations inicial (schema + extension) e CreateTenantTable; helper `withTenant` + middleware de tenant context com `AsyncLocalStorage`; subscriber TypeORM injetando `tenant_id` | concluído | 2026-05-08 17:42 | — |
 | 3 | Endpoint `GET /tenant/resolve` (host → tenant) + cache Redis (`tenant:resolve:{host}`, TTL 10 min) | pendente | 2026-05-08 16:43 | — |
 | 4 | `app/layout.tsx` lê `theme.json` do flavor + aplica CSS vars + injeta `<link rel="icon">`/meta. Schema TS de `theme.json` + validação CI da correspondência `tb_tenant.tenant_flavor_slug` ↔ `portal/flavors/<slug>/` | pendente | 2026-05-08 16:43 | — |
 | 5 | Auth JWT (15 min) + refresh (7 dias) em cookies HttpOnly + Secure | pendente | 2026-05-08 14:22 | — |
@@ -87,6 +87,74 @@ Arquivos identificados como relevantes para próximas sessões (ainda não lidos
 - `docs/specs/scp-spec.md` (spec-mãe — §6.2 host resolution, §8 theme, §9 cache, §10 auth)
 
 Commit: — (a fazer no fim da sessão de ativação)
+
+## 2026-05-08 17:42 — [conclusão] Fase 2 — Schema multitenant + tenant context
+
+Postgres rodando, schema criado, migrations aplicadas, entity Tenant funcional, tenant context propagável via AsyncLocalStorage e subscriber TypeORM enforçando `tenant_id` em todo INSERT/UPDATE.
+
+**Infra (Docker):**
+- `docker-compose.yml` na raiz: postgres:15-alpine + redis:7-alpine, healthchecks, network `scp_network`, volumes `scp_postgres_data`/`scp_redis_data`
+- Portas expostas: **5435** (postgres) e **6382** (redis) — escolhidas pra evitar conflito com wynk_ecommerce (5434/6381) rodando em paralelo
+- Versão Postgres alinhada com wynk_ecommerce (15, não 16 como considerado inicialmente)
+
+**Banco:**
+- `scripts/ensure-schema.ts` — usa `pg` cliente direto pra `CREATE SCHEMA IF NOT EXISTS`. Resolve chicken-and-egg: TypeORM tenta criar `scp.migrations` antes de qualquer migration rodar, mas `scp` não existe. Padrão equivalente ao `prepare:schema` do wynk_ecommerce (que usa `psql`).
+- Scripts orquestrados: `prepare:schema` → `db:setup` (= prepare + migration:run)
+
+**Migrations:**
+1. `1746748000000-InitialSchema.ts` — `CREATE SCHEMA IF NOT EXISTS scp` + `CREATE EXTENSION IF NOT EXISTS pgcrypto`. `down()` é noop (não dropa nem schema nem extensão — operação destrutiva exigiria decisão consciente).
+2. `1746748100000-CreateTenantTable.ts` — `CREATE TABLE IF NOT EXISTS scp.tb_tenant (...)` com PK `tenant_id uuid`, UNIQUE em `tenant_slug` e `tenant_host`, índice `ix_tb_tenant_flavor_slug` pra validação CI eficiente. Constraints nomeadas (`pk_tb_tenant`, `uq_tb_tenant_*`).
+- `UuidHelper` em `backend/src/utils/uuid-helper.ts` — adaptado de wynk_ecommerce. Detecta `uuid_generate_v4()` (uuid-ossp) ou `gen_random_uuid()` (pgcrypto). Cacheia.
+
+**Entity Tenant** (`backend/src/entities/Tenant.ts`):
+- `@Entity('tb_tenant')`
+- Mapeamento snake_case ↔ camelCase via `name:` no decorator
+- Campos: `id` (uuid), `slug`, `host`, `flavorSlug`, `name`, `createdAt`, `updatedAt`
+- Adicionada à lista explícita em `AppDataSource.entities[]`
+
+**Tenant context (AsyncLocalStorage):**
+- `backend/src/middleware/tenant-context.ts`:
+  - Interface `TenantContext { tenantId, slug, flavorSlug }`
+  - `getTenantContext()` — retorna ctx ou undefined
+  - `requireTenantContext()` — lança se ausente
+  - `runWithTenantContext(ctx, fn)` — útil em testes/scripts/workers
+  - `tenantContextMiddleware` — Express middleware que lê `req.tenant` (populado por middleware anterior, vai vir na fase 3) e roda o resto da request com o ctx no AsyncLocalStorage
+
+**Helper `withTenant`** (`backend/src/utils/with-tenant.ts`):
+- Aplica `WHERE alias.tenant_id = :__tenantId` a SelectQueryBuilder
+- Usa `requireTenantContext()` — falha explícita se chamado fora de uma request multitenant
+- Não usar pra `Tenant` em si (PK já é tenant_id)
+
+**Subscriber TypeORM** (`backend/src/subscribers/TenantSubscriber.ts`):
+- `beforeInsert`: injeta `tenantId` se entity tem a propriedade e não foi setado; lança se ctx ausente; lança em cross-tenant insert (entity.tenantId != ctx.tenantId)
+- `beforeUpdate`: REJEITA mudança em `tenantId` (cross-tenant move exige operação explícita)
+- Ignora a entity `Tenant` (não tem coluna `tenant_id` separada — PK é o próprio)
+
+**Testes adicionados:**
+- `__tests__/tenant-context.test.ts` — 5 cases: undefined fora, throw em require, exposição em runWith, isolamento concorrente (Promise.all), limpeza após run
+- Total agora: 2 suites, 6 testes, 100% passando
+
+**Verificação E2E (smoke test feito nesta sessão):**
+1. `docker-compose up -d` — postgres healthy em ~2s, redis idem
+2. `cp .env.example .env` no backend
+3. `npm run db:setup -w backend` — schema criado + 2 migrations aplicadas
+4. `docker exec scp_postgres psql ...` — `\dt scp.*` mostra `migrations` + `tb_tenant`; INSERT manual de tenant funciona, retorna UUID gerado
+5. `npm run dev -w backend` — sobe em port 3001, conecta no DB, log `database connected`
+6. `curl localhost:3001/health` → `{"status":"ok","uptime":1.97}`
+
+**Gotchas resolvidos:**
+- `ts-node` precisa estar **na raiz** do workspace (não só em `backend/`) porque o binário `typeorm-ts-node-commonjs` está em `node_modules/typeorm/` (hoisted pra raiz) e busca `ts-node` a partir dali, sem subir/descer pra workspaces.
+- `@types/pg` necessário pra `scripts/ensure-schema.ts` compilar com ts-node.
+- TypeORM CLI tenta criar tabela `migrations` no schema configurado **antes** de rodar a primeira migration. Se o schema não existe, falha. Solução: pre-script `ensure-schema` que conecta via pg cliente direto (sem TypeORM) e roda `CREATE SCHEMA IF NOT EXISTS`.
+
+**Decisão técnica registrada:**
+- Pre-script Node (`scripts/ensure-schema.ts`) em vez de psql shell — funciona cross-platform sem exigir psql instalado no host.
+- `down()` da migration `InitialSchema` é noop intencional — schema e extensão são compartilhados, dropá-los teria efeito não-trivial.
+- Subscriber rejeita UPDATE de `tenantId` mesmo se ctx == entity.tenantId — segurança extra: mudar tenant de uma row deve ser operação explícita (delete + insert).
+
+**Diff:** ~12 arquivos novos + 2 modificados. Commit pendente.
+
+Commit: — (a fazer agora)
 
 ## 2026-05-08 17:04 — [conclusão] Fase 1.5 — Bootstrap do backend Express + TypeORM
 

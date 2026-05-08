@@ -28,7 +28,7 @@ export const config = {
 
   database: {
     host: optional('DB_HOST', 'localhost'),
-    port: int('DB_PORT', 5432),
+    port: int('DB_PORT', 5435),
     username: optional('DB_USER', 'scp'),
     password: optional('DB_PASS', 'scp'),
     database: optional('DB_NAME', 'scp'),
@@ -37,7 +37,7 @@ export const config = {
 
   redis: {
     host: optional('REDIS_HOST', 'localhost'),
-    port: int('REDIS_PORT', 6379),
+    port: int('REDIS_PORT', 6382),
   },
 
   jwt: {

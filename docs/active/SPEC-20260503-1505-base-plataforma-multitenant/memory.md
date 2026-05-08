@@ -8,12 +8,12 @@
 
 ## TL;DR (sobrescrever ao fim de cada sessão)
 
-**Última atualização:** 2026-05-08 17:04 (sessão #1)
-**Onde tô:** **Fase 1.5 fechada.** Backend Express+TypeORM rodando: typecheck/lint/test/format passam. Todos os 3 apps verdes. Pronto pra fase 2 propriamente.
-**Próximo passo:** Fase 2 — `docker-compose.yml` (Postgres 16 + Redis 7), entity `Tenant`, migration inicial, `UuidHelper`, middleware `tenant-context.ts` (AsyncLocalStorage), helper `withTenant`, subscriber TypeORM. Schema `scp` no Postgres.
-**Última decisão:** Bootstrap Express com 6 gotchas resolvidos (override de `@types/express`, `safer-buffer` direto, `moduleDirectories` no Jest, `isolatedModules` no tsconfig, paths com prefixo `./`, NodeNext). Versões: express ^4.22, typeorm ^0.3.27, jsonwebtoken ^9, ioredis ^5.
+**Última atualização:** 2026-05-08 17:42 (sessão #1)
+**Onde tô:** **Fase 2 fechada.** Postgres+Redis rodando, schema `scp` criado, migrations aplicadas, entity Tenant funcional, tenant context propagável, subscriber TypeORM enforçando `tenant_id`. Backend conecta no DB e responde `/health`. 6/6 testes passam.
+**Próximo passo:** Fase 3 — endpoint `GET /tenant/resolve` (host → tenant), cache Redis em `tenant:resolve:{host}` (TTL 10 min), middleware `resolveTenantByHost` antes do `tenantContextMiddleware`, invalidação ao mudar host/flavor_slug, testes E2E.
+**Última decisão:** Postgres 15 alinhado com wynk_ecommerce (não 16). Portas 5435/6382 (evitar conflito com 5434/6381 do wynk_ecommerce). Pre-script `ensure-schema.ts` resolve chicken-and-egg do TypeORM ao criar tabela `migrations`. Subscriber rejeita UPDATE em `tenantId` mesmo que match — exige operação explícita pra cross-tenant move.
 **Bloqueio atual:** nenhum.
-**Se retomar, ler:** state.md TL;DR + entrada `[conclusão] Fase 1.5` (17:04).
+**Se retomar, ler:** state.md TL;DR + entrada `[conclusão] Fase 2` (17:42).
 
 ---
 
@@ -78,29 +78,48 @@ _(nenhuma ainda — sessão de ativação)_
 
 ### Onde parei exatamente
 
-Fase 1.5 fechada. Bootstrap Express + TypeORM passa em todos os checks. Próxima sessão começa fase 2 propriamente:
+Fase 2 fechada e validada end-to-end. Próxima sessão começa fase 3:
 
-1. **`docker-compose.yml` na raiz** — Postgres 16 + Redis 7. Conferir versões/portas com `wynk_ecommerce/docker-compose.yml` antes de criar.
-2. **Migration `0001-InitialSchema.ts`** ou similar — cria schema `scp` se não existir + extensão UUID (`pgcrypto` ou `uuid-ossp`).
-3. **`backend/src/utils/uuid-helper.ts`** — adaptado de `wynk_ecommerce/backend/src/utils/uuid-helper.ts`. Detecta qual função UUID está disponível.
-4. **`backend/src/entities/Tenant.ts`** — entity com decorators TypeORM. Mapping: tabela `tb_tenant`, colunas `tenant_<col>` snake_case + properties TS camelCase.
-5. **Migration `<ts>-CreateTenantTable.ts`** — `CREATE TABLE IF NOT EXISTS scp.tb_tenant (...)` com schema dinâmico, constraints nomeadas (`pk_tb_tenant`, `uq_tb_tenant_slug`, `uq_tb_tenant_host`).
-6. **Adicionar `Tenant` ao `AppDataSource.entities[]`** em `backend/src/config/database.ts`.
-7. **`backend/src/middleware/tenant-context.ts`** — middleware que cria `AsyncLocalStorage<TenantContext>` no início de cada request. (Pode ler tenant_id de header de teste ou cookie pra começar; resolução real por host vem na fase 3.)
-8. **`backend/src/utils/with-tenant.ts`** — `withTenant(qb)` aplica `WHERE tenant_id = $1` em QueryBuilder.
-9. **`backend/src/subscribers/TenantSubscriber.ts`** — `@EventSubscriber()` que injeta `tenant_id` em `beforeInsert`/`beforeUpdate` pegando do AsyncLocalStorage.
-10. Smoke test E2E: subir docker compose, rodar migration, fazer health + insert de tenant via SQL, verificar que helper funciona.
+**Fase 3 — Resolução de tenant por host:**
+
+1. **`backend/src/services/tenant-resolver.service.ts`** — função `resolveByHost(host: string): Promise<TenantContext | null>`:
+   - Tenta cache Redis: `tenant:resolve:{host}` (key)
+   - Cache miss → query `SELECT tenant_id, tenant_slug, tenant_flavor_slug FROM scp.tb_tenant WHERE tenant_host = $1`
+   - Se achou: serializa pra JSON, salva no Redis com TTL 600s (10 min), retorna
+   - Se não achou: retorna null (caller decide se 404 ou fallback)
+
+2. **`backend/src/middleware/resolve-tenant-by-host.ts`** — middleware Express:
+   - Pega `host = req.hostname` (Express já normaliza)
+   - Chama `tenantResolver.resolveByHost(host)`
+   - Se achou: `(req as any).tenant = tenant` (pra que `tenantContextMiddleware` pegue)
+   - Se não: `res.status(404).json({ error: 'tenant_not_found' })`
+   - Pular esse middleware em rotas como `/health` (que devem responder mesmo sem tenant)
+
+3. **`backend/src/controllers/tenant.controller.ts`** — handler de `GET /tenant/resolve`:
+   - Pega `req.tenant` (já populado pelo middleware)
+   - Retorna `{ id, slug, flavorSlug }` (camelCase explícito, não vaza created_at/updated_at)
+
+4. **`backend/src/routes/tenant.routes.ts`** + registro em `app.ts`.
+
+5. **Invalidação:**
+   - Service `TenantService` com `update(id, patch)` que: faz update no DB → se mudou `host` ou `flavor_slug`, chama `redis.del('tenant:resolve:' + oldHost)` e novo host (se aplicável). MVP pode ter SQL direto + nota de invalidar.
+
+6. **Testes:**
+   - Unit do `tenant-resolver.service.ts` mockando Redis e DataSource.
+   - E2E: subir backend + DB + redis, inserir tenant, hit `/tenant/resolve` com header `Host: shopping-x.local` → 200; hit segundo idêntico → ver no log que pegou do cache (Redis).
+
+7. **Smoke test:** simular o fluxo do portal — request com host real, response com `flavorSlug`, comparar com pasta `portal/flavors/<slug>/` existindo.
 
 **Conhecimento útil pra retomada:**
-- Backend roda em port 3001 por default; Postgres 5432; Redis 6379.
-- Schema do banco = `scp` (configurável via `DB_SCHEMA`).
-- `npm run dev -w backend` sobe com ts-node-dev watching. Mas sem DB rodando, ele falha em `AppDataSource.initialize()`. Checar `docker compose up -d` antes.
-- `npm run migration:create -w backend -- src/migrations/<NomePascalCase>` cria migration vazia.
-- `npm run migration:run -w backend` aplica.
-- Padrão wynk_ecommerce: SQL puro via `queryRunner.query(...)`. **Nada de migration:generate** (gera com base em diff de entities, pouco previsível).
-- Lista explícita de entities em `AppDataSource.entities[]` (importar e adicionar manual).
-- `safer-buffer` está como dep direta pra contornar bug de hoisting (gotcha documentado em state.md fase 1.5).
-- `@types/express 5.x` é bloqueado por override no package.json raiz (transitive de `@types/cookie-parser`).
+- Postgres em `localhost:5435`, Redis em `localhost:6382`. Backend em `localhost:3001`.
+- `docker-compose up -d` sobe ambos. `db:setup -w backend` aplica migrations (já aplicadas no env atual).
+- 1 tenant exemplo já inserido no DB local nesta sessão: slug=`shopping-x`, host=`shopping-x.local`, flavor_slug=`shopping-x`.
+- `tb_tenant` (NÃO `tenants`) — convenção wynk_ecommerce.
+- Helper `withTenant(qb)` lê do AsyncLocalStorage. Usar em queries de outras entities (não no Tenant em si).
+- Subscriber `TenantSubscriber` está registrado via glob em `AppDataSource.subscribers`. Não precisa registrar em `app.ts`.
+- `tenantContextMiddleware` deve vir DEPOIS do `resolveTenantByHost` no pipeline Express (este popula `req.tenant`, aquele propaga pro AsyncLocalStorage).
+- ioredis com `lazyConnect: true` — primeira chamada conecta. Pra testes não-DB, mockar.
+- `safer-buffer` na dep direta + `@types/express` 4.x via override (gotchas da fase 1.5 ainda relevantes).
 
 Pendência externa pra dev decidir antes da fase 1 começar: mini-SPEC de limpeza pras referências fantasma em SPEC-1506/1507/1508/1509/1510, ou deixa pra ativação de cada uma.
 
