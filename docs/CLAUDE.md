@@ -31,43 +31,47 @@ Antes de qualquer código, qualquer resposta substantiva:
 
 ## Stack
 
-- **Backend** (`backend/`): Node.js + TypeScript — API multitenant
-- **Portal** (`portal/`): React + TypeScript — site público de cada shopping (visual por tenant)
-- **Backoffice** (`backoffice/`): React + TypeScript — painel de gestão (Tenant Admin, Editor, Superadmin)
+Monorepo gerenciado por **pnpm workspaces**.
+
+- **Backend** (`backend/`): **NestJS** + TypeScript — API multitenant. Resolve tenant por `host`, owns o schema com `tenant_id` e o helper `withTenant`. Tenant context via interceptor + `AsyncLocalStorage`.
+- **Portal** (`portal/`): **Next.js (App Router)** + TypeScript — site público de cada shopping. SSR para SEO; `app/layout.tsx` lê `host` via `headers()` server-side, consome `GET /tenant/config` do backend e aplica CSS variables.
+- **Backoffice** (`backoffice/`): **Vite + React** + TypeScript — painel de gestão (Tenant Admin, Editor, Superadmin). SPA logada, sem SSR.
 - **Banco:** PostgreSQL (com `tenant_id` em todas as tabelas multitenant)
-- **Cache:** Redis (config de tenant + listagens — TTLs em SPEC-1505 §9)
-- **Auth:** JWT (15 min) + refresh token (7 dias) em cookies HttpOnly
+- **Cache:** Redis (config de tenant em `tenant:config:{host}`, TTL 10 min — TTLs em SPEC-1505 §9)
+- **Auth:** JWT (15 min) + refresh token (7 dias) em cookies HttpOnly + Secure + SameSite=Lax
 - **CDN:** assets versionados em `cdn.plataforma.com/{tenant-id}/...`
 
-_(Frameworks específicos — Express/Fastify/Nest no backend, Vite/CRA/Next nos frontends — a definir na ativação da SPEC-20260503-1505.)_
+> Decisão de stack registrada em SPEC-20260503-1505 (2026-05-08 14:31). Turborepo não adotado — entra só se a CI doer.
 
 ## Comandos
 
 ```bash
+# Setup inicial (na raiz)
+pnpm install
+
 # Backend
-cd backend
-npm install
-npm run dev          # dev server
-npm run build        # build de produção
-npm test             # testes
-npm run db:migrate   # migrations
+pnpm --filter backend dev          # dev server (NestJS)
+pnpm --filter backend build
+pnpm --filter backend test
+pnpm --filter backend db:migrate
 
-# Portal (site público)
-cd portal
-npm install
-npm run dev
-npm run build
-npm test
+# Portal (Next.js, site público)
+pnpm --filter portal dev
+pnpm --filter portal build
+pnpm --filter portal test
 
-# Backoffice (painel de gestão)
-cd backoffice
-npm install
-npm run dev
-npm run build
-npm test
+# Backoffice (Vite, painel de gestão)
+pnpm --filter backoffice dev
+pnpm --filter backoffice build
+pnpm --filter backoffice test
+
+# Tudo de uma vez
+pnpm -r lint
+pnpm -r typecheck
+pnpm -r test
 ```
 
-_(Comandos finais serão definidos quando os `package.json` de cada projeto existirem — placeholder até SPEC-20260503-1505 ativar.)_
+_(Os `package.json` de cada projeto serão criados na fase 1 da SPEC-20260503-1505. Os comandos acima refletem o contrato pretendido.)_
 
 ---
 
