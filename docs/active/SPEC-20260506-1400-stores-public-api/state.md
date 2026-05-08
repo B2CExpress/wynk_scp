@@ -8,12 +8,12 @@
 
 ## TL;DR (sobrescrever ao fim de cada sessão)
 
-**Última atualização:** 2026-05-08 13:55
-**Onde tô:** Estrutura SPEC re-bootstrapada e re-escopada para **listagem-only**. Dev confirmou que `[slug]/route.ts` subiu por engano em `96b5a33` e foi removido em `759eca5`. Detalhe vai para SPEC futura (path-based mantido).
-**Próximo passo:** Aplicar correções de código apontadas na review — escape de wildcards no `search`, normalização da cache key, extração de helpers se valer a pena (com só 1 endpoint, talvez não).
-**Última decisão:** Manter `GET /api/v1/stores/[slug]` como path-based em SPEC futura (não usar header). Trade-offs documentados na conversa: cache CDN, bookmarkability, fricção do cliente.
-**Bloqueio atual:** Imports `@/lib/db` e `@/lib/schema` são placeholders — depende de SPEC externa que entregue base do `backend/`.
-**Se retomar, ler:** entrada `[unblock] Escopo confirmado: listagem-only` (2026-05-08 13:50) + critério de aceite em `main.md`.
+**Última atualização:** 2026-05-08 14:10
+**Onde tô:** Re-escopo concluído + 2 correções de código entregues em `bf21c78` (escape de `%`/`_` no `search` + normalização lowercase+trim da cache key). Faltam testes mínimos para fechar a SPEC.
+**Próximo passo:** Adicionar testes mínimos cobrindo isolamento por tenant, fallback Redis e cache HIT/MISS. Bloqueado pela ausência de bootstrap real do `backend/` (sem package.json, tsconfig, jest config etc.).
+**Última decisão:** Manter `GET /api/v1/stores/[slug]` como path-based em SPEC futura (já criada: `SPEC-20260508-1400-stores-public-detail` em `docs/future/`).
+**Bloqueio atual:** Bootstrap do `backend/` ausente (sem `package.json`, sem schema Drizzle real). Entrega de testes e validação dos imports `@/lib/db` / `@/lib/schema` dependem de SPEC externa.
+**Se retomar, ler:** entrada `[refactor]` em 2026-05-08 14:10 (commit `bf21c78`) + critérios marcados em `main.md`.
 
 ---
 
@@ -27,22 +27,22 @@
 | 2 | Remoção do endpoint detalhe + movimento errado do main.md para archive | concluído | 2026-05-08 11:06 | `759eca5` |
 | 3 | Estrutura SPEC correta (active/ + state + memory + feature) | em progresso | 2026-05-08 13:55 | — |
 | 4 | Re-escopo: SPEC vira listagem-only; detalhe vai para SPEC futura | concluído | 2026-05-08 13:50 | — |
-| 5 | Correções de código apontadas na review (escape, normalização, testes) | pendente | 2026-05-08 13:55 | — |
-| 6 | Schema Drizzle real disponível (substituir placeholders) | bloqueado | 2026-05-08 13:55 | — |
-| 7 | Conclusão e arquivamento | pendente | 2026-05-08 13:55 | — |
+| 5 | Correções de código: escape LIKE + normalização da cache key | concluído | 2026-05-08 14:10 | `bf21c78` |
+| 6 | Testes mínimos (isolamento por tenant, fallback Redis, cache HIT/MISS) | bloqueado | 2026-05-08 14:10 | — |
+| 7 | Schema Drizzle real disponível (substituir placeholders) | bloqueado | 2026-05-08 14:10 | — |
+| 8 | Conclusão e arquivamento | pendente | 2026-05-08 14:10 | — |
 
 ### Próximos passos
 
-- [ ] Aplicar correções da review na branch `feature/SQU-43-api-publica` (escape de `%`/`_` no `search`, normalização lowercase+trim para cache key)
-- [ ] Decidir se vale extrair helpers (`requireTenantId`, `cacheHeaders`) — com só 1 endpoint, talvez não compense (avaliar quando detalhe voltar via SPEC futura)
-- [ ] Confirmar com dev se SPEC depende de `SPEC-20260503-1505-base-plataforma-multitenant` (ou outra) para schema Drizzle
-- [ ] Adicionar testes mínimos cobrindo isolamento por tenant, fallback Redis, cache HIT/MISS
+- [x] Aplicar correções da review na branch `feature/SQU-43-api-publica` — escape de `%`/`_` no `search` + normalização lowercase+trim para cache key (2026-05-08 14:10, commit `bf21c78`)
+- [ ] Confirmar com dev se SPEC depende de `SPEC-20260503-1505-base-plataforma-multitenant` (ou outra) para schema Drizzle e bootstrap do backend
+- [ ] Adicionar testes mínimos cobrindo isolamento por tenant, fallback Redis, cache HIT/MISS — bloqueado pelo bootstrap ausente
 - [x] Criar SPEC futura para endpoint detalhe `GET /api/v1/stores/[slug]` — `SPEC-20260508-1400-stores-public-detail` em `docs/future/` (2026-05-08 14:00)
-- [ ] Marcar critérios de aceite com timestamp + commit conforme forem entregues
+- [ ] Marcar critérios restantes de aceite conforme forem entregues e arquivar SPEC
 
 ### Bloqueios ativos
 
-- **Schema Drizzle real ausente** — imports `@/lib/db` e `@/lib/schema` apontam para módulos inexistentes. Bloqueio depende de SPEC externa que define a base da plataforma.
+- **Bootstrap real do `backend/` ausente** — sem `package.json`, `tsconfig.json`, jest/vitest config; imports `@/lib/db` e `@/lib/schema` apontam para módulos inexistentes. Bloqueio depende de SPEC externa que entregue a base da plataforma. Sem bootstrap, não dá para rodar `tsc` nem testes.
 
 ---
 
@@ -179,3 +179,26 @@ Pontos da review que viram critério de aceite (vide main.md, seção "Critério
 4. ~~Extrair helpers duplicados~~ — saiu de escopo: com 1 endpoint não há duplicação. Re-avaliar quando detalhe voltar via SPEC futura.
 5. Substituir imports placeholder `@/lib/db` e `@/lib/schema` quando schema Drizzle real estiver disponível.
 6. Adicionar testes mínimos cobrindo isolamento por tenant (a regra crítica), fallback Redis, cache HIT/MISS.
+
+## 2026-05-08 14:10 — [MARCO] [refactor] Escape LIKE + normalização do search (commit `bf21c78`)
+
+Aplicadas as 2 correções de código apontadas na review:
+
+**1. Escape de wildcards LIKE.** Adicionada `escapeLikePattern(s: string)` em `route.ts` (próximo às constantes), que escapa `\`, `%` e `_`. Usada no `ilike(stores.name, \`%${escapeLikePattern(search)}%\`)`. Antes da mudança, `?search=50%` retornava todas as lojas — `%` era interpretado como wildcard. Agora retorna só lojas com "50%" no nome.
+
+**2. Normalização do `search`.** No handler, antes de compor `params`:
+```ts
+const rawSearch = searchParams.get('search')
+const normalizedSearch = rawSearch ? rawSearch.toLowerCase().trim() : ''
+```
+e `params.search = normalizedSearch || undefined`. Garante que cache key e query veem o mesmo valor — `?search=Mc` e `?search=mc` agora geram o mesmo cache key. Antes, geravam chaves diferentes com resultados idênticos (cache duplicado, hit-rate ruim).
+
+**Decisão de localização da normalização:** feita no handler (não em `buildStoreListCacheKey`) porque cache key e query precisam usar o mesmo valor — se normalizasse só na chave, query usaria valor cru e o cache HIT serviria resultado errado em casos como `"a "` vs `"a"`.
+
+**Decisão sobre escape:** feito SÓ na query, NÃO na cache key. Cache key documenta o que o usuário pediu (após normalização); o escape é tradução para o protocolo SQL LIKE — preservar separação.
+
+Critérios de aceite marcados em `main.md`:
+- [x] Wildcards SQL escapados no `search` (commit `bf21c78`)
+- [x] `search` normalizado antes de compor cache key (commit `bf21c78`)
+
+Restam para fechar a SPEC: testes mínimos (bloqueado pelo bootstrap ausente do `backend/`).

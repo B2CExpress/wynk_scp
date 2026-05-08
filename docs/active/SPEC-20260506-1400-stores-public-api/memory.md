@@ -8,12 +8,12 @@
 
 ## TL;DR (sobrescrever ao fim de cada sessão)
 
-**Última atualização:** 2026-05-08 13:55 (sessão #2)
-**Onde tô:** Re-bootstrap + re-escopo concluídos. SPEC agora é listagem-only. Detalhe (path-based) vai para SPEC futura. Restam correções de código + testes para encerrar.
-**Próximo passo:** Aplicar correções de código apontadas na review — escape de `%`/`_` no `search` e normalização lowercase+trim para cache key. Depois, testes mínimos.
-**Última decisão:** SPEC re-escopada para listagem-only após dev confirmar que detalhe subiu por engano em `96b5a33`. Path-based mantido para a SPEC futura do detalhe (header descartado).
-**Bloqueio atual:** Imports `@/lib/db` e `@/lib/schema` são placeholders — depende de SPEC externa entregar base do `backend/`.
-**Se retomar, ler:** `state.md` entradas `[unblock]` em 2026-05-08 13:50 e `[decisão] Path-based` em 2026-05-08 13:52.
+**Última atualização:** 2026-05-08 14:10 (sessão #2)
+**Onde tô:** Re-bootstrap + re-escopo concluídos. Correções de código entregues em `bf21c78` (escape de `%`/`_` no `search` + normalização lowercase+trim). Restam testes mínimos para fechar a SPEC.
+**Próximo passo:** Testes mínimos (isolamento por tenant, fallback Redis, cache HIT/MISS) — bloqueado pela ausência de bootstrap do `backend/` (sem package.json, sem jest/vitest).
+**Última decisão:** Normalização do `search` foi colocada no handler (não em `buildStoreListCacheKey`) para garantir que cache key e query usem o mesmo valor. Escape do `%`/`_` foi feito SÓ na query — cache key documenta o input, escape é tradução para o protocolo LIKE.
+**Bloqueio atual:** Bootstrap do `backend/` ausente (sem `package.json`, sem schema Drizzle real). Entrega de testes e validação dos imports `@/lib/db` / `@/lib/schema` dependem de SPEC externa.
+**Se retomar, ler:** `state.md` entrada `[MARCO] [refactor]` em 2026-05-08 14:10 + critérios marcados em `main.md`.
 
 ---
 
@@ -39,6 +39,7 @@ A sessão corrigiu a estrutura SPEC e o escopo do contrato. Restam: correções 
 - [2026-05-08 13:50] SPEC re-escopada para listagem-only após confirmação do dev. Detalhe (`/[slug]`) sai do "DENTRO" e entra no "FORA" com nota explicativa.
 - [2026-05-08 13:52] Endpoint de detalhe (SPEC futura) **mantém path-based** (`GET /api/v1/stores/[slug]`). Header foi avaliado e descartado por (a) `Vary` explode chaves de CDN, (b) não-bookmarkável/debugável, (c) fricção com clientes HTTP. "Limpeza" de duplicação resolve via helpers, não via fusão de endpoints.
 - [2026-05-08 14:00] Criada `SPEC-20260508-1400-stores-public-detail` em `docs/future/`. Captura: 404 unificado (segurança contra enumeração), invalidação cobrindo rename, extração de helpers compartilhados. `Depende de: SPEC-20260506-1400`. Feature atualizada com link.
+- [2026-05-08 14:10] Correções aplicadas em `route.ts` (commit `bf21c78`): `escapeLikePattern` (escapa `\`, `%`, `_`) usado dentro do `ilike`; `search` normalizado (lowercase+trim) ANTES de virar `params` para alinhar cache key e query. Critérios correspondentes marcados em `main.md`.
 - [2026-05-08 13:35] Não foi adicionada dependência formal (`Depende de:`) à SPEC-1505 sem confirmar com dev — preservou §R.8 (não ler future/ por iniciativa).
 
 ### Respostas-chave do usuário
@@ -77,7 +78,7 @@ Em SPEC futura (a criar): endpoint `GET /api/v1/stores/[slug]`, path-based.
 
 ### Onde parei exatamente
 
-Re-escopo concluído. Próxima ação: mostrar diff final ao dev e perguntar se quer commitar agora ou seguir para correções de código.
+Correções de código entregues em `bf21c78`. Critérios correspondentes marcados em `main.md`. Faltam testes mínimos para fechar a SPEC — bloqueados pela ausência de bootstrap do `backend/`. Próxima ação: confirmar com dev se a SPEC pode ficar bloqueada aguardando bootstrap, ou se vale destravar via `SPEC-20260503-1505-base-plataforma-multitenant`.
 
 ---
 
@@ -86,4 +87,4 @@ Re-escopo concluído. Próxima ação: mostrar diff final ao dev e perguntar se 
 | # | Início | Duração | Tipo | Sumário 1 linha |
 |---|--------|---------|------|-----------------|
 | 1 | 2026-05-06 14:00 | ~4h | ativação | Implementação inicial das rotas + cache.ts (commit `96b5a33`); estrutura SPEC ficou no lugar errado |
-| 2 | 2026-05-08 13:25 | em andamento | continuidade | Review da PR #3 + re-bootstrap da estrutura SPEC para conformidade com RULES v2 |
+| 2 | 2026-05-08 13:25 | em andamento | continuidade | Review da PR #3 + re-bootstrap da estrutura SPEC para conformidade com RULES v2 + correções de código (commit `bf21c78`) |

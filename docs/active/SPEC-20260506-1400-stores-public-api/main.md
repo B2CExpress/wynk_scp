@@ -76,8 +76,8 @@ Expor a listagem de lojas ativas ao frontend público (portal do visitante) sem 
 - [ ] Header Cache-Control: public, max-age=300, s-maxage=300 presente
 - [ ] Header Vary: x-tenant-id presente
 - [ ] Redis fora do ar não causa 500 (fallback para DB)
-- [ ] Wildcards SQL (`%`, `_`) escapados no parâmetro `search` antes do ILIKE
-- [ ] `search` normalizado (lowercase + trim) antes de compor cache key
+- [x] Wildcards SQL (`%`, `_`) escapados no parâmetro `search` antes do ILIKE (2026-05-08 14:10, commit `bf21c78`)
+- [x] `search` normalizado (lowercase + trim) antes de compor cache key (2026-05-08 14:10, commit `bf21c78`)
 - [ ] Imports `@/lib/db` e `@/lib/schema` apontam para schema Drizzle real (não mais placeholder)
 - [ ] Testes mínimos cobrindo: isolamento por tenant, fallback Redis, cache HIT/MISS
 - [ ] **Features tocadas (stores-public-api) atualizadas** com timestamp e referência a esta SPEC
