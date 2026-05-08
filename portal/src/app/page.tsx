@@ -1,65 +1,66 @@
 import Image from 'next/image';
+import { headers } from 'next/headers';
+import { resolveTenantByHost } from '../lib/tenant/resolve';
+import { loadTheme, flavorAssets } from '../lib/theme/load';
 import styles from './page.module.css';
 
-export default function Home() {
+/**
+ * Homepage temporária — apenas para validar visualmente o pipeline de
+ * white-label durante a fase 4 da SPEC-1505.
+ *
+ * Mostra: logo do flavor, nome do tenant, cores aplicadas via CSS vars,
+ * meta carregadas. Sai assim que tivermos design real (fase futura).
+ */
+export default async function Home() {
+  const host = (await headers()).get('host') ?? '';
+  const tenant = await resolveTenantByHost(host);
+  const flavorSlug = tenant?.flavorSlug ?? '_default';
+  const theme = await loadTheme(flavorSlug);
+  const assets = flavorAssets(flavorSlug);
+
   return (
     <div className={styles.page}>
       <main className={styles.main}>
         <Image
-          className={styles.logo}
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
+          src={assets.logo}
+          alt={`Logo ${theme.name}`}
+          width={240}
+          height={60}
           priority
+          unoptimized
         />
         <div className={styles.intro}>
-          <h1>To get started, edit the page.tsx file.</h1>
-          <p>
-            Looking for a starting point or more instructions? Head over to{' '}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Templates
-            </a>{' '}
-            or the{' '}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Learning
-            </a>{' '}
-            center.
-          </p>
+          <h1>{theme.name}</h1>
+          <p>{theme.meta.description}</p>
         </div>
-        <div className={styles.ctas}>
-          <a
-            className={styles.primary}
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className={styles.logo}
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
+        <dl className={styles.tokens}>
+          <dt>flavor_slug</dt>
+          <dd>
+            <code>{flavorSlug}</code>
+          </dd>
+          <dt>primary</dt>
+          <dd>
+            <span
+              className={styles.swatch}
+              style={{ backgroundColor: theme.colors.primary }}
+              aria-hidden
             />
-            Deploy Now
-          </a>
-          <a
-            className={styles.secondary}
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
+            <code>{theme.colors.primary}</code>
+          </dd>
+          <dt>secondary</dt>
+          <dd>
+            <span
+              className={styles.swatch}
+              style={{ backgroundColor: theme.colors.secondary }}
+              aria-hidden
+            />
+            <code>{theme.colors.secondary}</code>
+          </dd>
+          <dt>font</dt>
+          <dd>
+            <code>{theme.fonts.primary}</code>
+          </dd>
+        </dl>
       </main>
     </div>
   );

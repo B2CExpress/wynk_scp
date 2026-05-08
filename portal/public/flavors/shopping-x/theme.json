@@ -1,0 +1,28 @@
+{
+  "name": "Shopping X",
+  "colors": {
+    "primary": "#7C3AED",
+    "secondary": "#F59E0B",
+    "text": "#1F2937",
+    "background": "#FAFAFA"
+  },
+  "fonts": {
+    "primary": "Poppins"
+  },
+  "meta": {
+    "title": "Shopping X — Compre, viva, descubra",
+    "description": "O maior shopping da região. Lojas, gastronomia, cinema e eventos em um só lugar.",
+    "ogImage": "/flavors/shopping-x/og-image.jpg"
+  },
+  "social": {
+    "instagram": "https://instagram.com/shoppingx",
+    "facebook": "https://facebook.com/shoppingx",
+    "youtube": null,
+    "tiktok": null
+  },
+  "contact": {
+    "phone": "+55 (11) 1234-5678",
+    "email": "contato@shoppingx.com.br",
+    "address": "Av. Principal, 1000 — São Paulo/SP"
+  }
+}

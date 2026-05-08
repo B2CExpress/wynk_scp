@@ -50,3 +50,17 @@ jobs:
       - run: npm ci
 
       - run: npm run format:check
+
+  validate-flavors:
+    name: validate flavor manifest
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Validate seeds/tenants.json ↔ portal/public/flavors
+        run: npm run validate:flavors

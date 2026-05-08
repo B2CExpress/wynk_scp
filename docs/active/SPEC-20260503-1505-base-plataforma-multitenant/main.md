@@ -10,7 +10,7 @@
 **Branch:** feature/multitenant-platform
 **Depende de:** —
 **Origem:** derivada da guia inicial `docs/specs/scp-spec.md` (descartável após gerar esta leva de SPECs) — usuário em 2026-05-03 15:05
-**Resumo:** Estabelece o esqueleto da plataforma — repositório, banco com isolamento por `tenant_id`, autenticação JWT, middleware de resolução de tenant a partir do host, e layout raiz que aplica a identidade visual do tenant a partir de **flavor versionado em repo** (`portal/flavors/<slug>/`).
+**Resumo:** Estabelece o esqueleto da plataforma — repositório, banco com isolamento por `tenant_id`, autenticação JWT, middleware de resolução de tenant a partir do host, e layout raiz que aplica a identidade visual do tenant a partir de **flavor versionado em repo** (`portal/public/flavors/<slug>/`).
 
 ## Objetivo
 
@@ -22,15 +22,15 @@ Entregar a base mínima sobre a qual todos os módulos posteriores se apoiam: re
 - Setup de repositório, lint, format, CI
 - Modelo de dados com `tenant_id` em todas as tabelas multitenant + helper que rejeita queries sem `tenant_id`
 - Tabela `tenants(id, slug, host, flavor_slug, ...)` — **identidade operacional** apenas, sem branding visual
-- Pasta **`portal/flavors/<slug>/`** versionada em repo, contendo:
+- Pasta **`portal/public/flavors/<slug>/`** versionada em repo, contendo:
   - `theme.json` — cores, fontes, meta (title/description), redes sociais, contato
   - `logo.svg`, `favicon.ico` (obrigatórios)
   - `og-image.jpg` e demais assets (opcionais, com fallback em `_default/`)
-- Pasta `portal/flavors/_default/` como fallback de assets faltantes
+- Pasta `portal/public/flavors/_default/` como fallback de assets faltantes
 - Resolução de tenant pelo `host` HTTP (no backend; portal Next.js consome via `headers()` server-side)
 - Cache Redis do mapeamento `host → tenant {id, slug, flavor_slug}` (TTL 10 min, invalidado em alteração de host/flavor_slug)
 - Layout raiz do portal que carrega `theme.json` do flavor + aplica CSS variables + injeta favicon/meta
-- Validação no CI: para cada `flavor_slug` na tabela `tenants`, existe pasta `portal/flavors/<slug>/` com pelo menos `theme.json`, `logo.svg` e `favicon.ico`
+- Validação no CI: para cada `flavor_slug` na tabela `tenants`, existe pasta `portal/public/flavors/<slug>/` com pelo menos `theme.json`, `logo.svg` e `favicon.ico`
 - Auth JWT (15 min) + refresh token (7 dias) em cookies HttpOnly + Secure + SameSite=Lax
 - Seed de 1 tenant + 1 flavor de exemplo para validar o fluxo completo
 
@@ -56,7 +56,7 @@ Entregar a base mínima sobre a qual todos os módulos posteriores se apoiam: re
   - Migrations: SQL puro via `queryRunner.query()`, com schema dinâmico (`${schemaName}.tb_X`), `CREATE TABLE IF NOT EXISTS`, constraints nomeadas (`pk_tb_X`, `uq_tb_X_<col>`, `fk_tb_X_<col>`).
 
 - **`portal/`** — Next.js (App Router) + TypeScript.
-  - **Flavors versionados em `portal/flavors/<slug>/`** — uma pasta por tenant:
+  - **Flavors versionados em `portal/public/flavors/<slug>/`** — uma pasta por tenant:
     ```
     portal/flavors/
       _default/                    # fallback de assets ausentes
@@ -71,7 +71,7 @@ Entregar a base mínima sobre a qual todos os módulos posteriores se apoiam: re
     ```
   - `app/layout.tsx` lê `host` via `headers()` server-side, chama `/tenant/resolve` no backend → recebe `flavorSlug`, importa estaticamente `portal/flavors/<flavorSlug>/theme.json`, aplica CSS variables na `<html>`, injeta `<title>`, `<meta>`, `<link rel="icon" href="/flavors/<slug>/favicon.ico">`.
   - Tipagem: `theme.json` validado em build via schema TS (`type Theme = {...}`); CI falha se algum flavor estiver fora do schema.
-  - Pasta `portal/flavors/<slug>/` é servida estaticamente pelo Next via `public/flavors/<slug>/...` (symlink ou cópia em build) — assets disponíveis em `https://<host>/flavors/<slug>/logo.svg`.
+  - Pasta `portal/public/flavors/<slug>/` é servida estaticamente pelo Next via `public/flavors/<slug>/...` (symlink ou cópia em build) — assets disponíveis em `https://<host>/flavors/<slug>/logo.svg`.
   - SSR garante SEO correto por tenant e zero FOUC.
 
 - **`backoffice/`** — Vite + React + TypeScript.
@@ -87,7 +87,7 @@ Entregar a base mínima sobre a qual todos os módulos posteriores se apoiam: re
 - [ ] Login JWT + refresh token funcionando, cookies marcados HttpOnly + Secure + SameSite=Lax
 - [ ] Tentativa de query sem `tenant_id` falha em dev (assert) e em prod (erro do helper)
 - [ ] Trocar host → trocar tenant sem reload manual de cache
-- [ ] CI valida que cada `tenant_flavor_slug` na tabela `tb_tenant` tem pasta `portal/flavors/<slug>/` com `theme.json`, `logo.svg`, `favicon.ico` (e `theme.json` válido contra o schema TS)
+- [ ] CI valida que cada `tenant_flavor_slug` na tabela `tb_tenant` tem pasta `portal/public/flavors/<slug>/` com `theme.json`, `logo.svg`, `favicon.ico` (e `theme.json` válido contra o schema TS)
 - [ ] `theme.json` do flavor `_default` existe e cobre todos os campos obrigatórios
 - [ ] **Features tocadas (infra-base, tenant-resolution, auth, theme-system) atualizadas** com timestamp e referência a esta SPEC
 - [ ] `state.md` com entrada `[conclusão]`

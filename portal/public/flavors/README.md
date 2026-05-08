@@ -2,6 +2,8 @@
 
 Cada subpasta deste diretório representa um **tenant** (shopping center) e contém a identidade visual completa daquele tenant: cores, fontes, meta tags, redes sociais, contato e assets (logo, favicon, og-image).
 
+> **Localização:** `portal/public/flavors/<slug>/`. A escolha pela pasta `public/` permite que o Next sirva os assets diretamente em `https://<host>/flavors/<slug>/...` sem route handler. O `theme.json` é lido server-side via `node:fs/promises` em `portal/src/lib/theme/load.ts`.
+
 ## Estrutura
 
 ```
