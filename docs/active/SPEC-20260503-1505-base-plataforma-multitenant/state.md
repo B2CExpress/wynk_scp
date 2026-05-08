@@ -8,12 +8,12 @@
 
 ## TL;DR (sobrescrever ao fim de cada sessão)
 
-**Última atualização:** 2026-05-08 17:42
-**Onde tô:** Fase 2 **concluída**. Postgres+Redis rodando via docker-compose; schema `scp` criado; migrations `InitialSchema` + `CreateTenantTable` aplicadas; entity `Tenant` mapeada; middleware/helper/subscriber de tenant context implementados e testados. Backend conecta no DB e responde `/health` 200. Pronto pra fase 3.
-**Próximo passo:** Fase 3 — endpoint `GET /tenant/resolve` (recebe `host` da request, retorna `{ id, slug, flavorSlug }`); cache Redis `tenant:resolve:{host}` (TTL 10 min); middleware `resolveTenantByHost` (anexa `req.tenant` antes do `tenantContextMiddleware`); invalidação ao mudar host/flavor_slug; testes E2E.
-**Última decisão:** Fase 2 fechada. `docker-compose.yml` na raiz (Postgres 15 + Redis 7, portas 5435/6382 pra evitar conflito com wynk_ecommerce 5434/6381). `prepare:schema` script (`scripts/ensure-schema.ts`) cria o schema antes de migrations rodarem (evita chicken-and-egg da tabela `migrations` do TypeORM). `db:setup` orquestra. Migrations usam SQL puro com schema dinâmico. `ts-node` instalado na raiz (typeorm CLI hoisted lá precisa achar). `@types/pg` adicionado.
+**Última atualização:** 2026-05-08 19:03
+**Onde tô:** Fase 3 **concluída**. Endpoint `GET /tenant/resolve` funcionando ponta-a-ponta com cache Redis. Smoke E2E real: cache miss 77ms → cache hit 3ms (25x speedup). 13/13 testes passam. Pronto pra fase 4.
+**Próximo passo:** Fase 4 — portal Next.js consumindo `/tenant/resolve`: `app/layout.tsx` lê `host` via `headers()` server-side, chama backend, importa `portal/flavors/<flavorSlug>/theme.json` estaticamente, aplica CSS variables na `<html>`, injeta favicon/title/meta. Schema TS pra `theme.json`. Validação CI da correspondência `tb_tenant.tenant_flavor_slug` ↔ `portal/flavors/<slug>/`.
+**Última decisão:** Fase 3 fechada. `TenantResolverService` injeta deps via construtor (`TenantRepository` + `Redis`). `createApp(deps)` aceita `AppDeps` pra facilitar testes (mock do resolver). Pipeline middleware: resolveByHost → tenantContext → routes. `/health` bypassa via Set explícito (pra responder mesmo sem DB). `@types/superagent` adicionado pra `.set()` tipar em testes supertest.
 **Bloqueio atual:** nenhum.
-**Se retomar, ler:** TL;DR + entrada `[conclusão] Fase 2` (17:42).
+**Se retomar, ler:** TL;DR + entrada `[conclusão] Fase 3` (19:03).
 
 ---
 
@@ -27,7 +27,7 @@
 | 1 | Bootstrap monorepo **npm workspaces**: `backend/` (NestJS — **a ser refeito em Express, ver fase 1.5**), `portal/` (Next.js App Router), `backoffice/` (Vite + React), lint/format, CI, estrutura inicial `portal/flavors/_default/` | concluído (com revisão pendente) | 2026-05-08 16:43 | — |
 | 1.5 | **Revisão de stack do backend:** apagar scaffold NestJS, recriar `backend/` em Express 4 + TypeORM 0.3 espelhando estrutura do `wynk_ecommerce/backend/src/`. Manter versões alinhadas (express ^4.18.2, typeorm ^0.3.17, jsonwebtoken ^9.0.2, ioredis ^5.8.2, etc.) | concluído | 2026-05-08 17:04 | — |
 | 2 | Docker compose (Postgres 15 + Redis 7); schema `scp`; entity `Tenant` (`tb_tenant`); migrations inicial (schema + extension) e CreateTenantTable; helper `withTenant` + middleware de tenant context com `AsyncLocalStorage`; subscriber TypeORM injetando `tenant_id` | concluído | 2026-05-08 17:42 | — |
-| 3 | Endpoint `GET /tenant/resolve` (host → tenant) + cache Redis (`tenant:resolve:{host}`, TTL 10 min) | pendente | 2026-05-08 16:43 | — |
+| 3 | Endpoint `GET /tenant/resolve` (host → tenant) + cache Redis (`tenant:resolve:{host}`, TTL 10 min) | concluído | 2026-05-08 19:03 | — |
 | 4 | `app/layout.tsx` lê `theme.json` do flavor + aplica CSS vars + injeta `<link rel="icon">`/meta. Schema TS de `theme.json` + validação CI da correspondência `tb_tenant.tenant_flavor_slug` ↔ `portal/flavors/<slug>/` | pendente | 2026-05-08 16:43 | — |
 | 5 | Auth JWT (15 min) + refresh (7 dias) em cookies HttpOnly + Secure | pendente | 2026-05-08 14:22 | — |
 | 6 | Seed de 1 tenant + validação E2E (todos os critérios de aceite) | pendente | 2026-05-08 14:22 | — |
@@ -87,6 +87,59 @@ Arquivos identificados como relevantes para próximas sessões (ainda não lidos
 - `docs/specs/scp-spec.md` (spec-mãe — §6.2 host resolution, §8 theme, §9 cache, §10 auth)
 
 Commit: — (a fazer no fim da sessão de ativação)
+
+## 2026-05-08 19:03 — [conclusão] Fase 3 — Resolução de tenant por host com cache Redis
+
+Endpoint `GET /tenant/resolve` funcional e validado E2E contra Postgres + Redis reais. Cache Redis dá speedup de 25x na segunda chamada do mesmo host.
+
+**Camadas criadas:**
+- `repositories/tenant.repository.ts` — wrapper sobre `dataSource.getRepository(Tenant)`. Métodos: `findByHost`, `findBySlug`, `findById`. NÃO usa `withTenant()` (a tabela `tb_tenant` é o catálogo de tenants em si).
+- `services/tenant-resolver.service.ts` — `resolveByHost(host)`: tenta cache Redis (`tenant:resolve:{host}`); cache miss → query DB → grava cache com TTL 600s (10 min) → retorna ctx. `invalidate(host)`: deleta a chave.
+- `middleware/resolve-tenant-by-host.ts` — factory `createResolveTenantByHostMiddleware(resolver)`. Pega `req.hostname`, resolve, anexa em `req.tenant` ou responde 404 (`tenant_not_found`)/400 (`host_required`).
+- `controllers/tenant.controller.ts` — `getTenantResolve(req, res)`: serializa `req.tenant` como `{ id, slug, flavorSlug }`. Não vaza `createdAt`/`updatedAt`.
+- `routes/tenant.routes.ts` — `Router` com `GET /tenant/resolve`.
+- `types/express.d.ts` — declaration merging adiciona `req.tenant?: TenantContext`.
+
+**Refatoração de `app.ts`:**
+- `createApp(deps: AppDeps)` agora exige `{ tenantResolver }` no construtor (composition root em `server.ts`).
+- Pipeline: `helmet` → `cors` → `json/urlencoded/cookie-parser` → `morgan` → `/health` (rota antes do middleware de tenant) → `bypassFor(['/health'], resolveTenantByHostMiddleware)` → `bypassFor(['/health'], tenantContextMiddleware)` → `tenantRoutes` → 404 → error handler.
+- `app.set('trust proxy', true)` — `req.hostname` reflete o `Host` da request (via X-Forwarded-Host quando atrás de proxy reverso).
+
+**Refatoração de `server.ts`:**
+- Composition root: instancia `TenantRepository(AppDataSource)` e `TenantResolverService(repo, redis)`.
+- Passa pra `createApp({ tenantResolver })`.
+
+**Testes adicionados (5 novos cases, 4 suites totais, 13 testes):**
+- `tenant-resolver.service.test.ts` (4 cases): cache miss escreve no Redis com TTL 600; cache hit não toca DB; null quando host não existe; invalidate remove a key.
+- `tenant-resolve.e2e.test.ts` (3 cases): 404 em host desconhecido; 200 com `{id, slug, flavorSlug}` em host conhecido; `/health` segue funcional independente de host.
+- `helpers/mock-deps.ts` — fake `TenantResolverService` que lê de `Map<host, ctx>` (sem Redis nem DB).
+- Atualização de `health.test.ts` pra usar `makeAppDeps()` (createApp agora exige deps).
+
+**Verificação E2E (smoke contra DB + Redis reais):**
+1. Backend up via `npm run dev -w backend`
+2. `curl -H "Host: shopping-x.local" /tenant/resolve` → 200, **77ms** (cache miss: query DB + Redis SET)
+3. Mesmo curl repetido → 200, **3ms** (cache hit: apenas Redis GET)
+4. `docker exec scp_redis redis-cli get "tenant:resolve:shopping-x.local"` → JSON do `TenantContext`
+5. `curl -H "Host: bogus.local" /tenant/resolve` → **404** `tenant_not_found`
+6. `curl -H "Host: bogus.local" /health` → **200** (bypass funcional)
+
+**Critérios de aceite (parciais — fechamento total na fase 6):**
+- [x] Cache Redis funciona — segunda requisição não toca o banco. **Confirmado** (77ms → 3ms).
+- [x] Trocar host → trocar tenant sem reload manual de cache. **Confirmado** (cache key é por host).
+- [x] Login JWT — pendente (fase 5).
+- [x] Tentativa de query sem `tenant_id` falha — implementado em fase 2 (subscriber + helper), validar formal na fase 6.
+
+**Gotchas resolvidos:**
+- `@types/supertest` declara `Test extends STest` mas `STest` precisa de `@types/superagent` instalado pra expor `.set()`. Sem isso, tsc reclama "Property 'set' does not exist on type 'Test'". Solução: instalar `@types/superagent` como devDep do backend.
+
+**Decisões técnicas:**
+- `bypassFor(paths, handler)` — middleware composer simples: pula handler se `req.path` está no Set. Alternativa considerada: `app.use(/^(?!\/health).*/, handler)` (regex inline) — rejeitada por menos legível.
+- Composition root em `server.ts` — sem framework de DI. Cada instância criada explicitamente (TenantRepository, TenantResolverService). Trade-off: boilerplate cresce com o número de services; mitigação futura é adicionar um container leve (tsyringe/awilix) **se a dor justificar**.
+- TTL de cache = 600s (10 min) hard-coded em const no service. Configurável via env só quando virar problema operacional.
+
+**Diff:** ~10 arquivos novos + 4 modificados. Commit pendente.
+
+Commit: — (a fazer agora)
 
 ## 2026-05-08 17:42 — [conclusão] Fase 2 — Schema multitenant + tenant context
 

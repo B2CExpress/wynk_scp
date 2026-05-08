@@ -8,12 +8,12 @@
 
 ## TL;DR (sobrescrever ao fim de cada sessão)
 
-**Última atualização:** 2026-05-08 17:42 (sessão #1)
-**Onde tô:** **Fase 2 fechada.** Postgres+Redis rodando, schema `scp` criado, migrations aplicadas, entity Tenant funcional, tenant context propagável, subscriber TypeORM enforçando `tenant_id`. Backend conecta no DB e responde `/health`. 6/6 testes passam.
-**Próximo passo:** Fase 3 — endpoint `GET /tenant/resolve` (host → tenant), cache Redis em `tenant:resolve:{host}` (TTL 10 min), middleware `resolveTenantByHost` antes do `tenantContextMiddleware`, invalidação ao mudar host/flavor_slug, testes E2E.
-**Última decisão:** Postgres 15 alinhado com wynk_ecommerce (não 16). Portas 5435/6382 (evitar conflito com 5434/6381 do wynk_ecommerce). Pre-script `ensure-schema.ts` resolve chicken-and-egg do TypeORM ao criar tabela `migrations`. Subscriber rejeita UPDATE em `tenantId` mesmo que match — exige operação explícita pra cross-tenant move.
+**Última atualização:** 2026-05-08 19:03 (sessão #1)
+**Onde tô:** **Fase 3 fechada.** Endpoint `GET /tenant/resolve` funcional. Cache Redis dá 25x speedup na segunda chamada (77ms → 3ms). 13/13 testes passam.
+**Próximo passo:** Fase 4 — portal Next.js consumindo `/tenant/resolve` no `app/layout.tsx` (via `headers()` SSR), importando `portal/flavors/<flavorSlug>/theme.json`, aplicando CSS vars, injetando favicon/title/meta. Schema TS pra `theme.json`. Validação CI da correspondência tabela ↔ pasta de flavor.
+**Última decisão:** `createApp(deps: AppDeps)` exige `{ tenantResolver }` (composition root em `server.ts`). Pipeline middleware: `bypassFor(['/health'], resolveTenantByHost)` → `bypassFor(['/health'], tenantContext)` → routes. Sem framework de DI — instanciação manual. `@types/superagent` necessário pra `.set()` tipar em supertest.
 **Bloqueio atual:** nenhum.
-**Se retomar, ler:** state.md TL;DR + entrada `[conclusão] Fase 2` (17:42).
+**Se retomar, ler:** state.md TL;DR + entrada `[conclusão] Fase 3` (19:03).
 
 ---
 
@@ -78,48 +78,67 @@ _(nenhuma ainda — sessão de ativação)_
 
 ### Onde parei exatamente
 
-Fase 2 fechada e validada end-to-end. Próxima sessão começa fase 3:
+Fase 3 fechada e validada E2E. Próxima sessão começa fase 4:
 
-**Fase 3 — Resolução de tenant por host:**
+**Fase 4 — Portal Next.js consumindo `/tenant/resolve` + aplicando flavor:**
 
-1. **`backend/src/services/tenant-resolver.service.ts`** — função `resolveByHost(host: string): Promise<TenantContext | null>`:
-   - Tenta cache Redis: `tenant:resolve:{host}` (key)
-   - Cache miss → query `SELECT tenant_id, tenant_slug, tenant_flavor_slug FROM scp.tb_tenant WHERE tenant_host = $1`
-   - Se achou: serializa pra JSON, salva no Redis com TTL 600s (10 min), retorna
-   - Se não achou: retorna null (caller decide se 404 ou fallback)
+1. **`portal/src/lib/theme/types.ts`** — schema TypeScript de `theme.json`:
+   ```ts
+   export interface Theme {
+     name: string;
+     colors: { primary: string; secondary: string; text: string; background: string };
+     fonts: { primary: string };
+     meta: { title: string; description: string; ogImage: string };
+     social: { instagram: string|null; facebook: string|null; youtube: string|null; tiktok: string|null };
+     contact: { phone: string|null; email: string|null; address: string|null };
+   }
+   ```
 
-2. **`backend/src/middleware/resolve-tenant-by-host.ts`** — middleware Express:
-   - Pega `host = req.hostname` (Express já normaliza)
-   - Chama `tenantResolver.resolveByHost(host)`
-   - Se achou: `(req as any).tenant = tenant` (pra que `tenantContextMiddleware` pegue)
-   - Se não: `res.status(404).json({ error: 'tenant_not_found' })`
-   - Pular esse middleware em rotas como `/health` (que devem responder mesmo sem tenant)
+2. **`portal/src/lib/tenant.ts`** — server-only helper:
+   - `getTenantFromHost(host: string): Promise<TenantContext>` — chama `${BACKEND_URL}/tenant/resolve` com `Host` header. Cacheia com `unstable_cache` ou Next 16 cache API (mesma TTL).
+   - `loadTheme(flavorSlug: string): Promise<Theme>` — `await import('@/flavors/' + flavorSlug + '/theme.json')` ou via fs read. Validar schema (zod ou manual TS).
 
-3. **`backend/src/controllers/tenant.controller.ts`** — handler de `GET /tenant/resolve`:
-   - Pega `req.tenant` (já populado pelo middleware)
-   - Retorna `{ id, slug, flavorSlug }` (camelCase explícito, não vaza created_at/updated_at)
+3. **`portal/src/app/layout.tsx`** — substituir o scaffold:
+   ```tsx
+   const host = (await headers()).get('host')!;
+   const tenant = await getTenantFromHost(host);
+   const theme = await loadTheme(tenant.flavorSlug);
+   const cssVars = { '--color-primary': theme.colors.primary, ... };
+   return <html lang="pt-BR" style={cssVars}>
+     <head>
+       <title>{theme.meta.title}</title>
+       <meta name="description" content={theme.meta.description} />
+       <link rel="icon" href={`/flavors/${tenant.flavorSlug}/favicon.ico`} />
+       <link href={`https://fonts.googleapis.com/css2?family=${encodeURIComponent(theme.fonts.primary)}&display=swap`} rel="stylesheet" />
+     </head>
+     <body>{children}</body>
+   </html>
+   ```
 
-4. **`backend/src/routes/tenant.routes.ts`** + registro em `app.ts`.
+4. **Servir assets de flavors** — Next App Router serve `public/` automaticamente. Mas `portal/flavors/<slug>/` está fora de `public/`. Opções:
+   - (a) Mover `flavors/` pra `public/flavors/` (mais simples — assets servidos direto).
+   - (b) Criar API route que faz `res.sendFile(...)` (mais controle, mais complexidade).
+   - **Recomendo (a).** Decidir e implementar.
 
-5. **Invalidação:**
-   - Service `TenantService` com `update(id, patch)` que: faz update no DB → se mudou `host` ou `flavor_slug`, chama `redis.del('tenant:resolve:' + oldHost)` e novo host (se aplicável). MVP pode ter SQL direto + nota de invalidar.
+5. **Validação CI** — script Node que:
+   - Conecta no DB (ou lê migration/seed)
+   - Pra cada `tenant_flavor_slug` em `tb_tenant`, verifica que existe `portal/public/flavors/<slug>/theme.json`, `logo.svg`, `favicon.ico`.
+   - Falha o CI se algum estiver faltando.
+   - Adicionar como step no `.github/workflows/ci.yml`.
 
-6. **Testes:**
-   - Unit do `tenant-resolver.service.ts` mockando Redis e DataSource.
-   - E2E: subir backend + DB + redis, inserir tenant, hit `/tenant/resolve` com header `Host: shopping-x.local` → 200; hit segundo idêntico → ver no log que pegou do cache (Redis).
-
-7. **Smoke test:** simular o fluxo do portal — request com host real, response com `flavorSlug`, comparar com pasta `portal/flavors/<slug>/` existindo.
+6. **Smoke E2E** — adicionar entrada no `/etc/hosts` (`127.0.0.1 shopping-x.local`), abrir `http://shopping-x.local:3000` e verificar:
+   - Cores corretas
+   - Fonte carregada
+   - Favicon e title corretos
 
 **Conhecimento útil pra retomada:**
-- Postgres em `localhost:5435`, Redis em `localhost:6382`. Backend em `localhost:3001`.
-- `docker-compose up -d` sobe ambos. `db:setup -w backend` aplica migrations (já aplicadas no env atual).
-- 1 tenant exemplo já inserido no DB local nesta sessão: slug=`shopping-x`, host=`shopping-x.local`, flavor_slug=`shopping-x`.
-- `tb_tenant` (NÃO `tenants`) — convenção wynk_ecommerce.
-- Helper `withTenant(qb)` lê do AsyncLocalStorage. Usar em queries de outras entities (não no Tenant em si).
-- Subscriber `TenantSubscriber` está registrado via glob em `AppDataSource.subscribers`. Não precisa registrar em `app.ts`.
-- `tenantContextMiddleware` deve vir DEPOIS do `resolveTenantByHost` no pipeline Express (este popula `req.tenant`, aquele propaga pro AsyncLocalStorage).
-- ioredis com `lazyConnect: true` — primeira chamada conecta. Pra testes não-DB, mockar.
-- `safer-buffer` na dep direta + `@types/express` 4.x via override (gotchas da fase 1.5 ainda relevantes).
+- Tenant exemplo já no DB local: `slug=shopping-x, host=shopping-x.local, flavor_slug=shopping-x`. Pasta `portal/flavors/shopping-x/` AINDA NÃO EXISTE — só `_default/`. Vou precisar criar pra smoke test funcionar.
+- Backend em `localhost:3001`, portal em `localhost:3000` (Next default).
+- Próximo step "trivial" antes de codar fase 4: criar `portal/flavors/shopping-x/{theme.json, logo.svg, favicon.ico}` copiando de `_default/` e ajustando cores pra ver visual diferente.
+- Nesta sessão a SPEC fala em `portal/flavors/<slug>/` (não `portal/public/flavors/<slug>/`). Precisa decidir na fase 4 onde fica fisicamente — afeta como Next serve.
+- BACKEND_URL pra portal chamar: `http://localhost:3001` em dev. Variável `NEXT_PUBLIC_BACKEND_URL` ou similar.
+- Cache Redis funciona: `tenant:resolve:shopping-x.local` populado no Redis local após smoke test. Pra ver: `docker exec scp_redis redis-cli get tenant:resolve:shopping-x.local`.
+- 13/13 testes passam: 4 suites (health, tenant-context, tenant-resolver, tenant-resolve-e2e).
 
 Pendência externa pra dev decidir antes da fase 1 começar: mini-SPEC de limpeza pras referências fantasma em SPEC-1506/1507/1508/1509/1510, ou deixa pra ativação de cada uma.
 

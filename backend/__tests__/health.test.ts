@@ -1,10 +1,11 @@
 import request from 'supertest';
 import { createApp } from '../src/app';
+import { makeAppDeps } from './helpers/mock-deps';
 
 describe('GET /health', () => {
-  it('returns ok status', async () => {
+  it('returns ok status without going through tenant resolution', async () => {
     process.env.NODE_ENV = 'test';
-    const app = createApp();
+    const app = createApp(makeAppDeps());
 
     await request(app)
       .get('/health')
