@@ -2,6 +2,8 @@ import 'reflect-metadata';
 import { DataSource } from 'typeorm';
 import { config } from './index';
 import { Tenant } from '../entities/Tenant';
+import { User } from '../entities/User';
+import { RefreshToken } from '../entities/RefreshToken';
 
 /**
  * AppDataSource — instância única do TypeORM compartilhada por toda a aplicação.
@@ -23,7 +25,7 @@ export const AppDataSource = new DataSource({
   schema: config.database.schema,
   synchronize: false,
   logging: process.env.TYPEORM_LOGGING === 'true',
-  entities: [Tenant],
+  entities: [Tenant, User, RefreshToken],
   migrations: [
     config.nodeEnv === 'production' ? 'dist/migrations/**/*.js' : 'src/migrations/**/*.{ts,js}',
   ],

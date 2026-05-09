@@ -6,23 +6,35 @@ import morgan from 'morgan';
 import { config } from './config';
 import { logger } from './utils/logger';
 import type { TenantResolverService } from './services/tenant-resolver.service';
+import type { AuthController } from './controllers/auth.controller';
 import { createResolveTenantByHostMiddleware } from './middleware/resolve-tenant-by-host';
 import { tenantContextMiddleware } from './middleware/tenant-context';
 import { tenantRoutes } from './routes/tenant.routes';
+import { createAuthRoutes } from './routes/auth.routes';
 
 export interface AppDeps {
   tenantResolver: TenantResolverService;
+  authController: AuthController;
 }
 
 /**
- * Caminhos que NÃO passam por resolução de tenant. O `/health` precisa
- * responder mesmo sem DB ou Redis pra suporte a healthcheck de orquestrador.
+ * Caminhos que NÃO passam por resolução de tenant pelo host.
+ *
+ * - `/health` → healthcheck precisa responder sem DB/Redis.
+ * - `/auth/*` → tenant vem da URL (login) ou do JWT (refresh/logout/me),
+ *   não do `Host`. O backoffice roda em domínio único (ex.: `admin.scp.local`)
+ *   que naturalmente não casa com nenhum `tenant_host`.
  */
-const TENANT_BYPASS_PATHS = new Set(['/health']);
+function shouldBypassTenantResolution(path: string): boolean {
+  return path === '/health' || path === '/auth' || path.startsWith('/auth/');
+}
 
-function bypassFor(paths: Set<string>, handler: RequestHandler): RequestHandler {
+function bypassFor(
+  check: (path: string) => boolean,
+  handler: RequestHandler,
+): RequestHandler {
   return (req: Request, res: Response, next: NextFunction) => {
-    if (paths.has(req.path)) {
+    if (check(req.path)) {
       return next();
     }
     return handler(req, res, next);
@@ -53,10 +65,14 @@ export function createApp(deps: AppDeps): Express {
   });
 
   // Pipeline multitenant: resolve host → propaga ctx → rotas.
-  app.use(bypassFor(TENANT_BYPASS_PATHS, createResolveTenantByHostMiddleware(deps.tenantResolver)));
-  app.use(bypassFor(TENANT_BYPASS_PATHS, tenantContextMiddleware));
+  // Rotas `/auth/*` bypassam a resolução por host (tenant vem da URL/JWT).
+  app.use(
+    bypassFor(shouldBypassTenantResolution, createResolveTenantByHostMiddleware(deps.tenantResolver)),
+  );
+  app.use(bypassFor(shouldBypassTenantResolution, tenantContextMiddleware));
 
   app.use(tenantRoutes);
+  app.use(createAuthRoutes(deps.authController));
 
   // 404
   app.use((_req: Request, res: Response) => {
