@@ -14,3 +14,6 @@ SKILL.md
 # Scaffolds geram seus próprios estilos — Prettier passa em conteúdo manual
 *.lock
 *.ico
+
+# Autogerado pelo Next (header explícito "should not be edited")
+portal/next-env.d.ts

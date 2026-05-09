@@ -26,8 +26,11 @@ const BACKEND_URL = process.env.BACKEND_URL ?? 'http://localhost:3001';
  */
 export async function resolveTenantByHost(host: string): Promise<ResolvedTenant | null> {
   const url = `${BACKEND_URL}/tenant/resolve`;
+  // Node fetch (undici) reescreve o `Host` header a partir da URL, então o
+  // host do tenant viaja em `X-Forwarded-Host`. O backend roda com
+  // `app.set('trust proxy', true)`, então `req.hostname` reflete esse header.
   const res = await fetch(url, {
-    headers: { Host: host },
+    headers: { 'X-Forwarded-Host': host },
     cache: 'no-store',
   });
 

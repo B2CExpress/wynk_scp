@@ -8,12 +8,12 @@
 
 ## TL;DR (sobrescrever ao fim de cada sessão)
 
-**Última atualização:** 2026-05-08 22:15
-**Onde tô:** Fase 4 **código completo + checks verdes, smoke E2E browser PENDENTE**. Sessão fechada pelo dev antes de validar o portal SSR contra DB+Redis reais. Commitado pelo dev manualmente como `44677ba` (sem coautoria, padrão IDE/Copilot).
-**Próximo passo:** Smoke E2E da fase 4: subir backend (`npm run dev -w backend`) + portal (`npm run dev -w portal`) com containers Docker já up; `curl -H "Host: shopping-x.local" http://localhost:3000` deve renderizar SSR com cores `#7C3AED`/`#F59E0B`, fonte Poppins, title "Shopping X — Compre, viva, descubra"; `curl http://localhost:3000/flavors/shopping-x/logo.svg` deve servir o asset. Host desconhecido → 404 via `notFound()`. Após smoke OK, fechar fase 4 e seguir pra fase 5 (auth JWT).
-**Última decisão:** Flavors movidos pra `portal/public/flavors/` (não `portal/flavors/`) — Next serve assets nativamente em `/flavors/<slug>/...`. `theme.json` lido server-side via `node:fs/promises` em `portal/src/lib/theme/load.ts`. Manifesto canonical `seeds/tenants.json` na raiz é fonte da verdade pra CI validar correspondência tabela↔pasta (sem precisar DB no CI).
-**Bloqueio atual:** nenhum (containers Docker ainda up e DB com tenant `shopping-x` inserido — pronto pra próxima sessão).
-**Se retomar, ler:** TL;DR + entrada `[nota] Fase 4 — código pronto, smoke pendente` (22:15).
+**Última atualização:** 2026-05-09 09:55
+**Onde tô:** Fase 4 **CONCLUÍDA**. Smoke E2E rodado contra DB+Redis+backend+portal reais. Bug encontrado e corrigido: `Host` header não viaja em Node fetch (undici sobrescreve com host da URL); trocado por `X-Forwarded-Host` no portal — backend já tinha `app.set('trust proxy', true)` previsto pra isso na fase 3. Todos os 4 checks verdes (lint/typecheck/test/format) + manifesto de flavors válido.
+**Próximo passo:** Iniciar fase 5 — Auth JWT (15 min) + refresh (7 dias) em cookies HttpOnly + Secure + SameSite=Lax. Stack já alinhada com wynk_ecommerce (`jsonwebtoken ^9` + middleware Express). Confirmar com dev se quer começar pela emissão (`POST /auth/login`) ou pelo middleware de validação primeiro.
+**Última decisão:** Portal usa `X-Forwarded-Host` em vez de `Host` ao chamar backend (gotcha do Node fetch). `next-env.d.ts` adicionado ao `.prettierignore` (autogerado pelo Next 16 turbopack).
+**Bloqueio atual:** nenhum.
+**Se retomar, ler:** TL;DR + entrada `[conclusão] Fase 4 — Theme system + smoke E2E` (2026-05-09 09:55).
 
 ---
 
@@ -28,7 +28,7 @@
 | 1.5 | **Revisão de stack do backend:** apagar scaffold NestJS, recriar `backend/` em Express 4 + TypeORM 0.3 espelhando estrutura do `wynk_ecommerce/backend/src/`. Manter versões alinhadas (express ^4.18.2, typeorm ^0.3.17, jsonwebtoken ^9.0.2, ioredis ^5.8.2, etc.) | concluído | 2026-05-08 17:04 | — |
 | 2 | Docker compose (Postgres 15 + Redis 7); schema `scp`; entity `Tenant` (`tb_tenant`); migrations inicial (schema + extension) e CreateTenantTable; helper `withTenant` + middleware de tenant context com `AsyncLocalStorage`; subscriber TypeORM injetando `tenant_id` | concluído | 2026-05-08 17:42 | — |
 | 3 | Endpoint `GET /tenant/resolve` (host → tenant) + cache Redis (`tenant:resolve:{host}`, TTL 10 min) | concluído | 2026-05-08 19:03 | — |
-| 4 | `app/layout.tsx` lê `theme.json` do flavor + aplica CSS vars + injeta `<link rel="icon">`/meta. Schema TS de `theme.json` + validação CI da correspondência `tb_tenant.tenant_flavor_slug` ↔ `portal/public/flavors/<slug>/` | em progresso (código + checks OK; smoke E2E browser pendente) | 2026-05-08 22:15 | `44677ba` |
+| 4 | `app/layout.tsx` lê `theme.json` do flavor + aplica CSS vars + injeta `<link rel="icon">`/meta. Schema TS de `theme.json` + validação CI da correspondência `tb_tenant.tenant_flavor_slug` ↔ `portal/public/flavors/<slug>/` | concluído | 2026-05-09 09:55 | `44677ba` + fix pendente |
 | 5 | Auth JWT (15 min) + refresh (7 dias) em cookies HttpOnly + Secure | pendente | 2026-05-08 14:22 | — |
 | 6 | Seed de 1 tenant + validação E2E (todos os critérios de aceite) | pendente | 2026-05-08 14:22 | — |
 | 7 | Atualização das 4 features tocadas (R.7) + arquivamento | pendente | 2026-05-08 14:22 | — |
@@ -68,6 +68,78 @@ _(nenhum)_
 ---
 
 ## Log cronológico (APPEND-ONLY — NUNCA editar entradas antigas)
+
+## 2026-05-09 09:55 — [conclusão] Fase 4 — Theme system + smoke E2E (com fix)
+
+Smoke E2E browser rodado contra stack inteira (Postgres + Redis + backend + portal reais). Um bug crítico encontrado e corrigido durante a validação. Todos os checks finais verdes.
+
+**Roteiro executado:**
+
+1. `docker-compose up -d` — containers caíram entre sessões (provável reboot), mas volumes persistiram. Postgres + Redis healthy em ~3s. Tenant `shopping-x` (UUID `931bb6f7-...`) ainda no DB ✓
+2. `npm run dev -w backend` — backend up em :3001, `curl /health` → `{"status":"ok"}`
+3. `npm run dev -w portal` — portal up em :3000 (Next 16.2.6 turbopack)
+4. `curl -H "Host: shopping-x.local" http://localhost:3000` → **inicialmente 404** ❌
+
+**Bug encontrado: `Host` header é sobrescrito por Node fetch (undici)**
+
+Causa raiz: `portal/src/lib/tenant/resolve.ts` enviava o host do tenant em `headers: { Host: host }` ao chamar o backend. Mas o fetch nativo do Node (undici) **reescreve o header `Host`** a partir da URL — então o backend recebia `Host: localhost:3001` em vez de `Host: shopping-x.local`, e respondia 404.
+
+Isolei com `node -e "fetch('...', { headers: { Host: 'shopping-x.local' } })"` direto: backend retornou `tenant_not_found`. Trocando por `X-Forwarded-Host`: backend retornou 200 com tenant correto.
+
+**Fix aplicado em `portal/src/lib/tenant/resolve.ts:29-33`:**
+
+```ts
+const res = await fetch(url, {
+  headers: { 'X-Forwarded-Host': host },  // antes: { Host: host }
+  cache: 'no-store',
+});
+```
+
+Comentário inline registrando o gotcha. O backend já tinha `app.set('trust proxy', true)` na fase 3 (`backend/src/app.ts`), exatamente porque essa interação proxy↔backend foi prevista. `req.hostname` reflete `X-Forwarded-Host` quando trust proxy está on.
+
+**Bug secundário: `next-env.d.ts` formatado com aspas duplas**
+
+Next 16 turbopack regerou `portal/next-env.d.ts` com `import "./.next/dev/types/routes.d.ts"` (aspas duplas), violando o `singleQuote: true` do prettier. Arquivo é autogerado e tem header explícito "should not be edited". Adicionado ao `.prettierignore`.
+
+**Smoke E2E final (após fix):**
+
+- `curl -H "Host: shopping-x.local" http://localhost:3000` → **HTTP 200**, HTML com:
+  - `<title>Shopping X — Compre, viva, descubra</title>` ✓
+  - `style="--color-primary:#7C3AED;--color-secondary:#F59E0B;--color-text:#1F2937;--color-background:#FAFAFA;--font-primary:&quot;Poppins&quot;, system-ui, sans-serif"` no `<html>` ✓
+  - `<link rel="icon" href="/flavors/shopping-x/favicon.ico"/>` ✓
+  - Logo SVG `/flavors/shopping-x/logo.svg` referenciada ✓
+- `curl http://localhost:3000/flavors/shopping-x/logo.svg` → **200 OK** ✓
+- `curl http://localhost:3000/flavors/shopping-x/favicon.ico` → **200 OK** ✓
+- `curl -H "Host: bogus.local" http://localhost:3000` → **404** (`notFound()` disparado) ✓
+- `docker exec scp_redis redis-cli get tenant:resolve:shopping-x.local` → JSON com tenant context ✓ (cache populado pelo hit do portal)
+
+**Checks no estado final:**
+- `npm run typecheck` ✓ (3 apps)
+- `npm run lint` ✓
+- `npm test` ✓ (4 suites, 13 testes)
+- `npm run format:check` ✓ (após `.prettierignore` update)
+- `npm run validate:flavors` ✓
+
+**Critérios de aceite (parciais):**
+- [x] Acessar `tenant1.local` carrega config do tenant 1 (cores, fontes, favicon corretos) — **confirmado** com curl
+- [x] Trocar host → trocar tenant sem reload manual de cache — **confirmado** (cache key é por host, fase 3 + smoke desta fase)
+
+**Decisões técnicas:**
+- `X-Forwarded-Host` em vez de `Host` no fetch interno portal→backend. Trade-off: levemente menos óbvio que "passar o header literal", mas (a) é o padrão de proxy reverso real (Nginx/CloudFront fariam o mesmo em prod) e (b) é a única opção que funciona com fetch nativo do Node. Documentado inline no código.
+- `next-env.d.ts` em `.prettierignore`. Mesmo princípio do `*.ico`/`*.lock`: arquivo gerado por terceiro, não-editável.
+
+**Diff:** 2 arquivos (`portal/src/lib/tenant/resolve.ts`, `.prettierignore`). Commit pendente.
+
+**Estado de infraestrutura ao concluir:**
+- Containers Docker up e healthy.
+- Backend e portal rodando em background (`npm run dev`). Pode-se descer pra próxima sessão.
+
+**Pra fase 5 (auth):**
+- Pra emissão: `POST /auth/login` com `email`/`password`, retorna access (15 min) em cookie HttpOnly e refresh (7 dias) em cookie HttpOnly + path `/auth/refresh`.
+- Pra validação: middleware `requireAuth` que lê cookie, valida JWT, anexa `req.user` (com `tenantId` propagado pra `tenantContextMiddleware`).
+- Tabela `tb_user` ainda não existe — vai precisar de migration na fase 5.
+
+Commit: — (a fazer agora)
 
 ## 2026-05-08 14:22 — [ativação]
 
