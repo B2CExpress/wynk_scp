@@ -8,12 +8,12 @@
 
 ## TL;DR (sobrescrever ao fim de cada sessão)
 
-**Última atualização:** 2026-05-09 09:55
-**Onde tô:** Fase 4 **CONCLUÍDA**. Smoke E2E rodado contra DB+Redis+backend+portal reais. Bug encontrado e corrigido: `Host` header não viaja em Node fetch (undici sobrescreve com host da URL); trocado por `X-Forwarded-Host` no portal — backend já tinha `app.set('trust proxy', true)` previsto pra isso na fase 3. Todos os 4 checks verdes (lint/typecheck/test/format) + manifesto de flavors válido.
-**Próximo passo:** Iniciar fase 5 — Auth JWT (15 min) + refresh (7 dias) em cookies HttpOnly + Secure + SameSite=Lax. Stack já alinhada com wynk_ecommerce (`jsonwebtoken ^9` + middleware Express). Confirmar com dev se quer começar pela emissão (`POST /auth/login`) ou pelo middleware de validação primeiro.
-**Última decisão:** Portal usa `X-Forwarded-Host` em vez de `Host` ao chamar backend (gotcha do Node fetch). `next-env.d.ts` adicionado ao `.prettierignore` (autogerado pelo Next 16 turbopack).
+**Última atualização:** 2026-05-09 19:45
+**Onde tô:** Fase 5 **CONCLUÍDA**. Auth JWT + refresh rotativo + cookies HttpOnly funcionando E2E (35 testes passam, smoke via curl validou login/me/refresh/logout/reuse-detection contra DB real). Sem superadmin global nesta SPEC (decisão do dev).
+**Próximo passo:** Iniciar fase 6 — Seed de 1 tenant + validação E2E completa de todos os critérios de aceite (já parcialmente cobertos pelas fases anteriores). Pode incluir UI mínima de login no backoffice se o dev quiser fechar o loop visual.
+**Última decisão:** Login do backoffice via `POST /auth/:slug/login` (slug na URL, não no Host) — domínio único `admin.scp.local/<slug>/login`. Email único por `(tenant_id, email)`. Refresh rotativo com tabela `tb_refresh_token` + reuse detection (revoga toda cadeia do user em token revogado reapresentado). Sem superadmin global nesta SPEC.
 **Bloqueio atual:** nenhum.
-**Se retomar, ler:** TL;DR + entrada `[conclusão] Fase 4 — Theme system + smoke E2E` (2026-05-09 09:55).
+**Se retomar, ler:** TL;DR + entrada `[conclusão] Fase 5 — Auth JWT + refresh rotativo` (2026-05-09 19:45).
 
 ---
 
@@ -29,7 +29,7 @@
 | 2 | Docker compose (Postgres 15 + Redis 7); schema `scp`; entity `Tenant` (`tb_tenant`); migrations inicial (schema + extension) e CreateTenantTable; helper `withTenant` + middleware de tenant context com `AsyncLocalStorage`; subscriber TypeORM injetando `tenant_id` | concluído | 2026-05-08 17:42 | — |
 | 3 | Endpoint `GET /tenant/resolve` (host → tenant) + cache Redis (`tenant:resolve:{host}`, TTL 10 min) | concluído | 2026-05-08 19:03 | — |
 | 4 | `app/layout.tsx` lê `theme.json` do flavor + aplica CSS vars + injeta `<link rel="icon">`/meta. Schema TS de `theme.json` + validação CI da correspondência `tb_tenant.tenant_flavor_slug` ↔ `portal/public/flavors/<slug>/` | concluído | 2026-05-09 09:55 | `44677ba` + fix pendente |
-| 5 | Auth JWT (15 min) + refresh (7 dias) em cookies HttpOnly + Secure | pendente | 2026-05-08 14:22 | — |
+| 5 | Auth JWT (15 min) + refresh (7 dias) em cookies HttpOnly + Secure | concluído | 2026-05-09 19:45 | — |
 | 6 | Seed de 1 tenant + validação E2E (todos os critérios de aceite) | pendente | 2026-05-08 14:22 | — |
 | 7 | Atualização das 4 features tocadas (R.7) + arquivamento | pendente | 2026-05-08 14:22 | — |
 
@@ -68,6 +68,85 @@ _(nenhum)_
 ---
 
 ## Log cronológico (APPEND-ONLY — NUNCA editar entradas antigas)
+
+## 2026-05-09 19:45 — [conclusão] Fase 5 — Auth JWT + refresh rotativo
+
+Auth completa entregue: login por slug do tenant, refresh rotativo com detecção de reuso, logout, `GET /auth/me` protegido. 22 testes novos (9 unit + 13 e2e), smoke E2E full passou contra DB real.
+
+**Decisões de design (alinhadas com o dev antes de codar):**
+
+- **Sem superadmin global nesta SPEC.** `tb_user.tenant_id` é NOT NULL, FK pra `tb_tenant`. Cada user pertence a exatamente 1 tenant.
+- **Login por URL slug, não por host.** Backoffice planejado em domínio único (`admin.scp.local/<slug>/login`); slug embutido na URL. Endpoint `POST /auth/:slug/login`. `/auth/*` bypassa o `resolveTenantByHost` (tenant vem da URL pra login, ou do JWT pra demais).
+- **Email único por tenant** (`UNIQUE (tenant_id, user_email)`). Mesmo email pode existir em múltiplos shoppings.
+- **Refresh rotativo** com tabela `tb_refresh_token`. Cada `/auth/refresh` revoga o token usado e emite novo. Reapresentar refresh **já revogado** é tratado como leak: revoga **toda a cadeia do user** (não só o token reapresentado).
+- **Refresh hashado em DB** (SHA-256 hex, 64 chars). Não bcrypt — refresh é random 256 bits, espaço de busca dispensa hash slow. Comprometimento do DB não vaza sessões ativas (pré-imagem).
+- **Cookies HttpOnly + SameSite=Lax + Secure (em prod):**
+  - `scp_access` — path=`/`, maxAge=15 min
+  - `scp_refresh` — path=`/auth`, maxAge=7d (cookie só viaja em `/auth/*` — refresh + logout)
+- **JWT carrega tenant context completo** (`tenantId, tenantSlug, tenantFlavorSlug, role`) pra `requireAuth` montar `req.user` + `req.tenant` sem nova consulta ao DB. Mudança de slug/flavor exige re-login (TTL 15 min do access).
+
+**Implementado (backend, 14 arquivos novos + 5 modificados):**
+
+- Migrations:
+  - `1746748200000-CreateUserTable` — `tb_user(user_id pk, tenant_id fk, user_email, user_password_hash, user_name, user_role default 'tenant_admin', user_created_at, user_updated_at)`. UNIQUE `(tenant_id, user_email)`.
+  - `1746748300000-CreateRefreshTokenTable` — `tb_refresh_token(token_id pk, user_id fk, tenant_id fk, token_hash unique, token_expires_at, token_revoked_at nullable, token_created_at)`. Index `ix_tb_refresh_token_user_id` pra revoke-all.
+- Entities `User`, `RefreshToken` + adicionadas em `AppDataSource.entities`.
+- Repos `UserRepository` (`findByTenantAndEmail`, `findById`, `save`), `RefreshTokenRepository` (`findValidByHash` com filtros embutidos, `findAnyByHash` pra detecção de reuso, `save`, `revoke`, `revokeAllForUser`).
+- Utils:
+  - `utils/jwt.ts` — `signAccessToken/verifyAccessToken` com payload tipado.
+  - `utils/passwords.ts` — `hashPassword/verifyPassword` (bcryptjs 10 rounds), `generateRefreshToken` (32 bytes hex), `hashRefreshToken` (SHA-256 hex).
+- `services/auth.service.ts` — `login/refresh/logout` + classes de erro tipadas (`TenantNotFoundError`, `InvalidCredentialsError`, `RefreshTokenInvalidError`, `RefreshTokenReusedError`).
+- `controllers/auth.controller.ts` + `routes/auth.routes.ts` — 4 endpoints (`POST /auth/:slug/login`, `POST /auth/refresh`, `POST /auth/logout`, `GET /auth/me`).
+- `middleware/require-auth.ts` — valida access cookie, popula `req.user`+`req.tenant`, encadeia `next()` dentro de `runWithTenantContext`.
+- `app.ts` refatorado: `bypassFor` agora aceita predicado de path (era Set de match exato); `/auth/*` bypassa pipeline host-based.
+- `types/express.d.ts` ampliado com `req.user`.
+- `__tests__/helpers/mock-deps.ts` ganha `makeStubAuthController()` pros testes existentes.
+
+**Testes adicionados:**
+- `__tests__/auth.service.test.ts` (9 cases) — todos os flows do service com fake repos (jest.fn).
+- `__tests__/auth.e2e.test.ts` (13 cases) — controller + routes + middleware via supertest com in-memory fake repos. Cobre happy path, errors, reuse detection (cadeia revogada após reuso de refresh), bypass de host pra `/auth/*`.
+- Total: 6 suites, **35 testes**, 100% passando.
+
+**Verificação E2E (smoke contra DB+Redis reais):**
+
+User de teste inserido via SQL: `admin@shopping-x.local` / senha `admin123` (bcrypt hash gerado via `node -e "require('bcryptjs').hash('admin123', 10)"`). Tenant `shopping-x` (UUID `931bb6f7-...`) já existia da fase 2.
+
+1. `POST /auth/shopping-x/login {email,password}` correto → **200**, body `{user:{id,email,name,role}}`, cookies `scp_access` (path=/) e `scp_refresh` (path=/auth) setados ✓
+2. `GET /auth/me` com access cookie → **200**, retorna user completo (id, email, name, role, tenantId) ✓
+3. `POST /auth/refresh` com refresh cookie → **204**, novos cookies emitidos (refresh diferente do anterior) ✓
+4. `POST /auth/refresh` com refresh ANTIGO (já rotacionado) → **401** + service revoga toda a cadeia ✓
+5. `POST /auth/refresh` com refresh NOVO (cadeia revogada) → **401** ✓ (confirma reuse detection)
+6. DB inspection: `SELECT ... FROM tb_refresh_token` mostra ambos tokens com `token_revoked_at` preenchido ✓
+7. `POST /auth/logout` → **204**, refresh revogado no DB ✓
+8. `POST /auth/refresh` após logout → **401** (refresh revogado) ✓
+9. `POST /auth/shopping-x/login` com senha errada → **401** `invalid_credentials` ✓
+10. `POST /auth/nope/login` (tenant inexistente) → **401** `invalid_credentials` (mesmo erro — não vaza enumeração) ✓
+11. `GET /auth/me` sem cookie → **401** `unauthorized` ✓
+
+**Checks no estado final:**
+- `npm run typecheck` ✓ (3 apps)
+- `npm run lint` ✓
+- `npm test` ✓ (6 suites, 35 testes)
+- `npm run format:check` ✓
+- `npm run validate:flavors` ✓
+
+**Critérios de aceite (parciais — fechamento total na fase 6):**
+- [x] Login JWT + refresh token funcionando, cookies marcados HttpOnly + Secure + SameSite=Lax — **confirmado** (smoke + testes verificam atributos do Set-Cookie)
+
+**Gotchas resolvidos:**
+- Express deprecou `maxAge` em `res.clearCookie()` — separei `accessCookieOptions/refreshCookieOptions` (sem maxAge, usadas em set+clear) de `setAccessCookie/setRefreshCookie` (helpers que adicionam maxAge só no set).
+- `bypassFor` precisava virar predicate-based pra suportar prefixo (`/auth/*`) além de paths exatos (`/health`).
+- Stub de `AuthController` no `mock-deps` pra testes existentes (que não exercitam auth) não quebrarem após adicionar `authController` ao `AppDeps`.
+
+**Decisões técnicas:**
+- Login resolve tenant pelo slug e ignora `req.tenant` (que estaria vazio porque `/auth/*` bypassa `resolveTenantByHost`). AuthService recebe `tenantSlug` por parâmetro, não via `requireTenantContext`.
+- Refresh/logout/me dependem do `requireAuth` (ou do cookie de refresh direto pro controller no caso de refresh/logout) — tenant vem do JWT, não de host. `requireAuth` popula `req.tenant` a partir do JWT pra o subscriber TypeORM enxergar tenant_id em INSERT/UPDATE downstream.
+- Errors `InvalidCredentialsError` e `TenantNotFoundError` retornam mesma resposta no controller (`401 invalid_credentials`) pra evitar enumeração de tenants/emails.
+- Refresh token é random 32 bytes hex. Hash de armazenamento é SHA-256 (não bcrypt) — input já tem entropia 256 bits, slow hash não agrega.
+
+**Diff:** 14 arquivos novos + 5 modificados. Commit pendente.
+
+Commit: — (a fazer agora)
 
 ## 2026-05-09 09:55 — [conclusão] Fase 4 — Theme system + smoke E2E (com fix)
 

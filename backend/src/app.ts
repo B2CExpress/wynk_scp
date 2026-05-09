@@ -29,10 +29,7 @@ function shouldBypassTenantResolution(path: string): boolean {
   return path === '/health' || path === '/auth' || path.startsWith('/auth/');
 }
 
-function bypassFor(
-  check: (path: string) => boolean,
-  handler: RequestHandler,
-): RequestHandler {
+function bypassFor(check: (path: string) => boolean, handler: RequestHandler): RequestHandler {
   return (req: Request, res: Response, next: NextFunction) => {
     if (check(req.path)) {
       return next();
@@ -67,7 +64,10 @@ export function createApp(deps: AppDeps): Express {
   // Pipeline multitenant: resolve host → propaga ctx → rotas.
   // Rotas `/auth/*` bypassam a resolução por host (tenant vem da URL/JWT).
   app.use(
-    bypassFor(shouldBypassTenantResolution, createResolveTenantByHostMiddleware(deps.tenantResolver)),
+    bypassFor(
+      shouldBypassTenantResolution,
+      createResolveTenantByHostMiddleware(deps.tenantResolver),
+    ),
   );
   app.use(bypassFor(shouldBypassTenantResolution, tenantContextMiddleware));
 

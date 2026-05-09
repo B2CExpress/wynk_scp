@@ -4,11 +4,7 @@ import type { RefreshTokenRepository } from '../repositories/refresh-token.repos
 import { RefreshToken } from '../entities/RefreshToken';
 import type { User } from '../entities/User';
 import { signAccessToken } from '../utils/jwt';
-import {
-  generateRefreshToken,
-  hashRefreshToken,
-  verifyPassword,
-} from '../utils/passwords';
+import { generateRefreshToken, hashRefreshToken, verifyPassword } from '../utils/passwords';
 import { config } from '../config';
 
 export class TenantNotFoundError extends Error {
