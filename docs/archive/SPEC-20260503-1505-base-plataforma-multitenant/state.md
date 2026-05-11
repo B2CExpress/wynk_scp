@@ -8,12 +8,12 @@
 
 ## TL;DR (sobrescrever ao fim de cada sessão)
 
-**Última atualização:** 2026-05-11 (sessão #3)
-**Onde tô:** Fase 6 **CONCLUÍDA**. Seed reproduzível + 15 testes novos (50 totais) + smoke E2E full validou TODOS os critérios de aceite da SPEC contra DB real (resolve, cache hit/miss/invalidate, login/me/refresh/logout, senha errada → 401, cross-tenant blocked via subscriber+withTenant).
-**Próximo passo:** Fase 7 — atualizar as 4 features tocadas em `docs/features/` (R.7) + entrada de conclusão da SPEC + mover SPEC pra `docs/archive/`. Opcionalmente UI de login no backoffice (dev não pediu ainda).
-**Última decisão:** Seed via `npm run seed -w backend` lê `seeds/tenants.json` (fonte canônica) + cria admin `admin@<host>` com senha vinda de `SEED_ADMIN_PASSWORD` (fallback `admin123` em dev). Idempotente: preserva senha existente em re-run.
+**Última atualização:** 2026-05-11 09:00 (sessão #3 — SPEC ARQUIVADA)
+**Onde tô:** SPEC **CONCLUÍDA e ARQUIVADA**. Todos os 11 critérios marcados [x]. 4 features atualizadas (R.7). Pasta movida pra `docs/archive/`. Status=done. Sem follow-up nesta SPEC.
+**Próximo passo:** _(nenhum — esta SPEC está fechada)_. Próxima atividade no projeto: ativar SPEC-1506 (módulo lojas) em sessão dedicada.
+**Última decisão:** Fechamento R.7 — features `infra-base`, `tenant-resolution`, `auth`, `theme-system` atualizadas com arquivos principais, decisões arquiteturais ativas, alternativas rejeitadas, gotchas. SPEC arquivada (active/ → archive/).
 **Bloqueio atual:** nenhum.
-**Se retomar, ler:** TL;DR + entrada `[conclusão] Fase 6 — Seed + validação E2E completa` (2026-05-11).
+**Se retomar, ler:** _(esta SPEC está arquivada — leitura só pra contexto histórico, ver R.8: exige pedido explícito do dev)_.
 
 ---
 
@@ -30,8 +30,8 @@
 | 3 | Endpoint `GET /tenant/resolve` (host → tenant) + cache Redis (`tenant:resolve:{host}`, TTL 10 min) | concluído | 2026-05-08 19:03 | — |
 | 4 | `app/layout.tsx` lê `theme.json` do flavor + aplica CSS vars + injeta `<link rel="icon">`/meta. Schema TS de `theme.json` + validação CI da correspondência `tb_tenant.tenant_flavor_slug` ↔ `portal/public/flavors/<slug>/` | concluído | 2026-05-09 09:55 | `44677ba` + fix pendente |
 | 5 | Auth JWT (15 min) + refresh (7 dias) em cookies HttpOnly + Secure | concluído | 2026-05-09 19:45 | — |
-| 6 | Seed de 1 tenant + validação E2E (todos os critérios de aceite) | concluído | 2026-05-11 | — |
-| 7 | Atualização das 4 features tocadas (R.7) + arquivamento | pendente | 2026-05-08 14:22 | — |
+| 6 | Seed de 1 tenant + validação E2E (todos os critérios de aceite) | concluído | 2026-05-11 08:50 | `968d389` |
+| 7 | Atualização das 4 features tocadas (R.7) + arquivamento | concluído | 2026-05-11 09:00 | — |
 
 ### Próximos passos
 
@@ -68,6 +68,33 @@ _(nenhum)_
 ---
 
 ## Log cronológico (APPEND-ONLY — NUNCA editar entradas antigas)
+
+## 2026-05-11 09:00 — [arquivamento] Fase 7 — SPEC concluída e movida pra archive/
+
+R.7 cumprida: as 4 features tocadas atualizadas com arquivos principais, decisões arquiteturais ativas, alternativas rejeitadas, gotchas — todas com referência a esta SPEC e timestamp 2026-05-11 09:00. Pasta movida `docs/active/SPEC-20260503-1505-...` → `docs/archive/SPEC-20260503-1505-...`. `Status: done`, `Concluída: 2026-05-11 09:00`, `Commit final: 968d389`.
+
+**Features atualizadas (R.7):**
+
+- `docs/features/infra-base.md` — monorepo npm workspaces + Express+TypeORM + Docker + naming alinhado wynk_ecommerce + gotchas de bootstrap.
+- `docs/features/tenant-resolution.md` — schema `tb_tenant` + resolução por host + cache Redis + AsyncLocalStorage + isolamento de 2 camadas (subscriber + withTenant) + pipeline Express.
+- `docs/features/auth.md` — JWT 15min + refresh rotativo 7d + reuse detection + cookies HttpOnly + seed admin.
+- `docs/features/theme-system.md` — Modelo A (flavors versionados) + SSR pipeline + `seeds/tenants.json` como fonte canônica única + validate-flavors CI.
+
+**Estado final da SPEC:**
+
+- 11/11 critérios técnicos do `main.md` marcados [x] com timestamp + fase.
+- 7 fases concluídas (incluindo 1.5 — revisão de stack pra Express).
+- Backend: 50 testes em 7 suites passando; ~30 arquivos novos; 3 migrations aplicadas.
+- Portal: SSR funcionando com flavor `shopping-x` (cores roxo/laranja, font Poppins).
+- DB: tenant `shopping-x` (`931bb6f7-...`) + admin `admin@shopping-x.local` semeados reproduzivelmente via `npm run seed -w backend`.
+- CI: matriz `app × task` + `format:check` + `validate-flavors` (todos verdes).
+
+**Próximos passos no projeto (fora desta SPEC):**
+
+- Ativar SPEC-20260503-1506 (módulo lojas) — exige sessão dedicada (R.8). A base de schema multitenant + auth + tenant-resolution está pronta pra ser herdada.
+- Considerar reativar SPEC-20260506-1400 (stores-public-api) quando 1506 entregar schema de stores (a SPEC-1400 está em pause em `docs/active/` em outra branch — ver `project_stores_api_blocked_on_base` na memória global).
+
+Commit do arquivamento: — (a fazer ao consolidar este push)
 
 ## 2026-05-11 — [conclusão] Fase 6 — Seed + validação E2E completa de TODOS os critérios de aceite
 

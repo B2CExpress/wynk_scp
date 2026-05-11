@@ -6,14 +6,20 @@
 
 ---
 
-## TL;DR (sobrescrever ao fim de cada sessão)
+## TL;DR FINAL (SPEC arquivada — leitura apenas pra contexto histórico, R.8)
 
-**Última atualização:** 2026-05-11 (sessão #3 — fase 6 concluída)
-**Onde tô:** **Fase 6 fechada.** 8/8 critérios técnicos do `main.md` checados. Falta APENAS fase 7: atualizar `docs/features/{infra-base,tenant-resolution,auth,theme-system}.md` (R.7) + arquivar SPEC + entrada `[arquivamento]` no state.md.
-**Próximo passo:** Fase 7 — atualizar 4 stubs de feature em `docs/features/` com timestamp + ref a esta SPEC, mover SPEC pra `docs/archive/SPEC-20260503-1505-...`, atualizar TL;DR final do memory.md, criar entrada `[arquivamento]` no state.md, commit + abrir PR.
-**Última decisão:** Seed via `npm run seed -w backend` lê `seeds/tenants.json` (fonte canônica que também alimenta `validate-flavors`) + cria admin `admin@<host>` com senha do env `SEED_ADMIN_PASSWORD` (fallback `admin123` em dev). Idempotente. Cross-tenant isolation provado por 13 testes unitários do subscriber + withTenant (sem precisar DB).
+**Última atualização:** 2026-05-11 09:00 (sessão #3 — SPEC ARQUIVADA)
+**Status:** done. 11/11 critérios marcados [x]. 4 features atualizadas (R.7). Pasta movida pra `docs/archive/`. Commit final: `968d389` (último commit de fechamento; arquivamento em commit subsequente).
+**O que foi entregue:**
+- Monorepo `wynk-scp` (npm workspaces, Node 22+): `backend/` (Express 4 + TypeORM 0.3), `portal/` (Next 16 App Router), `backoffice/` (Vite + React).
+- Schema multitenant `scp` com `tb_tenant`, `tb_user`, `tb_refresh_token`. Isolamento via `withTenant(qb)` + `TenantSubscriber` global (insert + update reject).
+- `GET /tenant/resolve` com cache Redis (TTL 10min, 25× speedup); 4 endpoints auth (`POST /auth/:slug/login`, `POST /auth/refresh`, `POST /auth/logout`, `GET /auth/me`).
+- Portal SSR carrega flavor por host, aplica CSS vars + `<title>` + `<link rel="icon">` + Google Font preconnect.
+- White-label Modelo A (flavors em `portal/public/flavors/<slug>/`) com `seeds/tenants.json` como fonte canônica única, consumida tanto por `validate-flavors` CI quanto por `npm run seed -w backend`.
+- 50 testes (7 suites, 100% verdes).
+**Próximo passo:** _(nada nesta SPEC)._ Próxima atividade no projeto: ativar SPEC-1506 (módulo lojas) em sessão dedicada (R.8).
 **Bloqueio atual:** nenhum.
-**Se retomar, ler:** state.md TL;DR + entrada `[conclusão] Fase 6` (2026-05-11). Pra fase 7 ler RULES.md §R.7 (atualização de features na conclusão de SPEC).
+**Se alguém retomar (raro):** ler `main.md` (contrato) + entrada `[arquivamento]` no `state.md` (2026-05-11 09:00). Features tocadas têm visão arquitetural densa pós-conclusão; preferir lê-las em vez do `state.md` cronológico.
 
 ---
 

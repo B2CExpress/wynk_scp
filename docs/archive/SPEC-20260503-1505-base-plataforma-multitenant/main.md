@@ -1,10 +1,10 @@
 # SPEC-20260503-1505: Base da plataforma multitenant
 
-**Status:** active
+**Status:** done
 **Criada:** 2026-05-03 15:05
 **Ativada:** 2026-05-08 14:22
-**Concluída:** —
-**Commit final:** —
+**Concluída:** 2026-05-11 09:00
+**Commit final:** `968d389` (último commit antes do arquivamento; ver branch `feature/multitenant-platform` pra histórico completo)
 **Keywords:** multitenant, bootstrap, auth, tenant-resolution, theme-system
 **Features:** infra-base, tenant-resolution, auth, theme-system
 **Branch:** feature/multitenant-platform
@@ -81,14 +81,14 @@ Entregar a base mínima sobre a qual todos os módulos posteriores se apoiam: re
 
 ## Critério de aceite
 
-- [x] Acessar `tenant1.local` carrega o flavor correto: cores e fontes do `theme.json` aplicadas via CSS vars; `logo.svg` e `favicon.ico` servidos de `/flavors/<slug>/`; `<title>` e `<meta>` corretos [fase 4 — 2026-05-09 09:55]
-- [x] Cache Redis do mapeamento host→tenant funciona — segunda requisição da mesma URL não toca o banco [fase 3 — 2026-05-08 19:03]
-- [x] Invalidação de cache ao alterar `host` ou `flavor_slug` no banco funciona (teste manual via SQL) [fase 6 — 2026-05-11]
-- [x] Login JWT + refresh token funcionando, cookies marcados HttpOnly + Secure + SameSite=Lax [fase 5 — 2026-05-09 19:45]
-- [x] Tentativa de query sem `tenant_id` falha em dev (assert) e em prod (erro do helper) [fase 6 — 2026-05-11, 13 testes de cross-tenant-isolation]
-- [x] Trocar host → trocar tenant sem reload manual de cache [fase 3 + fase 6]
-- [x] CI valida que cada `tenant_flavor_slug` na tabela `tb_tenant` tem pasta `portal/public/flavors/<slug>/` com `theme.json`, `logo.svg`, `favicon.ico` (e `theme.json` válido contra o schema TS) [fase 4 — `validate-flavors`]
-- [x] `theme.json` do flavor `_default` existe e cobre todos os campos obrigatórios [fase 1 + fase 4]
-- [ ] **Features tocadas (infra-base, tenant-resolution, auth, theme-system) atualizadas** com timestamp e referência a esta SPEC [fase 7]
-- [x] `state.md` com entrada `[conclusão]` [2026-05-11 — fase 6; fase 7 adicionará entrada de arquivamento]
-- [ ] `memory.md` com TL;DR final atualizado [fase 7]
+- [x] Acessar `tenant1.local` carrega o flavor correto: cores e fontes do `theme.json` aplicadas via CSS vars; `logo.svg` e `favicon.ico` servidos de `/flavors/<slug>/`; `<title>` e `<meta>` corretos (2026-05-09 09:55, fase 4)
+- [x] Cache Redis do mapeamento host→tenant funciona — segunda requisição da mesma URL não toca o banco (2026-05-08 19:03, fase 3)
+- [x] Invalidação de cache ao alterar `host` ou `flavor_slug` no banco funciona (teste manual via SQL) (2026-05-11 08:50, fase 6)
+- [x] Login JWT + refresh token funcionando, cookies marcados HttpOnly + Secure + SameSite=Lax (2026-05-09 19:45, fase 5)
+- [x] Tentativa de query sem `tenant_id` falha em dev (assert) e em prod (erro do helper) (2026-05-11 08:50, fase 6, 13 testes de cross-tenant-isolation)
+- [x] Trocar host → trocar tenant sem reload manual de cache (2026-05-08 19:03, fase 3 + fase 6)
+- [x] CI valida que cada `tenant_flavor_slug` na tabela `tb_tenant` tem pasta `portal/public/flavors/<slug>/` com `theme.json`, `logo.svg`, `favicon.ico` (e `theme.json` válido contra o schema TS) (2026-05-09 09:55, fase 4, `validate-flavors`)
+- [x] `theme.json` do flavor `_default` existe e cobre todos os campos obrigatórios (2026-05-08 15:53, fase 1 + fase 4)
+- [x] **Features tocadas (infra-base, tenant-resolution, auth, theme-system) atualizadas** com timestamp e referência a esta SPEC (2026-05-11 09:00, fase 7)
+- [x] `state.md` com entrada `[conclusão]` (2026-05-11 08:50, fase 6 + arquivamento na fase 7)
+- [x] `memory.md` com TL;DR final atualizado (2026-05-11 09:00, fase 7)
