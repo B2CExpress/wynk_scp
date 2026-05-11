@@ -1,0 +1,42 @@
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: scp_postgres
+    environment:
+      POSTGRES_USER: ${DB_USER:-scp}
+      POSTGRES_PASSWORD: ${DB_PASS:-scp}
+      POSTGRES_DB: ${DB_NAME:-scp}
+    ports:
+      - '${DB_PORT_HOST:-5435}:5432'
+    volumes:
+      - scp_postgres_data:/var/lib/postgresql/data
+    networks:
+      - scp_network
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${DB_USER:-scp} -d ${DB_NAME:-scp}']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    container_name: scp_redis
+    ports:
+      - '${REDIS_PORT_HOST:-6382}:6379'
+    volumes:
+      - scp_redis_data:/data
+    networks:
+      - scp_network
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+networks:
+  scp_network:
+    driver: bridge
+
+volumes:
+  scp_postgres_data:
+  scp_redis_data:

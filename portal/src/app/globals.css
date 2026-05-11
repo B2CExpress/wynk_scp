@@ -1,0 +1,33 @@
+/*
+ * Reset + base. As CSS variables `--color-*` e `--font-primary` são injetadas
+ * inline no <html> pelo `app/layout.tsx` a partir do `theme.json` do flavor
+ * ativo. Não declarar valores default aqui — `_default/theme.json` é o
+ * fallback canônico.
+ */
+
+* {
+  box-sizing: border-box;
+  padding: 0;
+  margin: 0;
+}
+
+html,
+body {
+  max-width: 100vw;
+  overflow-x: hidden;
+  height: 100%;
+}
+
+body {
+  min-height: 100%;
+  font-family: var(--font-primary);
+  background: var(--color-background);
+  color: var(--color-text);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
