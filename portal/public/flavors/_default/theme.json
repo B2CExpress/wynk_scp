@@ -1,0 +1,28 @@
+{
+  "name": "Plataforma Default",
+  "colors": {
+    "primary": "#0F172A",
+    "secondary": "#64748B",
+    "text": "#0F172A",
+    "background": "#FFFFFF"
+  },
+  "fonts": {
+    "primary": "Inter"
+  },
+  "meta": {
+    "title": "Shopping Center",
+    "description": "Site oficial do shopping center.",
+    "ogImage": "/flavors/_default/og-image.jpg"
+  },
+  "social": {
+    "instagram": null,
+    "facebook": null,
+    "youtube": null,
+    "tiktok": null
+  },
+  "contact": {
+    "phone": null,
+    "email": null,
+    "address": null
+  }
+}

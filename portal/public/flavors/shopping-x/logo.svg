@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 60" width="240" height="60" role="img" aria-label="Shopping X">
+  <rect width="240" height="60" fill="none"/>
+  <text x="120" y="40" font-family="Poppins, system-ui, sans-serif" font-size="28" font-weight="700" text-anchor="middle" fill="#7C3AED">Shopping</text>
+  <circle cx="200" cy="30" r="14" fill="#F59E0B"/>
+  <text x="200" y="38" font-family="Poppins, system-ui, sans-serif" font-size="20" font-weight="700" text-anchor="middle" fill="#FFFFFF">X</text>
+</svg>

@@ -31,43 +31,53 @@ Antes de qualquer código, qualquer resposta substantiva:
 
 ## Stack
 
-- **Backend** (`backend/`): Node.js + TypeScript — API multitenant
-- **Portal** (`portal/`): React + TypeScript — site público de cada shopping (visual por tenant)
-- **Backoffice** (`backoffice/`): React + TypeScript — painel de gestão (Tenant Admin, Editor, Superadmin)
-- **Banco:** PostgreSQL (com `tenant_id` em todas as tabelas multitenant)
-- **Cache:** Redis (config de tenant + listagens — TTLs em SPEC-1505 §9)
-- **Auth:** JWT (15 min) + refresh token (7 dias) em cookies HttpOnly
-- **CDN:** assets versionados em `cdn.plataforma.com/{tenant-id}/...`
+Monorepo gerenciado por **npm workspaces** (Node 22+).
 
-_(Frameworks específicos — Express/Fastify/Nest no backend, Vite/CRA/Next nos frontends — a definir na ativação da SPEC-20260503-1505.)_
+- **Backend** (`backend/`): **Express 4 + TypeORM 0.3** + TypeScript — API multitenant. Stack alinhada com `wynk_ecommerce/backend/`. Resolve tenant por `host`, owns o schema com `tenant_id` e o helper `withTenant`. Tenant context via middleware Express + `AsyncLocalStorage`. Estrutura: `controllers/services/repositories/routes/entities/migrations/subscribers/middleware/dtos/config/utils/`.
+- **Portal** (`portal/`): **Next.js (App Router)** + TypeScript — site público de cada shopping. SSR para SEO; `app/layout.tsx` lê `host` via `headers()` server-side, chama `GET /tenant/resolve` no backend, importa `portal/flavors/<slug>/theme.json` e aplica CSS variables.
+- **Backoffice** (`backoffice/`): **Vite + React** + TypeScript — painel de gestão (Tenant Admin, Editor, Superadmin). SPA logada, sem SSR.
+- **White-label:** **build-time** (Modelo A). Identidade visual de cada tenant em `portal/flavors/<slug>/{theme.json, logo.svg, favicon.ico}`, versionada em git. Edição só via PR + deploy. Branding **nunca** passa pelo banco.
+- **Banco:** PostgreSQL (com `tenant_id` em todas as tabelas multitenant). Schema dedicado `scp`. Tabela `tb_tenant` guarda só identidade operacional (`tenant_id, tenant_slug, tenant_host, tenant_flavor_slug, ...`). Naming: `tb_<entity>` + colunas com prefixo `<entity>_<col>` (alinhado com wynk_ecommerce).
+- **Cache:** Redis (mapeamento `tenant:resolve:{host}` → `{id, slug, flavor_slug}`, TTL 10 min). Cliente: `ioredis`.
+- **Auth:** JWT (15 min, `jsonwebtoken`) + refresh token (7 dias) em cookies HttpOnly + Secure + SameSite=Lax
+
+> Decisões registradas em SPEC-20260503-1505: stack inicial 2026-05-08 14:31 → revisão Express 16:43; white-label Modelo A 15:33; npm workspaces 15:33.
 
 ## Comandos
 
 ```bash
-# Backend
-cd backend
+# Setup inicial (na raiz)
 npm install
-npm run dev          # dev server
-npm run build        # build de produção
-npm test             # testes
-npm run db:migrate   # migrations
 
-# Portal (site público)
-cd portal
-npm install
-npm run dev
-npm run build
-npm test
+# Backend (Express + TypeORM)
+npm run dev -w backend                  # ts-node-dev --respawn src/server.ts
+npm run build -w backend
+npm test -w backend
+npm run lint -w backend
+npm run typecheck -w backend
+npm run migration:run -w backend        # aplicar migrations pendentes
+npm run migration:revert -w backend     # desfazer última migration
+npm run migration:create -w backend -- <NomePascalCase>   # criar migration vazia
 
-# Backoffice (painel de gestão)
-cd backoffice
-npm install
-npm run dev
-npm run build
+# Portal (Next.js, site público)
+npm run dev -w portal
+npm run build -w portal
+npm run lint -w portal
+npm run typecheck -w portal
+
+# Backoffice (Vite, painel de gestão)
+npm run dev -w backoffice
+npm run build -w backoffice
+npm run lint -w backoffice
+npm run typecheck -w backoffice
+
+# Em todos os workspaces (na raiz)
+npm run lint
+npm run typecheck
 npm test
+npm run format        # prettier --write
+npm run format:check  # CI
 ```
-
-_(Comandos finais serão definidos quando os `package.json` de cada projeto existirem — placeholder até SPEC-20260503-1505 ativar.)_
 
 ---
 

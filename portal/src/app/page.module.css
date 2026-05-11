@@ -1,0 +1,69 @@
+.page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  background: var(--color-background);
+  color: var(--color-text);
+  font-family: var(--font-primary);
+}
+
+.main {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  max-width: 520px;
+  width: 100%;
+  padding: 2rem;
+  border: 1px solid color-mix(in srgb, var(--color-text) 12%, transparent);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--color-background) 90%, white);
+}
+
+.intro h1 {
+  margin: 0 0 0.5rem;
+  font-size: 1.75rem;
+  color: var(--color-primary);
+}
+
+.intro p {
+  margin: 0;
+  opacity: 0.85;
+  line-height: 1.5;
+}
+
+.tokens {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 0.5rem 1rem;
+  margin: 0;
+  padding-top: 1rem;
+  border-top: 1px solid color-mix(in srgb, var(--color-text) 12%, transparent);
+  font-size: 0.875rem;
+}
+
+.tokens dt {
+  font-weight: 600;
+  color: var(--color-secondary);
+}
+
+.tokens dd {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.tokens code {
+  font-family: ui-monospace, 'SF Mono', Menlo, monospace;
+  font-size: 0.85em;
+}
+
+.swatch {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+  border: 1px solid color-mix(in srgb, var(--color-text) 20%, transparent);
+}
