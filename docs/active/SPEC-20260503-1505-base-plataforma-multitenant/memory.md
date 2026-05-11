@@ -8,12 +8,12 @@
 
 ## TL;DR (sobrescrever ao fim de cada sessão)
 
-**Última atualização:** 2026-05-08 22:15 (sessão #1 fechada)
-**Onde tô:** **Fase 4 código completo + checks verdes; smoke E2E browser pendente.** Sessão fechada antes da validação visual no portal SSR. Commit `44677ba` (feito pelo dev manualmente via IDE/Copilot).
-**Próximo passo (próxima sessão):** smoke E2E — subir backend + portal (containers Docker já up, DB com tenant `shopping-x`), `curl -H "Host: shopping-x.local" http://localhost:3000` deve retornar HTML com CSS vars + meta corretos; assets `/flavors/shopping-x/logo.svg` 200; host desconhecido → 404. Detalhes completos em `state.md` entrada de 22:15.
-**Última decisão:** Flavors em `portal/public/flavors/` (Next serve nativo). `theme.json` lido via `node:fs/promises` server-side. Manifesto `seeds/tenants.json` na raiz é fonte canônica pra CI validar (sem precisar DB). Script `scripts/validate-flavors.mjs` rodando no novo job CI `validate-flavors`.
-**Bloqueio atual:** nenhum. Containers Docker seguem up.
-**Se retomar, ler:** state.md TL;DR + entrada `[nota] Fase 4 — código pronto, smoke pendente` (22:15).
+**Última atualização:** 2026-05-11 (sessão #3 — fase 6 concluída)
+**Onde tô:** **Fase 6 fechada.** 8/8 critérios técnicos do `main.md` checados. Falta APENAS fase 7: atualizar `docs/features/{infra-base,tenant-resolution,auth,theme-system}.md` (R.7) + arquivar SPEC + entrada `[arquivamento]` no state.md.
+**Próximo passo:** Fase 7 — atualizar 4 stubs de feature em `docs/features/` com timestamp + ref a esta SPEC, mover SPEC pra `docs/archive/SPEC-20260503-1505-...`, atualizar TL;DR final do memory.md, criar entrada `[arquivamento]` no state.md, commit + abrir PR.
+**Última decisão:** Seed via `npm run seed -w backend` lê `seeds/tenants.json` (fonte canônica que também alimenta `validate-flavors`) + cria admin `admin@<host>` com senha do env `SEED_ADMIN_PASSWORD` (fallback `admin123` em dev). Idempotente. Cross-tenant isolation provado por 13 testes unitários do subscriber + withTenant (sem precisar DB).
+**Bloqueio atual:** nenhum.
+**Se retomar, ler:** state.md TL;DR + entrada `[conclusão] Fase 6` (2026-05-11). Pra fase 7 ler RULES.md §R.7 (atualização de features na conclusão de SPEC).
 
 ---
 

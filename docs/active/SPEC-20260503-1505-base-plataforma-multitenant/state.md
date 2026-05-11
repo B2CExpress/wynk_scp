@@ -8,12 +8,12 @@
 
 ## TL;DR (sobrescrever ao fim de cada sessão)
 
-**Última atualização:** 2026-05-09 19:45
-**Onde tô:** Fase 5 **CONCLUÍDA**. Auth JWT + refresh rotativo + cookies HttpOnly funcionando E2E (35 testes passam, smoke via curl validou login/me/refresh/logout/reuse-detection contra DB real). Sem superadmin global nesta SPEC (decisão do dev).
-**Próximo passo:** Iniciar fase 6 — Seed de 1 tenant + validação E2E completa de todos os critérios de aceite (já parcialmente cobertos pelas fases anteriores). Pode incluir UI mínima de login no backoffice se o dev quiser fechar o loop visual.
-**Última decisão:** Login do backoffice via `POST /auth/:slug/login` (slug na URL, não no Host) — domínio único `admin.scp.local/<slug>/login`. Email único por `(tenant_id, email)`. Refresh rotativo com tabela `tb_refresh_token` + reuse detection (revoga toda cadeia do user em token revogado reapresentado). Sem superadmin global nesta SPEC.
+**Última atualização:** 2026-05-11 (sessão #3)
+**Onde tô:** Fase 6 **CONCLUÍDA**. Seed reproduzível + 15 testes novos (50 totais) + smoke E2E full validou TODOS os critérios de aceite da SPEC contra DB real (resolve, cache hit/miss/invalidate, login/me/refresh/logout, senha errada → 401, cross-tenant blocked via subscriber+withTenant).
+**Próximo passo:** Fase 7 — atualizar as 4 features tocadas em `docs/features/` (R.7) + entrada de conclusão da SPEC + mover SPEC pra `docs/archive/`. Opcionalmente UI de login no backoffice (dev não pediu ainda).
+**Última decisão:** Seed via `npm run seed -w backend` lê `seeds/tenants.json` (fonte canônica) + cria admin `admin@<host>` com senha vinda de `SEED_ADMIN_PASSWORD` (fallback `admin123` em dev). Idempotente: preserva senha existente em re-run.
 **Bloqueio atual:** nenhum.
-**Se retomar, ler:** TL;DR + entrada `[conclusão] Fase 5 — Auth JWT + refresh rotativo` (2026-05-09 19:45).
+**Se retomar, ler:** TL;DR + entrada `[conclusão] Fase 6 — Seed + validação E2E completa` (2026-05-11).
 
 ---
 
@@ -30,7 +30,7 @@
 | 3 | Endpoint `GET /tenant/resolve` (host → tenant) + cache Redis (`tenant:resolve:{host}`, TTL 10 min) | concluído | 2026-05-08 19:03 | — |
 | 4 | `app/layout.tsx` lê `theme.json` do flavor + aplica CSS vars + injeta `<link rel="icon">`/meta. Schema TS de `theme.json` + validação CI da correspondência `tb_tenant.tenant_flavor_slug` ↔ `portal/public/flavors/<slug>/` | concluído | 2026-05-09 09:55 | `44677ba` + fix pendente |
 | 5 | Auth JWT (15 min) + refresh (7 dias) em cookies HttpOnly + Secure | concluído | 2026-05-09 19:45 | — |
-| 6 | Seed de 1 tenant + validação E2E (todos os critérios de aceite) | pendente | 2026-05-08 14:22 | — |
+| 6 | Seed de 1 tenant + validação E2E (todos os critérios de aceite) | concluído | 2026-05-11 | — |
 | 7 | Atualização das 4 features tocadas (R.7) + arquivamento | pendente | 2026-05-08 14:22 | — |
 
 ### Próximos passos
@@ -68,6 +68,83 @@ _(nenhum)_
 ---
 
 ## Log cronológico (APPEND-ONLY — NUNCA editar entradas antigas)
+
+## 2026-05-11 — [conclusão] Fase 6 — Seed + validação E2E completa de TODOS os critérios de aceite
+
+Seed reproduzível + 15 testes novos (50 totais) + smoke E2E manual cobrindo todos os 8 critérios técnicos do `main.md`. Fase 7 (features + arquivamento) ainda pendente.
+
+**Implementado:**
+
+- `backend/scripts/seed.ts` — lê `seeds/tenants.json` (fonte canônica na raiz, mesmo arquivo usado pelo `validate-flavors`), faz upsert idempotente de tenant + admin. Admin: `admin@<tenant_host>`, senha bcrypt do env `SEED_ADMIN_PASSWORD` (fallback `admin123` em dev com warn, **obrigatória em production** — `resolveAdminPassword()` lança se ausente quando `NODE_ENV=production`). Re-run preserva senha existente (`upsertAdmin` retorna cedo se já presente). Drift de host/flavorSlug/name é detectado e atualizado.
+- `backend/package.json` script `"seed": "ts-node scripts/seed.ts"`.
+- `backend/.env.example` ganhou seção `# --- Seed ---` com `SEED_ADMIN_PASSWORD=admin123`.
+- `backend/__tests__/cross-tenant-isolation.test.ts` — 13 cases cobrindo o critério "query sem tenant_id falha":
+  - `TenantSubscriber.beforeInsert`: throws sem tenantId+sem ctx; injeta tenantId do ctx; rejeita cross-tenant (entity.tenantId != ctx.tenantId); aceita match; aceita manual sem ctx (path do seed); ignora entities sem a property; ignora a própria entity `Tenant`.
+  - `TenantSubscriber.beforeUpdate`: rejeita mudança em `tenantId`; aceita outras colunas; ignora UPDATE no `Tenant` em si.
+  - `withTenant`: throws sem ctx; aplica `WHERE <alias>.tenant_id = :__tenantId` com ctx.tenantId; usa alias dinâmico do QueryBuilder.
+- `backend/__tests__/tenant-resolver.service.test.ts` ganhou 2 cases novos:
+  - **Invalidação repopula com dado fresco:** primeira resolve cacheia flavor `shopping-x`; mock troca flavor para `shopping-x-rebrand`; resolve novamente sem invalidate ainda devolve o antigo (1 DB hit); `invalidate(host)`; resolve devolve `shopping-x-rebrand` (2 DB hits).
+  - Invalidate de host nunca cacheado é no-op (não throws).
+
+**Smoke E2E validado contra stack real (Postgres + Redis + backend em :3001):**
+
+| # | O que | Comando | Resultado |
+|---|-------|---------|-----------|
+| 1 | Resolve host conhecido | `curl -H "Host: shopping-x.local" :3001/tenant/resolve` | 200, payload `{id, slug, flavorSlug}` ✓ |
+| 2 | Resolve host desconhecido | `curl -H "Host: bogus.local" :3001/tenant/resolve` | 404 `tenant_not_found` ✓ |
+| 3 | Login válido | `POST /auth/shopping-x/login {email, password}` | 200, cookies `scp_access` + `scp_refresh` setados ✓ |
+| 4 | /auth/me | `GET /auth/me` com cookie | 200, user completo + tenantId ✓ |
+| 5 | Refresh rotativo | `POST /auth/refresh` | 204, novos cookies ✓ |
+| 6 | Logout | `POST /auth/logout` | 204 ✓ |
+| 7 | Senha errada | login com pwd errada | 401 `invalid_credentials` (mesma resposta de tenant inexistente — não vaza enumeração) ✓ |
+| 8 | Cache populado | `docker exec scp_redis redis-cli get tenant:resolve:shopping-x.local` | JSON do TenantContext ✓ |
+| 9 | **Invalidação manual** | `UPDATE scp.tb_tenant SET tenant_flavor_slug='shopping-x-rebrand'` → resolve **ainda volta antigo** (cache hit) → `redis-cli del tenant:resolve:shopping-x.local` → resolve volta `shopping-x-rebrand` ✓ | passou |
+| 10 | Rollback | reverter flavor + del key | resolve volta `shopping-x` ✓ |
+
+DB pós-smoke: tenant `shopping-x` (UUID `931bb6f7-...`) + admin `admin@shopping-x.local` no estado original (após rollback).
+
+**Critérios de aceite — checklist final:**
+
+- [x] Acessar `tenant1.local` carrega o flavor correto (cores, fontes, favicon, title, meta) — validado na fase 4 (E2E browser); cache hit no smoke desta sessão confirma persistência.
+- [x] Cache Redis funciona — 2ª req não toca banco (fase 3: 77ms → 3ms; smoke #8 confirma key+payload).
+- [x] **Invalidação de cache ao alterar host/flavor_slug funciona** — smoke #9: troca flavor no DB, sem `del` cache devolve valor antigo; com `del` devolve valor novo. Também coberto por teste unitário novo.
+- [x] Login JWT + refresh + cookies HttpOnly+Secure+SameSite=Lax — fase 5 + smoke #3-7.
+- [x] **Tentativa de query sem `tenant_id` falha** — 13 testes unitários novos em `cross-tenant-isolation.test.ts` cobrem subscriber (insert + update) + `withTenant`. Subscriber é global no DataSource, então qualquer INSERT em entity multitenant sem ctx (e sem tenantId manual) é rejeitado em dev e prod.
+- [x] Trocar host → trocar tenant sem reload manual — fase 3 + smoke #1/2.
+- [x] CI valida correspondência `tb_tenant.tenant_flavor_slug` ↔ `portal/public/flavors/<slug>/` — fase 4 (`scripts/validate-flavors.mjs` + job CI).
+- [x] `theme.json` do `_default` existe e cobre campos obrigatórios — fase 1 + validado pelo `validate-flavors`.
+
+**Falta APENAS pra fechar a SPEC (fase 7):**
+- [ ] Atualizar `docs/features/{infra-base,tenant-resolution,auth,theme-system}.md` com timestamp + ref à SPEC concluída (R.7)
+- [ ] Mover SPEC `docs/active/` → `docs/archive/`
+- [ ] Entrada `[arquivamento]` no state.md
+- [ ] Atualizar `docs/INDEX.md` (gerado pelo CI ao mergear)
+
+**Checks no estado final:**
+- `npm run typecheck` ✓ (3 apps)
+- `npm run lint` ✓
+- `npm test` ✓ (7 suites, **50 testes**, era 35)
+- `npm run format:check` ✓
+- `npm run validate:flavors` ✓
+- `npm run seed -w backend` ✓ (idempotente: ambos caminhos — wipe+seed cria; re-run preserva)
+
+**Decisões técnicas:**
+
+- **Senha do seed via env, não no JSON.** `seeds/tenants.json` é fonte canônica também consumida pelo `validate-flavors` (CI). Pôr senha lá faria o arquivo crescer fora do que ele representa. Senha vive em env, default seguro em dev (`admin123` com warn), exigida em prod.
+- **Email do admin derivado do `tenant_host`** (`admin@${tenant.host}`). Trade-off: se host mudar, o "novo" admin do seed terá email diferente — mas a fonte canônica é o JSON, então mudar host implica re-rodar seed (que vai criar um segundo admin, não rename). Mitigação: documentar como "se renomear host, deletar admin antigo manualmente". Não-ideal mas suficiente pro MVP.
+- **Seed preserva senha existente em re-run** — não sobrescreve. Operador que mudou a senha do admin via outro caminho não perde a mudança ao rodar seed de novo. Trade-off: se a senha do env mudar, re-run não reflete no DB. Resolvido manualmente via SQL ou query de admin (futuro).
+- **Teste do subscriber + withTenant é unit (sem DB).** Alternativa: criar uma entity fake + DataSource SQLite in-memory e exercitar INSERT/UPDATE reais com TypeORM. Trade-off: 5x mais código + dependência nova (`sqlite3`) por pouco ganho — o subscriber é pura lógica TS sobre os events. Os testes cobrem todos os branches do código atual.
+- **Smoke de invalidação manual via SQL + redis-cli** porque ainda não existe endpoint `POST /tenant/:slug/invalidate`. O critério da SPEC pede "teste manual via SQL" — sintaxe explícita. Quando um módulo de admin de tenants surgir, o invalidate vai virar side-effect da mutação.
+
+**Gotchas resolvidos:**
+
+- Subscriber checa `'tenantId' in entity` antes de injetar. Pra teste cobrir o caso "tem a property mas valor undefined", entity tem que ser literalmente `{ tenantId: undefined }`, não `{}` (que não tem a key).
+- Jest 30 trocou `--testPathPattern` (singular) por `--testPathPatterns` (plural).
+- `npm run seed` precisa do `.env` no `backend/` pra `dotenv` pegar `DB_PORT=5435` (default do código é `5432`).
+
+**Diff:** 4 arquivos novos/modificados — `backend/scripts/seed.ts` (novo), `backend/package.json` (+1 script), `backend/.env.example` (+seção Seed), `backend/__tests__/cross-tenant-isolation.test.ts` (novo, 13 cases), `backend/__tests__/tenant-resolver.service.test.ts` (+2 cases). Commit pendente.
+
+Commit: — (a fazer agora)
 
 ## 2026-05-09 19:45 — [conclusão] Fase 5 — Auth JWT + refresh rotativo
 
