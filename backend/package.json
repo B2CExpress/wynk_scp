@@ -11,6 +11,7 @@
     "typeorm": "typeorm-ts-node-commonjs",
     "prepare:schema": "ts-node scripts/ensure-schema.ts",
     "db:setup": "npm run prepare:schema && npm run migration:run",
+    "seed": "ts-node scripts/seed.ts",
     "migration:generate": "npm run typeorm -- migration:generate -d typeorm.config.ts",
     "migration:create": "npm run typeorm -- migration:create",
     "migration:run": "npm run typeorm -- migration:run -d typeorm.config.ts",

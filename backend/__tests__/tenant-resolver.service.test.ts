@@ -105,4 +105,40 @@ describe('TenantResolverService.resolveByHost', () => {
     expect(delSpy).toHaveBeenCalledWith('tenant:resolve:shopping-x.local');
     expect(store.has('tenant:resolve:shopping-x.local')).toBe(false);
   });
+
+  // SPEC-1505 critério: "Invalidação de cache ao alterar host ou flavor_slug funciona"
+  it('repopulates the cache with fresh data after invalidate (flavorSlug change)', async () => {
+    const initial: Tenant = { ...tenantRow };
+    const swapped: Tenant = { ...tenantRow, flavorSlug: 'shopping-x-rebrand' };
+    const findByHost = jest
+      .fn<Promise<Tenant | null>, [string]>()
+      .mockResolvedValueOnce(initial)
+      .mockResolvedValueOnce(swapped);
+    const repo = { findByHost } as unknown as TenantRepository;
+    const { redis } = makeRedisMock();
+    const service = new TenantResolverService(repo, redis);
+
+    const before = await service.resolveByHost('shopping-x.local');
+    expect(before?.flavorSlug).toBe('shopping-x');
+
+    // segunda resolução sem invalidate: vem do cache, ainda com flavor antigo
+    const stillCached = await service.resolveByHost('shopping-x.local');
+    expect(stillCached?.flavorSlug).toBe('shopping-x');
+    expect(findByHost).toHaveBeenCalledTimes(1);
+
+    await service.invalidate('shopping-x.local');
+
+    const after = await service.resolveByHost('shopping-x.local');
+    expect(after?.flavorSlug).toBe('shopping-x-rebrand');
+    expect(findByHost).toHaveBeenCalledTimes(2);
+  });
+
+  it('invalidating an unknown host is a no-op (does not throw)', async () => {
+    const repo = makeRepoMock(null);
+    const { redis, delSpy } = makeRedisMock();
+    const service = new TenantResolverService(repo, redis);
+
+    await expect(service.invalidate('never-cached.local')).resolves.toBeUndefined();
+    expect(delSpy).toHaveBeenCalledWith('tenant:resolve:never-cached.local');
+  });
 });
