@@ -35,7 +35,7 @@
 ### Em execução (só em branches — não aparece em main)
 | ID | Título | Branch |
 |---|---|---|
-| _(nenhuma)_ | | |
+| SPEC-20260512-1640 | withTenantScope com validacao UUID e docs operacionais | feature/SQU-33-helper-withtenant |
 
 ## Estado atual
 
@@ -116,3 +116,4 @@ helmet → cors → json/urlencoded/cookie-parser → morgan
 ## Estado congelado (se houver)
 
 _(nenhum)_
+
