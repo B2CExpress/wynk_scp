@@ -2,6 +2,7 @@ import type { Request, Response } from 'express';
 import type { TenantResolverService } from '../../src/services/tenant-resolver.service';
 import type { TenantContext } from '../../src/middleware/tenant-context';
 import type { AuthController } from '../../src/controllers/auth.controller';
+import type { StoreController } from '../../src/controllers/store.controller';
 import type { AppDeps } from '../../src/app';
 
 /**
@@ -37,10 +38,24 @@ export function makeStubAuthController(): AuthController {
   } as unknown as AuthController;
 }
 
+/**
+ * Stub do `StoreController` que responde 501. Usado por testes que não
+ * exercitam stores — evita montar service + repository + Redis.
+ */
+export function makeStubStoreController(): StoreController {
+  const notImplemented = async (_req: Request, res: Response): Promise<void> => {
+    res.status(501).json({ error: 'not_implemented_in_test' });
+  };
+  return {
+    list: notImplemented,
+  } as unknown as StoreController;
+}
+
 export function makeAppDeps(overrides: Partial<AppDeps> = {}): AppDeps {
   return {
     tenantResolver: makeFakeTenantResolver(),
     authController: makeStubAuthController(),
+    storeController: makeStubStoreController(),
     ...overrides,
   };
 }

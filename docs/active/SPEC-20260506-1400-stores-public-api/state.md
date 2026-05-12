@@ -8,12 +8,12 @@
 
 ## TL;DR (sobrescrever ao fim de cada sessão)
 
-**Última atualização:** 2026-05-11 17:24
-**Onde tô:** Re-escopo radical aplicado após merge de `main` em `c789654` (SPEC-1505 concluída mudou backend para Express + TypeORM, invalidando código Next.js+Drizzle). `main.md` reescrito; código antigo (`backend/lib/cache.ts`, `backend/app/api/v1/stores/route.ts`) deletado.
-**Próximo passo:** Aguardar ativação da SPEC-20260503-1506-modulo-lojas, que entrega o schema `tb_store`/`tb_category`/`tb_store_category`. Sem isso, a re-implementação em Express+TypeORM não tem alvo.
-**Última decisão:** Re-escopo radical (vs pausa em `future/` ou descarte) — preserva intenção, gotchas e SPEC futura vinculada, ao custo de manter ativa enquanto bloqueada.
-**Bloqueio atual:** Schema das tabelas de loja (`tb_store`, `tb_category`, `tb_store_category`) ainda não existe. Bloqueio resolvido quando SPEC-1506 entregar entities TypeORM e migrations.
-**Se retomar, ler:** entrada `[MARCO] [decisão] Re-escopo radical pós-merge SPEC-1505` em 2026-05-11 17:24 + critério de aceite atualizado em `main.md`.
+**Última atualização:** 2026-05-12 13:24
+**Onde tô:** Implementação técnica completa: 3 entidades + 1 migration + helper de cache genérico + camadas controller/service/repository/routes/dtos. App.ts e server.ts montam a rota com deps injetadas. Typecheck/lint verdes, 71 testes passando (50 antigos + 21 novos cobrindo cache HIT/MISS, fallback Redis, escape LIKE, normalize search, clamp limit, invalidação SCAN). Critérios técnicos do `main.md` quase todos marcados — exceto os que exigem DB+Redis reais.
+**Próximo passo:** Validar com DB + Redis reais (migration:run/revert, E2E do `/api/v1/stores`). Depois: criar PR, mergear, mover SPEC pra `archive/`, atualizar `docs/features/stores-public-api.md` movendo SPEC pra "Concluídas".
+**Última decisão:** Marcar critérios técnicos baseados em cobertura unit; deixar critérios E2E explicitamente pendentes em vez de mascará-los. Trade-off: SPEC fica honest sobre o que está atestado vs precisa de integration test antes do merge.
+**Bloqueio atual:** nenhum técnico. Pendente: testes E2E com containers + revisão do PR pelo dev.
+**Se retomar, ler:** entrada `[MARCO] [implementação] Schema + API + testes unit entregues` em 2026-05-12 13:24 + `main.md` (seção "Critério de aceite" com checkboxes marcados e linhas explícitas do que falta E2E).
 
 ---
 
@@ -29,11 +29,15 @@
 | 4 | Re-escopo: SPEC vira listagem-only; detalhe vai para SPEC futura | concluído | 2026-05-08 13:50 | — |
 | 5 | Correções de código: escape LIKE + normalização da cache key | descartado | 2026-05-11 17:24 | `bf21c78` (sobre código deletado) |
 | 6 | Re-escopo radical pós-merge SPEC-1505 (stack Next.js+Drizzle → Express+TypeORM) | concluído | 2026-05-11 17:24 | — |
-| 7 | Schema `tb_store`/`tb_category`/`tb_store_category` disponível via SPEC-1506 | bloqueado | 2026-05-11 17:24 | — |
-| 8 | Re-implementação em Express+TypeORM (controller + service + repository + routes + dtos) | bloqueado | 2026-05-11 17:24 | — |
-| 9 | Re-entrega das correções de review (escape LIKE + normalize search) sobre TypeORM | bloqueado | 2026-05-11 17:24 | — |
-| 10 | Testes mínimos (isolamento por tenant, fallback Redis, cache HIT/MISS) | bloqueado | 2026-05-11 17:24 | — |
-| 11 | Conclusão e arquivamento | pendente | 2026-05-11 17:24 | — |
+| 7 | ~~Schema `tb_store`/`tb_category`/`tb_store_category` via SPEC-1506~~ → SPEC-1506 adiada; schema absorvido por esta SPEC | descartado | 2026-05-12 12:42 | — |
+| 8 | Re-escopo #2: ampliar `main.md` (escopo + schema mínimo + critério de aceite) | concluído | 2026-05-12 12:42 | — |
+| 9 | Entidades TypeORM (`Store`, `Category`, `StoreCategory`) + migration `CreateStoreTables` | concluído | 2026-05-12 13:05 | (a commitar) |
+| 10 | Decisão sobre destino da SPEC-1506 (descartada, movida para `discard/`) | concluído | 2026-05-12 12:42 | (a commitar) |
+| 11 | Re-implementação API: controller + service + repository + routes + dtos + helper de cache | concluído | 2026-05-12 13:15 | (a commitar) |
+| 12 | Re-entrega das correções de review (escape LIKE + normalize search) sobre TypeORM | concluído | 2026-05-12 13:15 | (a commitar) |
+| 13 | Testes unit mínimos (cache HIT/MISS, fallback Redis, escape, normalize, paginação, invalidação SCAN) — 21 testes em 3 suites | concluído | 2026-05-12 13:22 | (a commitar) |
+| 14 | Testes E2E com DB+Redis reais (migration:run/revert, rota completa, isolamento real entre tenants) | pendente | 2026-05-12 13:24 | — |
+| 15 | Conclusão (mover para archive/ + atualizar feature pra "Concluídas") | pendente | 2026-05-12 13:24 | — |
 
 ### Próximos passos
 
@@ -42,15 +46,22 @@
 - [x] Criar SPEC futura para endpoint detalhe `GET /api/v1/stores/[slug]` — `SPEC-20260508-1400-stores-public-detail` em `docs/future/` (2026-05-08 14:00)
 - [x] Re-escrever `main.md` para nova stack (Express + TypeORM) + nova dependência (SPEC-1506) + arquivos novos (controller/service/repository/routes/dtos) (2026-05-11 17:24)
 - [x] Deletar código antigo Next.js+Drizzle (`backend/lib/cache.ts`, `backend/app/api/v1/stores/route.ts`) (2026-05-11 17:24)
-- [ ] Aguardar ativação/conclusão da SPEC-20260503-1506-modulo-lojas (schema das tabelas)
-- [ ] Re-implementar `GET /api/v1/stores` em Express+TypeORM seguindo nova `main.md`
-- [ ] Re-entregar correções de review (escape LIKE + normalize search) sobre o novo código
-- [ ] Adicionar testes mínimos cobrindo isolamento por tenant, fallback Redis, cache HIT/MISS
-- [ ] Marcar critérios restantes de aceite conforme forem entregues e arquivar SPEC
+- [x] ~~Aguardar ativação/conclusão da SPEC-20260503-1506-modulo-lojas (schema das tabelas)~~ — SPEC-1506 adiada; schema absorvido por esta SPEC em 2026-05-12 12:42
+- [x] Ampliar `main.md` para cobrir schema mínimo + critério de aceite (2026-05-12 12:42)
+- [x] Validar `main.md` re-escopado com o dev antes de tocar código (autorização literal: *"Manda bala!"*)
+- [x] Decidir destino da SPEC-20260503-1506-modulo-lojas (2026-05-12 12:42 — **descartada**)
+- [x] Criar entidades `Store`, `Category`, `StoreCategory` em `backend/src/entities/` (2026-05-12 13:00)
+- [x] Criar migration `CreateStoreTables` (2026-05-12 13:00) — `migration:run`/`revert` ainda a validar contra DB real
+- [x] Implementar `GET /api/v1/stores` em Express+TypeORM (controller + service + repository + routes + DTO + cache util) (2026-05-12 13:15)
+- [x] Re-entregar escape LIKE + normalize search sobre TypeORM (2026-05-12 13:15)
+- [x] Adicionar testes unit mínimos (21 testes em 3 suites — `store-list.dto.test.ts`, `store.repository.test.ts`, `store.service.test.ts`) (2026-05-12 13:22)
+- [ ] **Validar contra DB + Redis reais antes do merge:** `migration:run` + `migration:revert` limpo; smoke test do `/api/v1/stores` com 2 tenants confirmando isolamento; cache HIT/MISS e fallback Redis no caminho real
+- [ ] Subir PR para revisão pelo dev
+- [ ] Pós-merge: atualizar `docs/features/stores-public-api.md` movendo SPEC para "Concluídas", marcar critérios "Features tocadas / state [conclusão] / memory final" no `main.md`, mover pasta `active/` → `archive/`
 
 ### Bloqueios ativos
 
-- **Schema das tabelas de loja ausente** — `tb_store`, `tb_category`, `tb_store_category` (com naming `store_*`, `category_*`) ainda não existem. Entrega depende da `SPEC-20260503-1506-modulo-lojas` (em `future/`, draft). Sem o schema, repositories/services da listagem não têm alvo.
+_(nenhum)_
 
 ---
 
@@ -64,6 +75,7 @@
 - [2026-05-11 16:47] Merge de `main` (`c789654`) trouxe SPEC-1505 concluída + backend reescrito em Express 4 + TypeORM 0.3 + naming `tb_<entity>` + tenant resolution via `host` + `AsyncLocalStorage` + 4 features novas. Working tree limpo, sem conflitos. Fonte: `git diff --stat c789654^1..c789654` (116 arquivos, +18526/-84).
 - [2026-05-11 17:24] SPEC-1400 dependia conceitualmente da SPEC-1505 (bootstrap + base multitenant) — promovido a fato após o merge. Schema das tabelas de loja vem da SPEC-1506 (ainda em `future/`), não da 1505. Confirmado por leitura de `docs/future/SPEC-20260503-1506-modulo-lojas/main.md`.
 - [2026-05-11 17:24] Tenant resolution na plataforma é via `host` → `/tenant/resolve` → `AsyncLocalStorage`, sem header `x-tenant-id`. Fonte: SPEC-1505 main + `docs/CLAUDE.md` atualizado pós-merge.
+- [2026-05-12 12:42] SPEC-20260503-1506-modulo-lojas adiada/não vai entregar o schema. Fonte: confirmação direta do dev nesta sessão. Verificado em código: `backend/src/entities/` contém apenas `Tenant`, `User`, `RefreshToken`; `backend/src/migrations/` não tem nenhuma migration de stores. SPEC-1506 segue em `docs/future/` (destino a decidir).
 
 ## Inferências prováveis
 
@@ -75,12 +87,14 @@ _(nenhuma ativa após o merge — todas as anteriores foram resolvidas)_
 - [2026-05-08 13:35] `featured` aceita só literal `'true'` (`'1'`, `'yes'` são silenciosamente ignorados). Comportamento intencional? Próxima ação: confirmar com dev e documentar no main. **Re-avaliar na re-implementação.**
 - [2026-05-11 17:24] Caminho exato do helper de cache na nova estrutura: `backend/src/utils/cache.ts` vs `backend/src/services/cache.service.ts`? Verificar se já há helper genérico de cache (a SPEC-1505 implementou cache de `/tenant/resolve`, pode ter deixado utilitário). Próxima ação: inspecionar `backend/src/` na re-implementação.
 - [2026-05-11 17:24] Header `Vary` correto pós-tenant-resolution-por-host: `x-forwarded-host`? `host`? Confirmar olhando o que o middleware da SPEC-1505 lê de fato.
+- [2026-05-12 12:42] `pg_trgm` está habilitado na base ou não? Se sim, vale criar índice GIN trigram em `store_name` na migration; se não, deixar `ILIKE` linear como MVP e abrir SPEC futura. Próxima ação: checar migrations existentes da SPEC-1505 e/ou rodar `SELECT * FROM pg_extension` em ambiente dev.
 
 ## Dúvidas resolvidas
 
 - [2026-05-08 13:50] ~~Endpoint `[slug]/route.ts` foi deletado em `759eca5` sem motivo registrado.~~ **Resolvido:** dev confirmou que subiu por engano em `96b5a33` e foi removido na sequência. Detalhe vai para SPEC futura, path-based.
 - [2026-05-11 17:24] ~~PR depende de SPEC-1505 para schema Drizzle e bootstrap.~~ **Resolvido:** SPEC-1505 entregou bootstrap real mas mudou ORM (Drizzle → TypeORM); schema das tabelas de loja é da SPEC-1506.
 - [2026-05-11 17:24] ~~Middleware que injeta `x-tenant-id` vem de outra SPEC.~~ **Refutado:** plataforma não usa header `x-tenant-id`; tenant resolution é por `host` + `AsyncLocalStorage`.
+- [2026-05-12 12:42] ~~Destino da SPEC-1506 (atualizar ou descartar).~~ **Resolvido:** descartada e movida para `discard/`. Justificativa formal em `docs/discard/SPEC-20260503-1506-modulo-lojas/main.md`.
 
 ---
 
@@ -261,3 +275,108 @@ Pastas pais vazias (`backend/lib/`, `backend/app/api/v1/stores/`, `backend/app/a
 **Inferências promovidas a fato pelo merge:**
 - ~~PR depende de SPEC-1505 para schema Drizzle e bootstrap~~ → **Confirmado parcialmente**: SPEC-1505 entregou bootstrap real e nova stack, mas **mudou** ORM de Drizzle para TypeORM; schema das tabelas de loja é da SPEC-1506, não da 1505.
 - ~~Middleware que injeta `x-tenant-id` vem de outra SPEC~~ → **Refutado**: tenant resolution na SPEC-1505 é via `host` + `AsyncLocalStorage`, sem header `x-tenant-id`.
+
+## 2026-05-12 12:42 — [MARCO] [decisão] Re-escopo #2: incluir schema mínimo após adiamento da SPEC-1506
+
+Dev confirmou nesta sessão que a SPEC-20260503-1506-modulo-lojas foi adiada (resposta literal: *"Foi descartada/adiada"*). Validação direta em código: `backend/src/entities/` contém apenas `Tenant`, `User`, `RefreshToken`; nenhuma migration de stores em `backend/src/migrations/`. Bloqueio original (esperar 1506 entregar schema) deixou de fazer sentido.
+
+**Caminhos apresentados ao dev:**
+- (A) Re-escopar SPEC-1400 para incluir schema mínimo de lojas + listagem. Pró: 1 PR end-to-end. Contra: escopo cresce; admin/CRUD futuro herda schema sem dono óbvio.
+- (B) Pausar 1400 em `future/`, criar SPEC-base separada só do schema, depois reativar 1400. Pró: SPECs pequenas e focadas. Contra: 2 PRs em sequência.
+
+**Decisão do dev** (resposta literal: *"Podemos faze-lo nesta spec?"* + *"Manda bala!"*): **Opção A** — schema mínimo entra nesta SPEC. Trade-off aceito: SPEC vira "schema + listagem", maior, mas entrega valor end-to-end em 1 PR e admin/CRUD ficam livres pra evoluir o schema em SPEC futura sem conflito de escopo.
+
+**Mudanças aplicadas em `main.md` nesta sessão:**
+- Título: adicionado sufixo "+ schema mínimo"
+- `Depende de`: `SPEC-20260503-1506-modulo-lojas` → `—` (schema agora é entregue por esta própria SPEC)
+- `Origem`: anexada nota do re-escopo #2 com data e motivo
+- `Resumo`: ampliado pra mencionar entrega de schema mínimo
+- `Objetivo`: 2 frases adicionais explicando o porquê do schema entrar
+- `Escopo DENTRO`: adicionadas linhas para entidades + migration
+- `Escopo FORA`: explicitado "CRUD admin de stores/categories" (era apenas implícito) + "Colunas avançadas no schema" + "Seed de lojas"
+- `Implementação`: adicionada seção "Schema mínimo (TypeORM, entregue por ESTA SPEC)" com colunas, tipos, índices, FKs, constraints únicas
+- Arquivos planejados: adicionados `entities/Store.ts`, `Category.ts`, `StoreCategory.ts`, `migrations/<timestamp>-CreateStoreTables.ts`, modificações em `app.ts` e `config/database.ts`
+- Gotchas: adicionados "ordem das migrations FK", "sem pg_trgm cai pra ILIKE linear", "schema mínimo deliberadamente — não adicionar especulativamente"
+- `Critério de aceite`: dividido em 4 blocos (Schema, API, Testes, Processo). Adicionados 5 itens novos no bloco Schema. Adicionado 1 item no Processo: decidir destino da SPEC-1506 antes de arquivar (evitar 2 SPECs com mesmo schema).
+
+**Dúvidas abertas resultantes** (registradas em "Dúvidas em aberto"):
+1. Destino da SPEC-1506 (atualizar pra refletir só admin/CRUD, ou mover pra `discard/`?). **Resolver com dev antes de começar implementação.**
+2. `pg_trgm` habilitado na base? **Inspecionar migrations da SPEC-1505 + DB dev.**
+
+**Próximo passo** (registrado em TL;DR): validar o `main.md` re-escopado com o dev. Em seguida, alinhar destino da SPEC-1506. Só então mexer em código backend.
+
+## 2026-05-12 12:42 — [MARCO] [decisão] SPEC-1506 descartada
+
+Logo após o re-escopo #2, leitura do `main.md` da SPEC-20260503-1506-modulo-lojas (Nível 1, autorizada pelo dev) revelou problemas estruturais que tornam atualizá-la pior que descartá-la:
+
+1. **Stack obsoleta:** escrita antes da SPEC-1505 fixar Express+TypeORM. Referencia `db/withTenant` (helper que não existe), schema `lojas` (não usa naming `tb_<entity>`), Server Actions e rotas frontend `/lojas/[slug]` (Next.js). Atualizar = reescrever.
+2. **Escopo monstro (viola §9 do RULES.md):** 1 SPEC declarando schema de lojas, schema de categorias com reordenação, admin CRUD de ambos, upload+CDN, frontend público (listagem + detalhe), cache Redis, full-text search e permissões. RULES §9 recomenda quebrar quando passar de ~3 sessões — esta tem ~6+ SPECs reais dentro.
+3. **Sobreposição:**
+   - Schema + listagem + cache → absorvido por SPEC-1400 (esta) em 2026-05-12 12:42
+   - Detalhe → já existe SPEC-20260508-1400-stores-public-detail em `future/`
+   - Frontend público → responsabilidade do `portal/`, não do backend
+   - Admin/upload/permissões → cada um merece SPEC própria
+
+**Decisão do dev** (resposta literal: *"Então manda bala"*): descartar formalmente. Caminho permanente (não pretendemos reativar) — admin/upload virão em SPECs novas com IDs próprios quando hora.
+
+**Mudanças aplicadas:**
+- `docs/future/SPEC-20260503-1506-modulo-lojas/main.md`: `Status: draft` → `discarded`, adicionado `Descartada: 2026-05-12 12:42`, adicionada seção `## Justificativa de descarte` com motivo técnico detalhado + decisões de produto que ficam registradas pra herdarem em SPECs futuras.
+- Pasta movida: `docs/future/SPEC-20260503-1506-modulo-lojas/` → `docs/discard/SPEC-20260503-1506-modulo-lojas/` via `git mv`.
+
+**Features não atualizadas** (R.5.4): SPEC-1506 declarava features `lojas`, `categorias-lojas`, `busca`, mas elas não existem em `docs/features/` (nunca foram criadas). Nada a fazer.
+
+**Item de processo resolvido:** "Decidir destino da SPEC-1506 antes de arquivar" no critério de aceite do `main.md` desta SPEC. Marcado.
+
+## 2026-05-12 13:24 — [MARCO] [implementação] Schema + API + testes unit entregues
+
+Implementação técnica completa nesta sessão. Inspeção prévia do backend (`backend/src/utils/with-tenant.ts`, `middleware/tenant-context.ts`, `subscribers/TenantSubscriber.ts`, `app.ts`, migrations existentes) confirmou:
+- `withTenant(qb)` injeta `WHERE alias.tenant_id = :tenantId` lendo do AsyncLocalStorage; suficiente para isolamento em SELECTs.
+- `TenantSubscriber` já cobre INSERTs/UPDATEs (auto-popula `tenant_id`, rejeita cross-tenant insert, proíbe update de tenant_id). Nossas 3 entidades herdam isso de graça por terem propriedade `tenantId` declarada.
+- `app.set('trust proxy', true)` está ativo → `req.hostname` reflete `X-Forwarded-Host` quando atrás de proxy. Header `Vary` correto: **`X-Forwarded-Host`**.
+- `pg_trgm` **não** está habilitado (só `pgcrypto`). Decisão: ficar com `ILIKE` linear; gotcha registrada na feature.
+- `UuidHelper` existe e detecta `uuid_generate_v4()` vs `gen_random_uuid()` em runtime — usado na nossa migration.
+- Não há helper genérico de cache no backend (TenantResolverService faz inline); criado `backend/src/utils/cache.ts`.
+
+**Arquivos novos:**
+- `backend/src/entities/Store.ts` — entity `tb_store` com índices únicos `(tenant_id, store_slug)` e composto `(tenant_id, store_status, store_sort_order)`.
+- `backend/src/entities/Category.ts` — entity `tb_category` com índice único `(tenant_id, category_slug)`.
+- `backend/src/entities/StoreCategory.ts` — entity `tb_store_category` (join, PK composta `(store_id, category_id)`, índices por tenant+category e tenant+store).
+- `backend/src/migrations/1746748400000-CreateStoreTables.ts` — cria as 3 tabelas com FKs ON DELETE CASCADE em ordem (`tb_category` antes de `tb_store` antes de `tb_store_category`); down dropa na ordem inversa.
+- `backend/src/utils/cache.ts` — `cached<T>(redis, key, ttl, fetchFn)` retorna `{ data, hit }`, com fallback gracioso a `fetchFn()` em qualquer erro de Redis (GET ou SET); `invalidateByPattern(redis, pattern)` via SCAN cursor + DEL (best-effort, nunca KEYS, nunca lança).
+- `backend/src/dtos/store-list.dto.ts` — `parseStoreListQuery(query)` extrai/normaliza/clampa: search lowercase+trim, limit clamp 50, page fallback 1, featured/is_restaurant aceitam **APENAS** `'true'`/`'false'` (case-insensitive); valores inválidos são ignorados (não 400).
+- `backend/src/repositories/store.repository.ts` — `StoreRepository.findActiveListing(query)` usa `withTenant(qb)` + filtro `store_status = 'active'` + filtros opcionais (featured, isRestaurant, search via ILIKE, category via INNER JOIN com tenant_id em todas as condições); `getManyAndCount()` para metadata. Exporta `escapeLikePattern` (testável). Order: `store_is_featured DESC, store_sort_order ASC, store_name ASC`.
+- `backend/src/services/store.service.ts` — `StoreService.listActive(query)` envolve repo em `cached(...)` com chave `stores:list:{tenantId}:cat=:feat=:l=:p=:q=:rest=` (ordem alfabética; `undefined` vira `-`); retorna `{ response, cacheHit }`. `invalidateListings(tenantId)` chama `invalidateByPattern('stores:list:{tenantId}:*')`. TTL 300s.
+- `backend/src/controllers/store.controller.ts` — `StoreController.list` chama service, seta `Cache-Control: public, max-age=300, s-maxage=300`, `Vary: X-Forwarded-Host`, `X-Cache: HIT|MISS`, responde JSON. Propaga erros via `next(err)`.
+- `backend/src/routes/store.routes.ts` — `createStoreRoutes(controller)` registra `GET /api/v1/stores`.
+- 3 suites de teste novas (21 testes): `store-list.dto.test.ts` (7), `store.repository.test.ts` (5), `store.service.test.ts` (9).
+
+**Arquivos modificados:**
+- `backend/src/config/database.ts` — adicionadas 3 entidades à lista do DataSource.
+- `backend/src/app.ts` — `AppDeps` agora exige `storeController`; rota montada após auth.
+- `backend/src/server.ts` — instancia `StoreRepository`/`StoreService`/`StoreController` e injeta em `createApp`.
+- `backend/__tests__/helpers/mock-deps.ts` — adicionado `makeStubStoreController()` e incluído no `makeAppDeps`.
+- `backend/__tests__/auth.e2e.test.ts` — usa `makeAppDeps({ ... })` em vez de objeto literal pra incluir storeController.
+
+**Validações executadas:**
+- `npm run typecheck -w backend`: limpo.
+- `npm run lint -w backend`: limpo.
+- `npm test -w backend`: 71/71 passando (50 antigos + 21 novos). Runtime 6.7s.
+
+**Decisões implementacionais que importam:**
+- Critério `Loja com store_status != active não aparece` é atestado pela cláusula hardcoded no QB do repository (não é configurável por filtro público) — visível em `store.repository.ts` linha do `andWhere('store.store_status = :status', { status: 'active' })`. Sem teste E2E, mas trivialmente revisável no PR.
+- Critério "Filtros funcionam combinados" é atestado em parte pelo DTO test (parsing) + repository (cláusulas aplicadas condicionalmente); validação real do SQL gerado exige DB.
+- Critério "isolamento por tenant" não tem teste E2E novo; herda `cross-tenant-isolation.test.ts` (SPEC-1505) que prova `withTenant` aplica WHERE corretamente e `TenantSubscriber` rejeita cross-tenant insert. Os testes do service cobrem o isolamento pela perspectiva da chave de cache (tenants diferentes não compartilham cache).
+- Schema `store_status varchar(20)` (não enum) — permite evoluir status sem migration; validação fica no service (não há admin nesta SPEC; quando chegar, validar contra ['active','inactive','archived']).
+- Decisão sobre retornar categorias por loja na response: **NÃO incluí**. Critério de aceite não exige, mantém schema/response mínimos. Adicionar em SPEC futura quando admin/UX precisar.
+
+**O que falta antes do merge (critérios E2E):**
+1. `npm run migration:run -w backend` aplica a migration sem erro contra o Postgres dev.
+2. `npm run migration:revert -w backend` derruba limpo (sem orphan FKs).
+3. Inserir 2 lojas com mesmo slug em tenants diferentes funciona; mesmo slug+tenant falha por constraint.
+4. `curl /api/v1/stores -H "X-Forwarded-Host: <host>"` retorna 200 com shape esperado.
+5. Segunda chamada retorna `X-Cache: HIT`.
+6. Redis down → resposta ainda 200 (não 500).
+
+Estas validações são triviais com `docker-compose up` + smoke test manual ou suite E2E com testcontainers. Não bloqueiam revisão do PR, mas devem rodar antes do merge.
+
+**Próximo passo registrado em TL;DR:** validar contra DB+Redis reais, subir PR.
