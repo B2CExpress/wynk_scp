@@ -60,9 +60,8 @@ function parseSearch(raw: unknown): string | undefined {
  * - `featured` e `is_restaurant` aceitam APENAS `'true'`/`'false'` (case-insensitive); valores inválidos são ignorados.
  */
 export function parseStoreListQuery(query: Record<string, unknown>): StoreListQuery {
-  const category = typeof query.category === 'string' && query.category.length > 0
-    ? query.category
-    : undefined;
+  const category =
+    typeof query.category === 'string' && query.category.length > 0 ? query.category : undefined;
   return {
     category,
     featured: parseBoolFlag(query.featured),

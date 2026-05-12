@@ -101,9 +101,7 @@ async function makeAppWithAuth() {
   const { tenantRepo, userRepo, refreshTokenRepo, refreshStore } = await makeFakeRepos();
   const authService = new AuthService(tenantRepo, userRepo, refreshTokenRepo);
   const authController = new AuthController(authService, userRepo);
-  const app = createApp(
-    makeAppDeps({ tenantResolver: makeFakeTenantResolver(), authController }),
-  );
+  const app = createApp(makeAppDeps({ tenantResolver: makeFakeTenantResolver(), authController }));
   return { app, refreshStore };
 }
 

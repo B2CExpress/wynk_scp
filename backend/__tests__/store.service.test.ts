@@ -104,9 +104,7 @@ describe('StoreService.listActive', () => {
     const service = new StoreService(repo, redis);
 
     await runWithTenantContext(CTX, () => service.listActive(DEFAULT_QUERY));
-    const { cacheHit } = await runWithTenantContext(CTX, () =>
-      service.listActive(DEFAULT_QUERY),
-    );
+    const { cacheHit } = await runWithTenantContext(CTX, () => service.listActive(DEFAULT_QUERY));
 
     expect(cacheHit).toBe(true);
     expect(findSpy).toHaveBeenCalledTimes(1);
@@ -121,12 +119,8 @@ describe('StoreService.listActive', () => {
     await runWithTenantContext(CTX, () =>
       service.listActive({ ...DEFAULT_QUERY, search: 'mcdonald' }),
     );
-    await runWithTenantContext(CTX, () =>
-      service.listActive({ ...DEFAULT_QUERY, featured: true }),
-    );
-    await runWithTenantContext(CTX, () =>
-      service.listActive({ ...DEFAULT_QUERY, page: 2 }),
-    );
+    await runWithTenantContext(CTX, () => service.listActive({ ...DEFAULT_QUERY, featured: true }));
+    await runWithTenantContext(CTX, () => service.listActive({ ...DEFAULT_QUERY, page: 2 }));
 
     expect(findSpy).toHaveBeenCalledTimes(4);
     expect(store.size).toBe(4);
@@ -170,9 +164,7 @@ describe('StoreService.listActive', () => {
     (redis.set as jest.Mock).mockRejectedValueOnce(new Error('redis full'));
     const service = new StoreService(repo, redis);
 
-    const { response } = await runWithTenantContext(CTX, () =>
-      service.listActive(DEFAULT_QUERY),
-    );
+    const { response } = await runWithTenantContext(CTX, () => service.listActive(DEFAULT_QUERY));
 
     expect(response.data).toEqual([SAMPLE_ITEM]);
   });
