@@ -7,14 +7,17 @@ import { config } from './config';
 import { logger } from './utils/logger';
 import type { TenantResolverService } from './services/tenant-resolver.service';
 import type { AuthController } from './controllers/auth.controller';
+import type { StoreController } from './controllers/store.controller';
 import { createResolveTenantByHostMiddleware } from './middleware/resolve-tenant-by-host';
 import { tenantContextMiddleware } from './middleware/tenant-context';
 import { tenantRoutes } from './routes/tenant.routes';
 import { createAuthRoutes } from './routes/auth.routes';
+import { createStoreRoutes } from './routes/store.routes';
 
 export interface AppDeps {
   tenantResolver: TenantResolverService;
   authController: AuthController;
+  storeController: StoreController;
 }
 
 /**
@@ -73,6 +76,7 @@ export function createApp(deps: AppDeps): Express {
 
   app.use(tenantRoutes);
   app.use(createAuthRoutes(deps.authController));
+  app.use(createStoreRoutes(deps.storeController));
 
   // 404
   app.use((_req: Request, res: Response) => {
