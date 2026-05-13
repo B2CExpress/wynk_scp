@@ -7,16 +7,6 @@ import { requireTenantContext } from '../middleware/tenant-context';
 import type { StoreListQuery, StoreListItem } from '../dtos/store-list.dto';
 
 const ACTIVE_STATUS = 'active';
-
-/**
- * Escapa wildcards LIKE/ILIKE (`%`, `_`, `\`) no input do usuário antes de
- * compor o padrão `%search%`. Sem isso, `?search=50%` retornaria tudo
- * (regressão da SPEC-1400 antes do re-escopo — re-entrega de `bf21c78`).
- */
-export function escapeLikePattern(s: string): string {
-  return s.replace(/[\\%_]/g, '\\$&');
-}
-
 export class StoreRepository {
   private readonly storeRepo: Repository<Store>;
 
@@ -46,10 +36,14 @@ export class StoreRepository {
     }
 
     if (query.search) {
-      // search já vem lowercase+trim do DTO; aqui escapamos LIKE wildcards e
-      // aplicamos ILIKE pra busca case-insensitive.
-      const escaped = escapeLikePattern(query.search);
-      qb = qb.andWhere('store.store_name ILIKE :search', { search: `%${escaped}%` });
+      qb = qb
+        .andWhere(`store.store_search_vector @@ plainto_tsquery('portuguese', :search)`, {
+          search: query.search,
+        })
+        .addOrderBy(
+          `ts_rank(store.store_search_vector, plainto_tsquery('portuguese', :search))`,
+          'DESC',
+        );
     }
 
     if (query.category) {
@@ -83,6 +77,7 @@ export class StoreRepository {
       items: rows.map((s) => ({
         id: s.id,
         name: s.name,
+        description: s.description,
         slug: s.slug,
         logoUrl: s.logoUrl,
         coverImageUrl: s.coverImageUrl,
