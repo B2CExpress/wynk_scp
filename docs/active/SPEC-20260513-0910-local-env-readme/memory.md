@@ -8,12 +8,12 @@
 
 ## TL;DR (sobrescrever ao fim de cada sessão)
 
-**Última atualização:** 2026-05-13 09:10 (sessão #1)
-**Onde tô:** SPEC criada e estruturada. `main.md` aguardando validação humana do Alioth antes de qualquer escrita do README ou commit.
-**Próximo passo:** Alioth valida `main.md`. Após OK: atualizar `features/infra-base.md` (linha em "Em execução"), commitar estrutura inicial, então escrever `README.md` na raiz.
-**Última decisão:** Escopo "doc + WSL2 no Windows" — Windows nativo e macOS deliberadamente fora. Confirmado pelo usuário 2026-05-13 09:05.
-**Bloqueio atual:** Validação humana do `main.md` pendente.
-**Se retomar, ler:** `main.md` desta SPEC + `docs/features/infra-base.md` (seção Gotchas + Estado atual) + `package.json` raiz + `backend/package.json` + `docker-compose.yml`.
+**Última atualização:** 2026-05-13 09:40 (sessão #1)
+**Onde tô:** `README.md` escrito na raiz com 9 seções e 8 entradas de troubleshooting. Working tree tem: `README.md` (novo), `state.md` + `memory.md` (modificados). Branch local aterrissou em commit `98c43aa` (idêntico estruturalmente; uma sessão anterior gerou o mesmo conteúdo). **Pendente:** commit único consolidando tudo. Depois: validação humana do Alioth executando o passo-a-passo.
+**Próximo passo:** Commit `docs(infra-base): README.md de setup local na raiz (SPEC-20260513-0910)` incluindo `README.md`, `state.md`, `memory.md`. Não pushar (CLAUDE.md global proíbe push sem pedido explícito).
+**Última decisão:** Troubleshooting com 8 entradas (não 6) — adicionei conflito de porta Docker e clone em `/mnt/c/` no WSL como entradas extras (frequentes o suficiente pra preventiva).
+**Bloqueio atual:** nenhum.
+**Se retomar, ler:** `README.md` recém-criado + `main.md` desta SPEC + `docs/features/infra-base.md`.
 
 ---
 
@@ -21,20 +21,20 @@
 
 ### O que está sendo feito AGORA
 
-Estruturando a SPEC `SPEC-20260513-0910-local-env-readme` na branch nova `feature/local-env-readme` (criada a partir de `main`). Já criei a pasta e os 3 arquivos. Próximo movimento: atualizar `docs/features/infra-base.md` (R.11) e apresentar `main.md` ao Alioth para validação humana (mitigação R3).
-
-O README em si **ainda não foi escrito** — esta sessão é só de planejamento, contrato e validação.
+`README.md` escrito na raiz. Próximo passo concreto: commit único `docs(infra-base): README.md de setup local na raiz (SPEC-20260513-0910)` incluindo `README.md`, `state.md`, `memory.md`. Sem push (regra global). Após commit: apresentar pro Alioth com instrução de executar o passo-a-passo do README em ambiente limpo.
 
 ### Hipóteses em jogo
 
-- **Caminho dourado Linux = Ubuntu/Debian** (status: testando). Razão: alinha com WSL2 + base que devs costumam ter. Validar com Alioth na revisão do `main.md`.
-- **Docker Desktop com integração WSL2 é o recomendado para Windows** (status: testando). Alternativa: instalar Docker nativo dentro do Ubuntu do WSL via `apt`. Resolver na revisão do `main.md`.
+- **Caminho dourado Linux = Ubuntu/Debian** (status: **confirmada** — coerente com WSL2 default + base que devs costumam usar). 2026-05-13 09:20.
+- **Docker Desktop com integração WSL2 é o recomendado para Windows** (status: **confirmada** — decisão registrada no log do state.md em 2026-05-13 09:20). Alternativa `apt` no WSL descartada por exigir systemd + fragilidade.
 
 ### Decisões recentes que importam pra continuar
 
-- [2026-05-13 09:05] Escopo "doc + WSL2 no Windows", Windows nativo fora. (Trade-off: usuários Windows precisam instalar WSL2; ganho: nada de cross-platform em scripts agora.)
-- [2026-05-13 09:05] Feature vinculada: `infra-base` (não criar feature nova — README de setup é parte natural de infra).
-- [2026-05-13 09:08] Branch nova a partir de `main`, apesar de `main` estar com `active/` violando R.2 (SPEC-1400 mergeada). Esta violação é preexistente; não é meu escopo consertar.
+- [2026-05-13 09:20] Docker no Windows = Docker Desktop com integração WSL2 (não `apt` no WSL).
+- [2026-05-13 09:20] macOS no README: menção curta de 1 linha em "Setup", sem seção dedicada.
+- [2026-05-13 09:05] Escopo "doc + WSL2 no Windows", Windows nativo fora.
+- [2026-05-13 09:05] Feature vinculada: `infra-base` (não criar feature nova).
+- [2026-05-13 09:08] Branch nova a partir de `main`, apesar de `main` estar com `active/` violando R.2 (SPEC-1400 mergeada — preexistente, não meu escopo).
 
 ### Respostas-chave do usuário
 
@@ -44,6 +44,8 @@ O README em si **ainda não foi escrito** — esta sessão é só de planejament
   Contexto: confirmando escopo "doc + WSL2 no Windows" (vs cross-platform real). Decisão R3 ancorada nesta linha.
 - [2026-05-13 09:09] Usuário: *"Pode"*
   Contexto: autorização para trocar de branch (`feature/SQU-43-api-publica` → `main` → `feature/local-env-readme`) e criar a SPEC.
+- [2026-05-13 09:20] Usuário: *"Isso mesmo, manda bala!"*
+  Contexto: validação humana do `main.md` (mitigação R3) + delegação à IA das 2 dúvidas em aberto (macOS, Docker no Windows).
 
 ### Tentativas que falharam (para NÃO repetir)
 
@@ -51,11 +53,11 @@ _(nenhuma ainda — sessão #1)_
 
 ### Arquivos ativamente sendo tocados
 
-- `docs/active/SPEC-20260513-0910-local-env-readme/main.md` (criado, aguardando validação humana)
-- `docs/active/SPEC-20260513-0910-local-env-readme/state.md` (criado)
-- `docs/active/SPEC-20260513-0910-local-env-readme/memory.md` (este arquivo)
-- `docs/features/infra-base.md` (a tocar — adicionar linha em "Em execução")
-- `README.md` (na raiz — A CRIAR depois da validação)
+- `README.md` (na raiz — **criado** em 2026-05-13 09:40, ~290 linhas)
+- `docs/active/SPEC-20260513-0910-local-env-readme/main.md` (commitado em `98c43aa`, sem alterações pendentes)
+- `docs/active/SPEC-20260513-0910-local-env-readme/state.md` (com adições pendentes — TL;DR, log, status)
+- `docs/active/SPEC-20260513-0910-local-env-readme/memory.md` (este arquivo, com adições pendentes)
+- `docs/features/infra-base.md` (linha em "Em execução" já no commit `98c43aa`; será movida pra "Concluídas" só ao arquivar)
 
 Arquivos lidos como referência (não-modificáveis nesta SPEC):
 - `package.json` (raiz)
@@ -67,7 +69,7 @@ Arquivos lidos como referência (não-modificáveis nesta SPEC):
 
 ### Onde parei exatamente
 
-Acabei de criar os 3 arquivos da SPEC (`main.md`, `state.md`, `memory.md`). Próxima ação concreta: atualizar `docs/features/infra-base.md` adicionando linha na seção "Em execução" referenciando esta SPEC + branch, e apresentar o `main.md` ao Alioth para validação humana ANTES de qualquer `git commit`.
+`README.md` escrito na raiz (~290 linhas, 9 seções, 8 entradas de troubleshooting). State/memory atualizados em memória mas ainda não commitados. Próxima ação concreta: rodar `git add README.md state.md memory.md` (caminhos completos) e `git commit` com mensagem `docs(infra-base): README.md de setup local na raiz (SPEC-20260513-0910)`. Depois: pedir ao Alioth pra executar o passo-a-passo do README em ambiente limpo (VM/container/WSL).
 
 ---
 
