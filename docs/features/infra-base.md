@@ -29,7 +29,7 @@
 ### Em execução (só em branches — não aparece em main)
 | ID | Título | Branch |
 |---|---|---|
-| _(nenhuma)_ | | |
+| SPEC-20260513-0910 | README de setup local (Linux + Windows via WSL2) | feature/local-env-readme |
 
 ## Estado atual
 
