@@ -4,5 +4,11 @@
     "host": "shopping-x.local",
     "flavorSlug": "shopping-x",
     "name": "Shopping X"
+  },
+  {
+    "slug": "local-dev",
+    "host": "localhost",
+    "flavorSlug": "shopping-x",
+    "name": "Localhost (dev)"
   }
 ]

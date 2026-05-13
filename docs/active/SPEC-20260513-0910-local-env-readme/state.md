@@ -243,3 +243,68 @@ README atualizado:
 `main.md` atualizado: Origem (registra 2ª expansão), Resumo (4 scripts), Escopo DENTRO (`run.sh`/`run.bat` + subseção do README), Implementação (especificação completa dos 4 scripts), Critério de aceite (checkboxes novos pra `run.sh`/`run.bat`/README e ajuste da validação humana).
 
 Commit pendente.
+
+## 2026-05-13 18:50 — [descoberta] Portal sobe mas 404 em `/tenant/resolve` + bug `notFound() in root layout`
+
+Dev rodou `./setup.sh --seed` e `./run.sh backend` sem reportar erro de setup — bom sinal pra validação humana. Subiu também `npm run dev -w portal` (manualmente, não via `./run.sh portal`) e acessou `http://localhost:3000`.
+
+Comportamento observado:
+1. Backend respondeu `GET /tenant/resolve` com **404** (2x, talvez de favicon retry + page request). Esperado: `seeds/tenants.json` só tinha `shopping-x.local`; `localhost` não estava cadastrado. Backend tem `app.set('trust proxy', true)` + middleware usa `req.hostname` (sem porta), então procurou `host = 'localhost'` no banco → não achou.
+2. Portal (`portal/src/app/layout.tsx:37`) chamou `notFound()` quando o tenant retornou null. Next App Router disparou: `Error: notFound() is not allowed to use in root layout`. **Bug real do código existente**, fora do escopo desta SPEC (é da feature `theme-system` ou portal-side da `tenant-resolution`).
+
+## 2026-05-13 19:00 — [decisão] Adicionar tenant `localhost` ao seed (DX em dev)
+
+Dev pediu: *"Enfia ele no seed"*. Em vez do workaround com `/etc/hosts` (`127.0.0.1 shopping-x.local`), cadastrar um tenant pra `host=localhost` diretamente — caminho mais limpo pra DX local.
+
+Editei `seeds/tenants.json` adicionando entrada:
+```json
+{
+  "slug": "local-dev",
+  "host": "localhost",
+  "flavorSlug": "shopping-x",
+  "name": "Localhost (dev)"
+}
+```
+
+Decisões pontuais:
+- **Slug `local-dev`** (não `localhost`) — slug é identificador único do tenant; usar literal `localhost` confunde com o `host`. `local-dev` é nome humano-legível pro tenant de desenvolvimento local.
+- **`flavorSlug: shopping-x`** — reusa o flavor já existente pra dev ver UI com cores reais (roxo/amarelo) em vez do `_default` (cinza/branco). Não cria flavor novo.
+- **Não é mudança de feature `tenant-resolution`** — é dado de seed (`seeds/tenants.json`) que faz parte da feature `infra-base` (arquivo listado em `features/infra-base.md` "Arquivos principais"). Cabe nesta SPEC.
+
+`seed.ts` é idempotente (upsert por `slug`): re-rodar `npm run seed -w backend` cria o novo tenant sem mexer no `shopping-x`. Cache Redis (`tenant:resolve:localhost`) não tem entrada pra invalidar (`null` não é cacheado pelo `TenantResolverService.resolveByHost`).
+
+**Bug do `notFound() in root layout` permanece** — só não dispara enquanto o tenant resolve. Será uma SPEC futura da feature `theme-system` (ou tenant-resolution no portal-side). Registrado pra o usuário decidir.
+
+Commit pendente até dev confirmar que portal renderiza em `http://localhost:3000`.
+
+## 2026-05-13 19:15 — [MARCO] [unblock] Portal renderiza em `http://localhost:3000`
+
+Dev confirmou: *"Agora foi, acho que era o seed, eu tinha rodado ele somente no momento do setup"*. Pipeline validado end-to-end:
+
+1. `./setup.sh --seed` rodou sem erro (com `docker-compose` v1 detectado, warn de EOL)
+2. `./run.sh backend` subiu backend em `:3001` (config default)
+3. `npm run dev -w portal` (rodado manualmente em outro terminal, não via `./run.sh portal`) subiu portal em `:3000`
+4. Browser `http://localhost:3000` → portal → `X-Forwarded-Host: localhost` → backend resolve via banco → portal renderiza homepage com flavor `shopping-x` (cores roxo/amarelo)
+
+Banco confirmado:
+```
+ tenant_slug |   tenant_host
+-------------+------------------
+ shopping-x  | shopping-x.local
+ local-dev   | localhost
+```
+
+Lição: o seed é separado do setup nessa SPEC. Quando alterar `seeds/tenants.json`, **rodar `npm run seed -w backend` explicitamente** (ou re-executar `./setup.sh --seed`). Eu deveria ter avisado isso explicitamente quando editei o JSON; em vez disso falei "rode npm run seed -w backend" mas sem destacar que era passo obrigatório.
+
+### Pendências não-bloqueantes registradas
+
+- **Bug `notFound() in root layout`** em `portal/src/app/layout.tsx:37` — fora desta SPEC; sugerir registrar como gotcha em `docs/features/theme-system.md` ou abrir SPEC nova de fix.
+- **Portas invertidas no README** — eu escrevi backend=3000 e portal=3001; correto é backend=**3001** e portal=**3000**. Faço `fix(docs): correção das portas no README` rápido.
+- **`setup.bat`/`run.bat`** não validados — sem dev Windows; permanecem como "validados por inspeção, não por execução".
+
+Próximos passos pra arquivar a SPEC:
+1. (sugerido) Commit `fix(docs): correção das portas no README + setup.sh`
+2. (sugerido) Registrar bug do `notFound()` em `docs/features/theme-system.md` como gotcha
+3. Marcar critério de aceite em `main.md`
+4. Atualizar `features/infra-base.md` (R.7): mover pra "Concluídas", atualizar "Estado atual"
+5. Mover pasta `active/` → `archive/`
