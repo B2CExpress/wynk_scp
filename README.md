@@ -73,6 +73,8 @@ Os scripts são **idempotentes** (rodar duas vezes não quebra nada) e cobrem os
 >
 > No Windows, `setup.bat` apenas verifica WSL2 + Docker Desktop e dispara o `setup.sh` **dentro do WSL** (o setup real roda no Linux).
 
+Depois do setup, use `./run.sh` (ou `run.bat`) para subir os apps em dev mode — veja [Primeira execução](#primeira-execução).
+
 Se preferir entender cada passo manualmente, siga o passo-a-passo abaixo.
 
 ---
@@ -185,7 +187,26 @@ Todos os comandos `npm` e `docker compose` rodam **dentro do Ubuntu do WSL**. Vo
 
 ## Primeira execução
 
-Os três apps podem rodar simultaneamente em terminais separados:
+### Atalho: `./run.sh`
+
+```bash
+./run.sh                # backend (default)
+./run.sh backend        # backend         http://localhost:3000
+./run.sh portal         # portal          http://localhost:3001
+./run.sh backoffice     # backoffice      http://localhost:5173
+./run.sh all            # os 3 em paralelo, logs prefixados [backend]/[portal]/[backoffice]
+```
+
+No Windows, equivalente via `run.bat` (verifica WSL2 + Docker Desktop e dispara `run.sh` dentro do WSL):
+
+```cmd
+run.bat
+run.bat all
+```
+
+`Ctrl+C` em qualquer modo encerra todos os processos filhos.
+
+### Manualmente (terminais separados)
 
 ```bash
 # Terminal 1 — backend (API Express)
@@ -258,7 +279,9 @@ wynk-scp/
 ├── scripts/                # Scripts auxiliares (validação de flavors, lint de docs)
 ├── docker-compose.yml      # Postgres 15 + Redis 7 (portas host: 5435 / 6382)
 ├── setup.sh                # Atalho idempotente de setup local (Linux/WSL2)
-├── setup.bat               # Atalho para Windows (verifica WSL2 + Docker, dispara setup.sh no WSL)
+├── setup.bat               # Setup no Windows (verifica WSL2 + Docker, dispara setup.sh no WSL)
+├── run.sh                  # Atalho para rodar dev server (backend/portal/backoffice/all)
+├── run.bat                 # Run no Windows (dispara run.sh dentro do WSL)
 └── package.json            # npm workspaces (backend, portal, backoffice)
 ```
 

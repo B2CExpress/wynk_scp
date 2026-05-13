@@ -63,8 +63,11 @@ echo.
 if "%exit_code%"=="0" (
   echo [ok] Setup concluido.
   echo.
-  echo Para subir o backend, abra o terminal Ubuntu ^(digite "wsl" no CMD ou pelo menu Iniciar^):
-  echo     cd ~/wynk-scp ^&^& npm run dev -w backend
+  echo Para subir os apps em dev mode, use:
+  echo     run.bat               REM backend ^(default^)
+  echo     run.bat portal
+  echo     run.bat backoffice
+  echo     run.bat all           REM os 3 em paralelo
 ) else (
   echo [erro] setup.sh falhou dentro do WSL ^(codigo %exit_code%^). Veja a saida acima.
 )

@@ -8,12 +8,12 @@
 
 ## TL;DR (sobrescrever ao fim de cada sessão)
 
-**Última atualização:** 2026-05-13 10:30
-**Onde tô:** Primeira validação do `setup.sh` falhou no check de Docker Compose — dev tem `docker.io` (Ubuntu universe) + `docker-compose` v1, sem plugin v2. Confirmei lendo `wynk_ecommerce/backend/run-backend-locally.sh`: o e-commerce também usa `docker-compose` v1, é o padrão do ambiente dele. Decidido: aceitar v1 como fallback no `setup.sh`. Script atualizado (detecta `docker compose` v2 ou `docker-compose` v1, usa variável `$COMPOSE`, avisa quando cai no v1). README atualizado em Pré-requisitos (tabela do Compose passa a citar v2 + v1) e Troubleshooting (entrada #9 sobre "Compose não encontrado" com Fix A/B/C).
-**Próximo passo:** Commit `fix(setup): aceitar docker-compose v1 como fallback (SPEC-20260513-0910)`. Depois: dev roda `./setup.sh --seed` de novo — deve passar do check de Compose dessa vez.
-**Última decisão:** Aceitar v1 e v2 no `setup.sh`. 2026-05-13 10:25. Motivo: ambiente real do dev usa v1 (alinhado com `wynk_ecommerce`); forçar v2 cria atrito desproporcional. Trade-off: v1 está EOL desde jul/2023; warn impresso a cada run quando cai no v1; doc indica v2 como caminho oficial moderno.
-**Bloqueio atual:** nenhum (aguardando dev re-executar `./setup.sh --seed`).
-**Se retomar, ler:** `setup.sh` (seção de detecção de Compose) + README seção "Pré-requisitos" e Troubleshooting #9 + `main.md` desta SPEC.
+**Última atualização:** 2026-05-13 11:15
+**Onde tô:** **2ª expansão de escopo** (3ª revisão da SPEC). Após o dev questionar *"então o setup não roda nada, apenas configura?"*, dividimos a responsabilidade: `setup.sh`/`setup.bat` ficam só com configuração; `run.sh`/`run.bat` cuidam de subir os dev servers. Aceita `backend` (default), `portal`, `backoffice`, `all` (paralelo com logs prefixados via `sed -u` e trap centralizado). `main.md` atualizado (Resumo, Escopo DENTRO, Implementação, Critério de aceite). Scripts criados (`run.sh` modo `0755`, `bash -n` OK; `run.bat` análogo ao `setup.bat`). README atualizado em "Primeira execução" com subseção "Atalho: `./run.sh`" e na "Estrutura do monorepo".
+**Próximo passo:** Commit `feat(setup): run.sh e run.bat como atalho para subir dev servers (SPEC-20260513-0910)`. Depois: dev roda `./run.sh` (e/ou `./run.sh all`) pra validar que o backend sobe e responde `GET /health` 200.
+**Última decisão:** Dividir responsabilidades em 2 scripts (configurar vs rodar). 2026-05-13 11:00. Motivo: dev server é processo foreground/watch, não cabe num script de configuração; com 3 apps, gerência de processos é melhor isolada no `run.sh`.
+**Bloqueio atual:** nenhum (aguardando dev rodar `./run.sh` ou `./run.sh all`).
+**Se retomar, ler:** `run.sh` + `run.bat` + seção "Primeira execução" do `README.md` (subseção "Atalho: `./run.sh`") + `main.md` desta SPEC.
 
 ---
 
@@ -27,9 +27,10 @@
 | 2 | Validação humana do `main.md` por Alioth                       | concluído    | 2026-05-13 09:20 | —      |
 | 3 | Escrever `README.md` na raiz                                   | concluído    | 2026-05-13 09:40 | `1cff2da` |
 | 4 | Expansão de escopo: `setup.sh` + `setup.bat` + atualizar `main.md` e `README.md` | concluído | 2026-05-13 09:55 | `451a92e` |
-| 5 | **Fix do `setup.sh`: aceitar `docker-compose` v1 como fallback (motivado por validação humana 10:00)** | concluído | 2026-05-13 10:30 | (pendente — próximo commit) |
-| 6 | Validação humana — Alioth executa `./setup.sh --seed` em ambiente local e confirma `npm run dev -w backend` aceitando `GET /health` 200 | em progresso | 2026-05-13 10:30 | — |
-| 7 | Conclusão: marcar critério de aceite, atualizar `features/infra-base.md` (move para "Concluídas" + atualiza "Estado atual"), mover SPEC para `archive/` | pendente | 2026-05-13 10:30 | — |
+| 5 | Fix do `setup.sh`: aceitar `docker-compose` v1 como fallback | concluído | 2026-05-13 10:30 | `aa20692` |
+| 6 | **2ª expansão de escopo: `run.sh` + `run.bat` (configurar e rodar = 2 scripts)** | concluído | 2026-05-13 11:15 | (pendente — próximo commit) |
+| 7 | Validação humana — Alioth executa `./setup.sh --seed` e depois `./run.sh` (ou `./run.sh all`); confirma backend respondendo `GET /health` 200 | em progresso | 2026-05-13 11:15 | — |
+| 8 | Conclusão: marcar critério de aceite, atualizar `features/infra-base.md` (move para "Concluídas" + atualiza "Estado atual"), mover SPEC para `archive/` | pendente | 2026-05-13 11:15 | — |
 
 ### Próximos passos
 
@@ -220,5 +221,25 @@ README atualizado:
 - Troubleshooting **#9** novo: "`setup.sh` reclama 'Docker Compose não encontrado'" — Causa (Ubuntu `docker.io` + sem `docker-compose-plugin` no universe Jammy) + Fix A (plugin v2 via GitHub binary, recomendado) + Fix B (`apt install docker-compose` v1) + Fix C (trocar pro repo oficial `docker-ce`).
 
 `main.md` não precisou ajuste — a especificação dos scripts em "Implementação" não congelou "exigir v2"; era detalhe de implementação ajustável.
+
+Commit pendente.
+
+## 2026-05-13 11:00 — [MARCO] [decisão] 2ª expansão de escopo: `run.sh` + `run.bat`
+
+Dev questionou: *"Espera, então o setup não roda nada, apenas o configura?"* — confirmei (setup configura, não inicia dev server porque é processo foreground/watch e temos 3 apps). Dev primeiro começou a propor `--backend --backend e --backend` (flags por app, parou no meio) e mudou pra ideia mais clara: *"Espera, ok, vamos manter um setup e podemos colocar um run.sh que tal?"*.
+
+Apresentei interface e trade-offs: default backend; `portal`/`backoffice` individual; `all` em paralelo com logs prefixados (misturado mas explícito); Ctrl+C centralizado. Dev confirmou: *"Sim, pode ser assim, não importa misturar os logs"*.
+
+Implementação:
+- `run.sh` (`0755`, ~80 linhas, `bash -n` OK): variável `target` (default `backend`); case com `backend|portal|backoffice` chamando `run_one` (que faz `exec npm run dev -w <app>`); `all` chama `run_all` que faz 3x `npm run dev -w <app> 2>&1 | sed -u "s/^/[<app>] /" &`, guarda PIDs em array, instala trap SIGINT/SIGTERM com cleanup (mata todos os PIDs + wait), e finaliza com `wait`. `sed -u` (unbuffered) garante prefixo em tempo real. `exec` no caso 1-app substitui o shell pelo npm (sinais propagam diretamente).
+- `run.bat`: análogo ao `setup.bat`, mais magro (sem warning de `C:\`). Verifica WSL2 + Docker, dispara `wsl -e bash -c "cd $(wslpath -u '%CD%') && bash ./run.sh %*"`.
+- `setup.sh` e `setup.bat`: resumo final agora aponta `./run.sh` em vez de listar `npm run dev` diretamente.
+
+README atualizado:
+- "Primeira execução" ganhou subseção **"Atalho: `./run.sh`"** antes do bloco manual com 3 terminais.
+- "Setup rápido (atalho)" ganhou linha apontando pra "Primeira execução" como próximo passo.
+- "Estrutura do monorepo" lista `run.sh` e `run.bat`.
+
+`main.md` atualizado: Origem (registra 2ª expansão), Resumo (4 scripts), Escopo DENTRO (`run.sh`/`run.bat` + subseção do README), Implementação (especificação completa dos 4 scripts), Critério de aceite (checkboxes novos pra `run.sh`/`run.bat`/README e ajuste da validação humana).
 
 Commit pendente.

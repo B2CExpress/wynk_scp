@@ -9,8 +9,8 @@
 **Features:** infra-base
 **Branch:** feature/local-env-readme
 **Depende de:** —
-**Origem:** usuário em 2026-05-13 09:00 — *"Precisamos criar um spec para subir o ambiente local tanto no windows como no linux, num readme bem passo a passo explicando o que é cada coisa como se baixa e para que serve."* **Escopo expandido em 2026-05-13 09:50** após pedido do usuário ("podemos fazer um .sh para linux e um .bat para o windows? Assim o pessoal apenas roda ele") — README continua sendo entrega principal; somam-se `setup.sh` (idempotente, Linux/WSL2) e `setup.bat` (wrapper Windows que dispara o `setup.sh` dentro do WSL).
-**Resumo:** Entregar um `README.md` na raiz do repositório com passo-a-passo de setup local em Linux nativo e Windows (via WSL2), explicando cada pré-requisito (o que é, pra que serve, como instalar) e os comandos de bootstrap do monorepo (Docker, schema dedicado `scp`, migrations, seed, dev server). Acompanha dois scripts de atalho — `setup.sh` (Linux/WSL2) e `setup.bat` (Windows, delega ao WSL) — que automatizam os passos 2-9 do Setup Linux de forma idempotente, sem instalar pré-requisitos (só verificam). Reflete fielmente o estado atual do projeto e não altera `docker-compose.yml` nem `backend/scripts/`.
+**Origem:** usuário em 2026-05-13 09:00 — *"Precisamos criar um spec para subir o ambiente local tanto no windows como no linux, num readme bem passo a passo explicando o que é cada coisa como se baixa e para que serve."* **Escopo expandido em 2026-05-13 09:50** após pedido do usuário ("podemos fazer um .sh para linux e um .bat para o windows? Assim o pessoal apenas roda ele") — README continua sendo entrega principal; somam-se `setup.sh` (idempotente, Linux/WSL2) e `setup.bat` (wrapper Windows que dispara o `setup.sh` dentro do WSL). **Escopo expandido novamente em 2026-05-13 11:00** após pedido do usuário ("Espera, ok, vamos manter um setup e podemos colocar um run.sh que tal?") — `setup.sh`/`setup.bat` cuidam SÓ de configuração; somam-se `run.sh` e `run.bat` para subir os dev servers (`npm run dev -w <app>`), com argumentos `backend` (default), `portal`, `backoffice`, `all`.
+**Resumo:** Entregar um `README.md` na raiz do repositório com passo-a-passo de setup local em Linux nativo e Windows (via WSL2), explicando cada pré-requisito (o que é, pra que serve, como instalar) e os comandos de bootstrap do monorepo (Docker, schema dedicado `scp`, migrations, seed, dev server). Acompanha quatro scripts de atalho — `setup.sh` + `setup.bat` para configuração idempotente e `run.sh` + `run.bat` para subir os dev servers (1 app ou os 3 em paralelo). Nada disso instala pré-requisitos (só verifica) nem altera `docker-compose.yml`/`backend/scripts/`; reflete fielmente o estado atual do projeto.
 
 ## Objetivo
 
@@ -30,8 +30,11 @@ Reduzir atrito de onboarding documentando o setup local do monorepo `wynk-scp` n
 - Seção "Troubleshooting" — FAQ no formato *Sintoma → Causa → Fix*, cobrindo os gotchas já documentados em `docs/features/infra-base.md`.
 - Seção "Saiba mais" com links para `docs/CLAUDE.md`, `docs/RULES.md`, `docs/features/`.
 - **Seção "Setup rápido (atalho)"** apresentando os scripts `setup.sh` e `setup.bat` antes do passo-a-passo manual.
-- **`setup.sh`** na raiz (modo `0755`): bash idempotente que automatiza os passos 2-9 do Setup Linux. Verifica pré-requisitos (Node 22+, npm, Docker engine + Compose v2 + daemon ativo), aceita flag `--seed` opcional para popular tenants. Falha cedo com mensagem clara e código de saída ≠ 0 quando algo falta.
+- **`setup.sh`** na raiz (modo `0755`): bash idempotente que automatiza os passos 2-9 do Setup Linux. Verifica pré-requisitos (Node 22+, npm, Docker engine + Compose v2 ou v1 + daemon ativo), aceita flag `--seed` opcional para popular tenants. Falha cedo com mensagem clara e código de saída ≠ 0 quando algo falta.
 - **`setup.bat`** na raiz: wrapper Windows que verifica WSL2 + Docker Desktop, alerta se o `cwd` está em `C:\…` (gotcha do filesystem do Windows × WSL), e dispara `wsl -e bash -c "cd <wslpath> && ./setup.sh <args>"` repassando argumentos.
+- **`run.sh`** na raiz (modo `0755`): wrapper para `npm run dev -w <app>`. Default = backend; aceita `portal`, `backoffice`, `all`. Para `all`, roda os 3 em paralelo (`&`) com logs prefixados (`[backend]/[portal]/[backoffice]` via `sed -u`) e `Ctrl+C` centralizado (trap SIGINT/SIGTERM mata todos os PIDs filhos).
+- **`run.bat`** na raiz: wrapper Windows análogo ao `setup.bat`, mais magro — verifica WSL2 + Docker Desktop e dispara `wsl -e bash -c "cd <wslpath> && bash ./run.sh <args>"` repassando argumentos.
+- **Atualização do README na seção "Primeira execução"**: subseção "Atalho: `./run.sh`" precede o bloco manual com 3 terminais.
 
 **FORA:**
 - **Windows nativo** (sem WSL2) — atrito desproporcional: `docker-compose.yml`, `backend/scripts/*.ts` e fluxo do TypeORM CLI foram pensados em Linux. Decisão registrada na seção de Troubleshooting/contexto do README como "use WSL2".
@@ -115,14 +118,15 @@ Reduzir atrito de onboarding documentando o setup local do monorepo `wynk-scp` n
 `setup.sh` (raiz, modo `0755`):
 - Shebang `#!/usr/bin/env bash`; `set -euo pipefail`.
 - Verifica que está sendo executado na raiz do repo (`package.json` com `"name": "wynk-scp"`).
-- Verifica pré-requisitos com mensagens claras de falha (sem tentar instalar): `node` (`>=22`), `npm`, `git`, `docker` (com `docker info` para checar daemon), `docker compose version`.
+- Verifica pré-requisitos com mensagens claras de falha (sem tentar instalar): `node` (`>=22`), `npm`, `git`, `docker` (com `docker info` para checar daemon).
+- **Detecta Docker Compose em cascata**: `docker compose version` (v2 plugin) → `docker-compose --version` (v1 legacy, EOL) → erro com 3 opções de instalação. Variável `${COMPOSE}` usada em todas as chamadas (`${COMPOSE} up -d`, `${COMPOSE} ps`, etc.). Imprime `warn` único quando cai no v1.
 - Roda `npm install`.
 - Para `backend` e `portal`: copia `.env.example` → `.env` apenas se `.env` não existir (idempotência).
-- Roda `docker compose up -d`.
-- Aguarda até 60s pelos containers `scp_postgres` e `scp_redis` ficarem `healthy` (via `docker compose ps`).
+- Roda `${COMPOSE} up -d`.
+- Aguarda até 60s pelos containers `scp_postgres` e `scp_redis` ficarem `healthy` (via `docker inspect --format '{{.State.Health.Status}}'`, independente de versão do Compose).
 - Roda `npm run db:setup -w backend`.
 - Roda `npm run seed -w backend` somente se receber flag `--seed` ou `--with-seed`. Caso contrário, imprime nota orientando o comando manual.
-- Imprime resumo final com os comandos `npm run dev -w <app>` para os 3 workspaces.
+- Imprime resumo final apontando `./run.sh` como atalho para subir os apps.
 - Saída colorida básica (ANSI: `[ok]` verde, `[erro]` vermelho, `[aviso]` amarelo) usando `printf`; sem emojis.
 
 `setup.bat` (raiz):
@@ -132,7 +136,20 @@ Reduzir atrito de onboarding documentando o setup local do monorepo `wynk-scp` n
 - Avisa se `cwd` começa com `C:` (filesystem do Windows) — perda de performance e risco de inotify quebrar. Pede `pause` para o usuário confirmar (ou Ctrl+C).
 - Dispara o `setup.sh` dentro do WSL: `wsl -e bash -c "cd $(wslpath -u '%CD%') && bash ./setup.sh %*"` (repassa argumentos como `--seed`).
 - Propaga `errorlevel` do `setup.sh`.
-- No fim, imprime instrução para abrir o terminal Ubuntu e rodar `npm run dev -w backend`.
+- No fim, imprime instrução para abrir o terminal Ubuntu e rodar `./run.sh`.
+
+`run.sh` (raiz, modo `0755`):
+- Shebang `#!/usr/bin/env bash`; `set -euo pipefail`.
+- Mesma sanity check de raiz do repo que `setup.sh`.
+- Aceita 1 argumento: `backend` (default), `portal`, `backoffice`, `all`, `-h`/`--help`/`help`. Qualquer outro: erro com lista.
+- Para 1 app: `exec npm run dev -w <app>` — substitui o processo do shell pelo do npm, sinais propagam diretamente.
+- Para `all`: roda os 3 em background com `npm run dev -w <app> 2>&1 | sed -u "s/^/[<app>] /" &`, guarda PIDs em array, instala `trap cleanup SIGINT SIGTERM` (que mata todos os PIDs e faz `wait`), e finaliza com `wait` (bloqueia até todos terminarem). `sed -u` (unbuffered) garante que o prefixo aparece em tempo real.
+- Saída colorida básica idêntica ao `setup.sh`.
+
+`run.bat` (raiz):
+- Análogo ao `setup.bat`, mais magro — sem o aviso de `cwd` em `C:\` (assumimos que o dev já viu na 1ª vez).
+- Verifica WSL2 + Docker Desktop, dispara `wsl -e bash -c "cd $(wslpath -u '%CD%') && bash ./run.sh %*"`.
+- Propaga `errorlevel`.
 
 **Único arquivo de feature atualizado:** `docs/features/infra-base.md` (R.11 na ativação: linha em "Em execução"; R.7 na conclusão: move para "Concluídas", atualiza "Estado atual" mencionando que onboarding agora tem porta de entrada documentada **e atalho automatizado**).
 
@@ -146,11 +163,14 @@ Reduzir atrito de onboarding documentando o setup local do monorepo `wynk-scp` n
 - [x] Troubleshooting cobre os 6 gotchas de `docs/features/infra-base.md` no formato *Sintoma → Causa → Fix*, **acrescido de 2 entradas** (conflito de porta Docker, clone em `/mnt/c/` no WSL) — total 8 (2026-05-13 09:40, commit `1cff2da`)
 - [x] Bloco "Comandos do dia-a-dia" lista todos os scripts esperados (2026-05-13 09:40, commit `1cff2da`)
 - [x] Links presentes para `docs/CLAUDE.md`, `docs/RULES.md`, `docs/features/` (2026-05-13 09:40, commit `1cff2da`)
-- [ ] **`setup.sh`** criado na raiz, modo `0755`, idempotente, verifica pré-requisitos, executa passos 2-9 do Setup Linux, aceita `--seed`
-- [ ] **`setup.bat`** criado na raiz, verifica WSL2 + Docker Desktop, dispara `setup.sh` dentro do WSL com translação de path via `wslpath`
-- [ ] README.md atualizado com seção "Setup rápido (atalho)" antes do passo-a-passo manual
-- [ ] Validação humana — Alioth executa `./setup.sh` em ambiente limpo (Linux ou WSL Ubuntu) e vê `npm run dev -w backend` aceitar `GET /health` com 200; opcionalmente roda `setup.bat` em Windows e confirma handoff para WSL
-- [ ] Sem alterações fora de: `README.md`, `setup.sh`, `setup.bat`, `docs/features/infra-base.md` (linha de SPEC), `docs/active/SPEC-20260513-0910-local-env-readme/` (esta SPEC)
+- [x] **`setup.sh`** criado na raiz, modo `0755`, idempotente, verifica pré-requisitos, executa passos 2-9 do Setup Linux, aceita `--seed` (2026-05-13 09:55, commit `451a92e`; ajustado em `aa20692` pra aceitar `docker-compose` v1)
+- [x] **`setup.bat`** criado na raiz, verifica WSL2 + Docker Desktop, dispara `setup.sh` dentro do WSL com translação de path via `wslpath` (2026-05-13 09:55, commit `451a92e`)
+- [x] README.md atualizado com seção "Setup rápido (atalho)" antes do passo-a-passo manual (2026-05-13 09:55, commit `451a92e`)
+- [ ] **`run.sh`** criado na raiz, modo `0755`, aceita `backend`/`portal`/`backoffice`/`all`, modo `all` roda os 3 em paralelo com prefixo no log + trap pra encerrar todos com Ctrl+C
+- [ ] **`run.bat`** criado na raiz, verifica WSL2 + Docker, dispara `run.sh` dentro do WSL repassando argumentos
+- [ ] README.md atualizado em "Primeira execução" com subseção "Atalho: `./run.sh`" antes do bloco manual
+- [ ] Validação humana — Alioth executa `./setup.sh --seed` em ambiente local e confirma que termina sem erro; depois roda `./run.sh` (ou `./run.sh all`) e vê `GET /health` 200 no backend
+- [ ] Sem alterações fora de: `README.md`, `setup.sh`, `setup.bat`, `run.sh`, `run.bat`, `docs/features/infra-base.md` (linha de SPEC), `docs/active/SPEC-20260513-0910-local-env-readme/` (esta SPEC)
 - [ ] **Features tocadas (`infra-base`) atualizadas** com timestamp e referência a esta SPEC (R.7)
 - [ ] `state.md` com entrada `[conclusão]`
 - [ ] `memory.md` com TL;DR final atualizado

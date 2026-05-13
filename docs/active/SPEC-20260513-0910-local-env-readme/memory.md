@@ -8,12 +8,12 @@
 
 ## TL;DR (sobrescrever ao fim de cada sessão)
 
-**Última atualização:** 2026-05-13 10:30 (sessão #1)
-**Onde tô:** Validação humana pegou um problema real: ambiente do dev tem `docker-compose` v1 (Ubuntu universe), sem plugin v2. Confirmei via `wynk_ecommerce/backend/run-backend-locally.sh` que o e-commerce também usa v1 — é o padrão dele. Adaptei `setup.sh` pra aceitar v1 OU v2 (variável `$COMPOSE`, detecção em cascata, warn quando cai no v1). README atualizado em Pré-requisitos (tabela do Compose) e Troubleshooting (entrada #9). Working tree pendente: setup.sh, README.md, state.md, memory.md.
-**Próximo passo:** Commit `fix(setup): aceitar docker-compose v1 como fallback (SPEC-20260513-0910)`. Dev re-executa `./setup.sh --seed`.
-**Última decisão:** `setup.sh` aceita v1 e v2 (decisão 10:25, dev: *"Bora de v1, é mais facil"*).
+**Última atualização:** 2026-05-13 11:15 (sessão #1)
+**Onde tô:** **2ª expansão de escopo** — dividir setup (configura) e run (sobe dev servers). `run.sh` aceita `backend` (default), `portal`, `backoffice`, `all`. Modo `all` roda os 3 em paralelo com prefixo no log e Ctrl+C centralizado. `run.bat` espelha `setup.bat`. Working tree pendente: setup.sh (mensagem final), setup.bat (mensagem final), run.sh (novo), run.bat (novo), README.md (seção "Primeira execução" + Estrutura), main.md (Origem/Resumo/Escopo/Implementação/Critério), state.md, memory.md.
+**Próximo passo:** Commit `feat(setup): run.sh e run.bat como atalho para subir dev servers (SPEC-20260513-0910)`. Dev valida com `./setup.sh --seed` (já ajustado pra v1) e depois `./run.sh` ou `./run.sh all`.
+**Última decisão:** Dividir em 2 scripts: `setup.sh` configura, `run.sh` roda. 2026-05-13 11:00.
 **Bloqueio atual:** nenhum.
-**Se retomar, ler:** seção de detecção de Compose no `setup.sh` + README "Pré-requisitos" e Troubleshooting #9 + `main.md` desta SPEC.
+**Se retomar, ler:** `run.sh` (especialmente `run_all` com trap+sed) + `run.bat` + seção "Primeira execução" do README + `main.md` desta SPEC.
 
 ---
 
@@ -21,7 +21,7 @@
 
 ### O que está sendo feito AGORA
 
-Escopo expandido: além do `README.md` (já commitado em `1cff2da`), agora há `setup.sh` (Linux/WSL2, executável) e `setup.bat` (Windows, dispara `setup.sh` no WSL). README ganhou seção "Setup rápido (atalho)" e os scripts entraram na "Estrutura do monorepo". `main.md` foi atualizado em Resumo, Escopo (DENTRO/FORA), Implementação, Critério de aceite. Próximo: commit consolidado e validação humana.
+2ª expansão de escopo: configurar e rodar agora são scripts separados. `setup.sh`/`setup.bat` cuidam só de configuração; `run.sh`/`run.bat` sobem dev servers. `run.sh` aceita `backend` (default), `portal`, `backoffice`, `all` (3 em paralelo com prefixo via `sed -u` e Ctrl+C central via trap). `main.md` registra a expansão (Origem, Resumo, Escopo DENTRO, Implementação, Critério de aceite). README atualizado em "Primeira execução" (subseção "Atalho: `./run.sh`" antes do bloco manual) e "Estrutura do monorepo". `setup.sh`/`setup.bat` ajustados no resumo final pra apontar `./run.sh`. Pendente: commit + validação humana com `./setup.sh --seed` (já ajustado pra v1) e depois `./run.sh`.
 
 ### Hipóteses em jogo
 
@@ -30,6 +30,7 @@ Escopo expandido: além do `README.md` (já commitado em `1cff2da`), agora há `
 
 ### Decisões recentes que importam pra continuar
 
+- [2026-05-13 11:00] **Separar setup e run em 2 scripts**: `setup.sh`/`setup.bat` só configuram (deps, .env, docker, schema, migrations, seed); `run.sh`/`run.bat` sobem dev servers. `run.sh` aceita `backend` (default), `portal`, `backoffice`, `all` (paralelo com `sed -u` prefixando e trap Ctrl+C central).
 - [2026-05-13 10:25] **`setup.sh` aceita docker-compose v1 e v2**. Detecção em cascata: tenta `docker compose version` (v2) → `docker-compose --version` (v1) → erro com 3 opções. Variável `$COMPOSE` usada em todas as chamadas. Warn único quando cai no v1. Motivo: ambiente real do dev usa v1 (alinhado com `wynk_ecommerce`).
 - [2026-05-13 09:50] **Expansão de escopo aprovada**: SPEC atual agora inclui `setup.sh` + `setup.bat` (não SPEC nova). Cláusula no FORA ajustada para preservar "não reescrever `docker-compose.yml`/`backend/scripts/`" mas permitir wrappers novos.
 - [2026-05-13 09:50] Scripts **não instalam pré-requisitos** — só verificam e falham com instrução. Motivo: `sudo` + chaves de repo + distros divergentes = caminho de dor.
@@ -58,6 +59,12 @@ Escopo expandido: além do `README.md` (já commitado em `1cff2da`), agora há `
   Contexto: dev apontando que o e-commerce funciona com Docker no mesmo ambiente — pista crucial pra eu descobrir que o e-commerce usa `docker-compose` v1, não v2.
 - [2026-05-13 10:30] Usuário: *"Bora de v1, é mais facil"*
   Contexto: aprovando a recomendação de adaptar `setup.sh` pra aceitar v1 como fallback em vez de forçar instalação do plugin v2.
+- [2026-05-13 10:55] Usuário: *"Espera, então o setup não roda nada, apenas o configura?"*
+  Contexto: questionando o escopo do `setup.sh` — gatilho para separar configuração de execução.
+- [2026-05-13 11:00] Usuário: *"Espera, ok, vamos manter um setup e podemos colocar um run.sh que tal?"*
+  Contexto: proposta inicial de separar em 2 scripts (substituindo a ideia anterior dele de flags `--backend --backend --backend` que ele interrompeu).
+- [2026-05-13 11:05] Usuário: *"Sim, pode ser assim, não importa misturar os logs"*
+  Contexto: aprovando a interface (`backend` default, `portal`/`backoffice` individual, `all` paralelo com logs misturados).
 
 ### Tentativas que falharam (para NÃO repetir)
 
