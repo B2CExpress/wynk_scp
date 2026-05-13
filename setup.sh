@@ -56,15 +56,28 @@ command -v git >/dev/null 2>&1 \
 command -v docker >/dev/null 2>&1 \
   || err "Docker não encontrado. Instale: https://docs.docker.com/engine/install/"
 
-if ! docker compose version >/dev/null 2>&1; then
-  err "Docker Compose v2 não encontrado. Linux: 'sudo apt install docker-compose-plugin'. Windows/Mac: Docker Desktop."
+# Detect Docker Compose flavor (v2 plugin preferido, v1 legacy aceito como fallback).
+if docker compose version >/dev/null 2>&1; then
+  COMPOSE="docker compose"
+  compose_kind="v2 (plugin)"
+elif docker-compose --version >/dev/null 2>&1; then
+  COMPOSE="docker-compose"
+  compose_kind="v1 (legacy, EOL desde jul/2023)"
+else
+  err "Docker Compose não encontrado. Instale uma das duas:
+       - Plugin v2 (recomendado): 'sudo apt install docker-compose-plugin' OU baixe de https://github.com/docker/compose/releases para ~/.docker/cli-plugins/docker-compose
+       - Legacy v1 (fallback): 'sudo apt install docker-compose'"
 fi
 
 if ! docker info >/dev/null 2>&1; then
   err "Daemon do Docker não está ativo ou seu usuário não tem permissão. Tente: 'sudo usermod -aG docker \$USER' e reabra o terminal."
 fi
 
-ok "Pré-requisitos OK (Node $(node -v), npm $(npm -v), Docker $(docker --version | awk '{print $3}' | sed 's/,$//'))."
+ok "Pré-requisitos OK (Node $(node -v), npm $(npm -v), Docker $(docker --version | awk '{print $3}' | sed 's/,$//'), Compose ${compose_kind})."
+
+if [ "${COMPOSE}" = "docker-compose" ]; then
+  warn "Usando docker-compose v1 (EOL). Considere migrar para o plugin v2 quando puder: https://docs.docker.com/compose/install/"
+fi
 
 # ---- 2. npm install ----
 log "Instalando dependências (npm install)..."
@@ -85,8 +98,8 @@ for app in backend portal; do
 done
 
 # ---- 4. docker compose up ----
-log "Subindo Postgres + Redis em containers (docker compose up -d)..."
-docker compose up -d
+log "Subindo Postgres + Redis em containers (${COMPOSE} up -d)..."
+${COMPOSE} up -d
 ok "Containers iniciados (scp_postgres, scp_redis)."
 
 # ---- 5. esperar healthy ----
@@ -102,7 +115,7 @@ while true; do
   fi
 
   if [ "$(date +%s)" -ge "${deadline}" ]; then
-    err "Containers não ficaram healthy em 60s (postgres=${pg_status}, redis=${rd_status}). Veja 'docker compose ps' e 'docker compose logs'."
+    err "Containers não ficaram healthy em 60s (postgres=${pg_status}, redis=${rd_status}). Veja '${COMPOSE} ps' e '${COMPOSE} logs'."
   fi
 
   sleep 2
@@ -140,5 +153,5 @@ echo "  npm run dev -w portal      # http://localhost:3001"
 echo "  npm run dev -w backoffice  # http://localhost:5173"
 echo ""
 echo "Para conferir os containers:"
-echo "  docker compose ps"
+echo "  ${COMPOSE} ps"
 echo ""

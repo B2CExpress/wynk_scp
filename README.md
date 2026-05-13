@@ -40,7 +40,7 @@ Antes de qualquer setup, instale o que está abaixo. Os links são oficiais.
 | **npm**               | Gerenciador de pacotes do Node                     | Instala dependências dos 3 workspaces e dispara scripts (`dev`, `test`, `lint`) | **10+**       | Já vem incluso com o Node 22                                                   |
 | **Git**               | Controle de versão                                 | Clonar o repo e interagir com o GitHub                                          | 2.30+         | https://git-scm.com/downloads                                                  |
 | **Docker Engine**     | Plataforma de containers                           | Sobe Postgres 15 e Redis 7 locais sem instalar nada direto no host              | 24+           | Linux: https://docs.docker.com/engine/install/ &nbsp;·&nbsp; Windows/Mac: https://www.docker.com/products/docker-desktop/ |
-| **Docker Compose v2** | CLI `docker compose` (orquestra `docker-compose.yml`) | Sobe Postgres + Redis com um comando só                                       | v2            | Vem com o Docker Desktop. No Linux: `apt install docker-compose-plugin`        |
+| **Docker Compose**    | CLI que orquestra `docker-compose.yml`             | Sobe Postgres + Redis com um comando só                                       | v2 (preferido) ou v1 (legacy) | **v2** (recomendado): Docker Desktop já vem com ele; no Linux com `docker-ce` `sudo apt install docker-compose-plugin` ou baixe o binário de https://github.com/docker/compose/releases. &nbsp;**v1** (fallback, EOL jul/2023): `sudo apt install docker-compose` |
 | **WSL2 + Ubuntu**     | Linux rodando dentro do Windows (só Windows)        | Caminho oficial pra rodar este monorepo em Windows — todo o resto do setup ocorre **dentro** do WSL | WSL 2 + Ubuntu 22.04+ | `wsl --install` no **PowerShell como Administrador** (requer Windows 10 build 2004+ ou Windows 11) |
 
 > **macOS:** não é caminho oficialmente testado hoje. Em tese funciona seguindo o "Setup Linux" com **Docker Desktop for Mac** e Node via [nvm](https://github.com/nvm-sh/nvm) ou [Homebrew](https://brew.sh/). Se algo quebrar, abra uma SPEC documentando o caminho.
@@ -319,6 +319,20 @@ Formato: **Sintoma → Causa → Fix**.
   mv /mnt/c/Users/<você>/wynk-scp ~/wynk-scp
   cd ~/wynk-scp
   ```
+
+### 9. `setup.sh` reclama "Docker Compose não encontrado"
+
+- **Causa comum (Ubuntu/Debian universe):** você instalou `docker.io` do repo do Ubuntu. Esse pacote **não** traz o plugin v2 (`docker compose`), e o repo do Ubuntu Jammy também não tem `docker-compose-plugin` no universe.
+- **Fix A — instalar plugin v2 (recomendado):** baixe o binário direto do GitHub (sem mexer no apt, sem `sudo` no apt):
+  ```bash
+  mkdir -p ~/.docker/cli-plugins
+  curl -SL "https://github.com/docker/compose/releases/latest/download/docker-compose-linux-$(uname -m)" \
+    -o ~/.docker/cli-plugins/docker-compose
+  chmod +x ~/.docker/cli-plugins/docker-compose
+  docker compose version
+  ```
+- **Fix B — usar v1 legacy:** `sudo apt install docker-compose`. O `setup.sh` aceita ambos e detecta qual está instalado, mas v1 está EOL desde jul/2023 — só use como ponte.
+- **Fix C — trocar pro repo oficial da Docker:** [docs.docker.com/engine/install/ubuntu/](https://docs.docker.com/engine/install/ubuntu/). Mais invasivo (remove `docker.io`, adiciona `docker-ce`), mas alinha tudo (engine, CLI e plugin) no canal oficial.
 
 ---
 

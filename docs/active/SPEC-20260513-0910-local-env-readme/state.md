@@ -8,12 +8,12 @@
 
 ## TL;DR (sobrescrever ao fim de cada sessão)
 
-**Última atualização:** 2026-05-13 09:55
-**Onde tô:** Escopo expandido pelo usuário ("topo") para incluir `setup.sh` (Linux/WSL2) e `setup.bat` (Windows). `main.md` atualizado (DENTRO, FORA, Implementação, Critério de aceite); `setup.sh` (~165 linhas, modo `0755`, `bash -n` OK) e `setup.bat` (~75 linhas) criados na raiz; `README.md` ganhou seção "Setup rápido (atalho)" antes do passo-a-passo manual e os scripts foram listados na "Estrutura do monorepo". Working tree pendente: 6 arquivos (main, state, memory, setup.sh novo, setup.bat novo, README modificado).
-**Próximo passo:** Commit consolidado `docs(infra-base): setup.sh e setup.bat como atalho de bootstrap local (SPEC-20260513-0910)`. Depois: validação humana — Alioth roda `./setup.sh` em VM/WSL limpo e confirma `npm run dev -w backend` aceitando 200 em `/health`.
-**Última decisão:** Scripts **não instalam pré-requisitos**, só verificam — instalar Node/Docker via script é caminho de dor (sudo, NodeSource keys, distros). Trade-off aceito: usuário instala pré-requisitos manualmente; ganho: scripts simples e sem `sudo`. 2026-05-13 09:50.
-**Bloqueio atual:** nenhum.
-**Se retomar, ler:** `setup.sh` + `setup.bat` + seção "Setup rápido (atalho)" do `README.md` + `main.md` desta SPEC.
+**Última atualização:** 2026-05-13 10:30
+**Onde tô:** Primeira validação do `setup.sh` falhou no check de Docker Compose — dev tem `docker.io` (Ubuntu universe) + `docker-compose` v1, sem plugin v2. Confirmei lendo `wynk_ecommerce/backend/run-backend-locally.sh`: o e-commerce também usa `docker-compose` v1, é o padrão do ambiente dele. Decidido: aceitar v1 como fallback no `setup.sh`. Script atualizado (detecta `docker compose` v2 ou `docker-compose` v1, usa variável `$COMPOSE`, avisa quando cai no v1). README atualizado em Pré-requisitos (tabela do Compose passa a citar v2 + v1) e Troubleshooting (entrada #9 sobre "Compose não encontrado" com Fix A/B/C).
+**Próximo passo:** Commit `fix(setup): aceitar docker-compose v1 como fallback (SPEC-20260513-0910)`. Depois: dev roda `./setup.sh --seed` de novo — deve passar do check de Compose dessa vez.
+**Última decisão:** Aceitar v1 e v2 no `setup.sh`. 2026-05-13 10:25. Motivo: ambiente real do dev usa v1 (alinhado com `wynk_ecommerce`); forçar v2 cria atrito desproporcional. Trade-off: v1 está EOL desde jul/2023; warn impresso a cada run quando cai no v1; doc indica v2 como caminho oficial moderno.
+**Bloqueio atual:** nenhum (aguardando dev re-executar `./setup.sh --seed`).
+**Se retomar, ler:** `setup.sh` (seção de detecção de Compose) + README seção "Pré-requisitos" e Troubleshooting #9 + `main.md` desta SPEC.
 
 ---
 
@@ -26,9 +26,10 @@
 | 1 | Criar estrutura da SPEC (main + state + memory) + atualizar feature `infra-base` (linha "Em execução") | concluído    | 2026-05-13 09:20 | —      |
 | 2 | Validação humana do `main.md` por Alioth                       | concluído    | 2026-05-13 09:20 | —      |
 | 3 | Escrever `README.md` na raiz                                   | concluído    | 2026-05-13 09:40 | `1cff2da` |
-| 4 | **Expansão de escopo: `setup.sh` + `setup.bat` + atualizar `main.md` e `README.md`** | concluído | 2026-05-13 09:55 | (pendente — próximo commit) |
-| 5 | Validação humana — Alioth executa `./setup.sh` em ambiente limpo (Linux + WSL2) e confirma `npm run dev -w backend` aceitando `GET /health` 200 | pendente | 2026-05-13 09:55 | — |
-| 6 | Conclusão: marcar critério de aceite, atualizar `features/infra-base.md` (move para "Concluídas" + atualiza "Estado atual"), mover SPEC para `archive/` | pendente | 2026-05-13 09:55 | — |
+| 4 | Expansão de escopo: `setup.sh` + `setup.bat` + atualizar `main.md` e `README.md` | concluído | 2026-05-13 09:55 | `451a92e` |
+| 5 | **Fix do `setup.sh`: aceitar `docker-compose` v1 como fallback (motivado por validação humana 10:00)** | concluído | 2026-05-13 10:30 | (pendente — próximo commit) |
+| 6 | Validação humana — Alioth executa `./setup.sh --seed` em ambiente local e confirma `npm run dev -w backend` aceitando `GET /health` 200 | em progresso | 2026-05-13 10:30 | — |
+| 7 | Conclusão: marcar critério de aceite, atualizar `features/infra-base.md` (move para "Concluídas" + atualiza "Estado atual"), mover SPEC para `archive/` | pendente | 2026-05-13 10:30 | — |
 
 ### Próximos passos
 
@@ -177,5 +178,47 @@ Decisões pontuais durante a expansão:
 - **Cláusula no FORA do `main.md` ajustada** — de "Reescrita de scripts/compose para cross-platform" para "Reescrita de `docker-compose.yml` ou de scripts em `backend/scripts/`", deixando claro que wrappers NOVOS na raiz são permitidos. Não é mudança de intenção; é precisão.
 
 Arquivos tocados nesta expansão: `main.md` (Resumo, Escopo DENTRO/FORA, Implementação, Critério de aceite), `setup.sh` (novo, `0755`, ~165 linhas, `bash -n` OK), `setup.bat` (novo, ~75 linhas), `README.md` (seção "Setup rápido (atalho)" entre Pré-requisitos e Setup Linux + entrada na Estrutura do monorepo + atualização do Sumário com novo item).
+
+Commit pendente.
+
+## 2026-05-13 10:00 — [tentativa] Primeira execução do `./setup.sh --seed` falhou no check de Docker Compose
+
+Dev rodou `./setup.sh --seed` e o script abortou em "Docker Compose v2 não encontrado". Diagnóstico via `docker --version`, `docker compose version`, `docker-compose --version`:
+- Docker 29.1.3 (do pacote `docker.io` do Ubuntu universe, jammy-updates/jammy-security)
+- `docker compose` (v2 plugin): **NÃO instalado** — `docker: unknown command: docker compose`
+- `docker-compose` (v1, Python standalone): **instalado** v1.29.2 (com warning de `CryptographyDeprecationWarning`)
+
+`/etc/apt/sources.list.d/` sem entrada da Docker — o engine veio do repo do Ubuntu, não do `download.docker.com`. Por isso `apt install docker-compose-plugin` retornou "Unable to locate package".
+
+Sugeri caminho de instalar plugin v2 via binário do GitHub (`mkdir -p ~/.docker/cli-plugins` + `curl -SL .../releases/latest/...`), dev tentou (provavelmente — me passou só o output do `./setup.sh --seed` que continuou falhando).
+
+## 2026-05-13 10:20 — [descoberta] `wynk_ecommerce/backend/run-backend-locally.sh` usa `docker-compose` v1
+
+Dev pediu: *"Da uma olhada no wynk_ecommerce/backend tem um script lá acho que é run-backend.sh"*. Li `/home/alatour/repositories/wynk_ecommerce/backend/run-backend-locally.sh` (186 linhas). Confirmação: o script do e-commerce usa **`docker-compose`** (com hyphen, v1) em todas as chamadas (linhas 77, 78, 85):
+```bash
+docker-compose down postgres
+docker-compose rm -f postgres
+docker-compose up -d redis postgres localstack
+```
+
+Conclusão: o ambiente do dev funciona perfeitamente com v1 — todo o estilo dele de operação é v1. Forçar v2 no SCP é criar atrito artificial.
+
+## 2026-05-13 10:25 — [MARCO] [decisão] `setup.sh` aceita docker-compose v1 e v2
+
+Proposto ao dev: adaptar `setup.sh` pra detectar `docker compose` v2 ou `docker-compose` v1 e usar o que tiver, com warning quando cair no v1. Dev respondeu: *"Bora de v1, é mais facil"*.
+
+Implementação:
+- Variável `COMPOSE` definida via detecção em cascata: `docker compose version` → `COMPOSE="docker compose"`; senão `docker-compose --version` → `COMPOSE="docker-compose"`; senão erro com 3 opções de instalação (plugin v2 via apt, binário do GitHub, v1 legacy).
+- `compose_kind` exibido no `[ok]` do prereq check (e.g. "Compose v2 (plugin)" ou "Compose v1 (legacy, EOL desde jul/2023)").
+- Warning único após o check quando `COMPOSE="docker-compose"` (não em cada chamada — chato pra log).
+- Todas chamadas `docker compose ...` viraram `${COMPOSE} ...` (sem aspas — em v2 o split por espaço é necessário pra virar 2 tokens).
+- Mensagem de erro do healthcheck timeout passou de `'docker compose ps'` → `'${COMPOSE} ps'`.
+- Mensagem final passou de `docker compose ps` → `${COMPOSE} ps`.
+
+README atualizado:
+- Linha do Docker Compose nos Pré-requisitos: passa a citar v2 (preferido) E v1 (fallback EOL).
+- Troubleshooting **#9** novo: "`setup.sh` reclama 'Docker Compose não encontrado'" — Causa (Ubuntu `docker.io` + sem `docker-compose-plugin` no universe Jammy) + Fix A (plugin v2 via GitHub binary, recomendado) + Fix B (`apt install docker-compose` v1) + Fix C (trocar pro repo oficial `docker-ce`).
+
+`main.md` não precisou ajuste — a especificação dos scripts em "Implementação" não congelou "exigir v2"; era detalhe de implementação ajustável.
 
 Commit pendente.

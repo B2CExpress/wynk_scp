@@ -8,12 +8,12 @@
 
 ## TL;DR (sobrescrever ao fim de cada sessão)
 
-**Última atualização:** 2026-05-13 09:55 (sessão #1)
-**Onde tô:** Escopo expandido com `setup.sh` + `setup.bat`. `main.md`, `README.md`, `setup.sh` (novo, executável), `setup.bat` (novo) prontos. Working tree tem 6 arquivos pendentes de commit (main, state, memory, setup.sh, setup.bat, README).
-**Próximo passo:** Commit consolidado `docs(infra-base): setup.sh e setup.bat como atalho de bootstrap local (SPEC-20260513-0910)`. Depois: validação humana — Alioth roda `./setup.sh` em VM/WSL limpo.
-**Última decisão:** Scripts não instalam pré-requisitos (só verificam). 2026-05-13 09:50.
+**Última atualização:** 2026-05-13 10:30 (sessão #1)
+**Onde tô:** Validação humana pegou um problema real: ambiente do dev tem `docker-compose` v1 (Ubuntu universe), sem plugin v2. Confirmei via `wynk_ecommerce/backend/run-backend-locally.sh` que o e-commerce também usa v1 — é o padrão dele. Adaptei `setup.sh` pra aceitar v1 OU v2 (variável `$COMPOSE`, detecção em cascata, warn quando cai no v1). README atualizado em Pré-requisitos (tabela do Compose) e Troubleshooting (entrada #9). Working tree pendente: setup.sh, README.md, state.md, memory.md.
+**Próximo passo:** Commit `fix(setup): aceitar docker-compose v1 como fallback (SPEC-20260513-0910)`. Dev re-executa `./setup.sh --seed`.
+**Última decisão:** `setup.sh` aceita v1 e v2 (decisão 10:25, dev: *"Bora de v1, é mais facil"*).
 **Bloqueio atual:** nenhum.
-**Se retomar, ler:** `setup.sh` + `setup.bat` + seção "Setup rápido (atalho)" do `README.md` + `main.md` desta SPEC.
+**Se retomar, ler:** seção de detecção de Compose no `setup.sh` + README "Pré-requisitos" e Troubleshooting #9 + `main.md` desta SPEC.
 
 ---
 
@@ -30,6 +30,7 @@ Escopo expandido: além do `README.md` (já commitado em `1cff2da`), agora há `
 
 ### Decisões recentes que importam pra continuar
 
+- [2026-05-13 10:25] **`setup.sh` aceita docker-compose v1 e v2**. Detecção em cascata: tenta `docker compose version` (v2) → `docker-compose --version` (v1) → erro com 3 opções. Variável `$COMPOSE` usada em todas as chamadas. Warn único quando cai no v1. Motivo: ambiente real do dev usa v1 (alinhado com `wynk_ecommerce`).
 - [2026-05-13 09:50] **Expansão de escopo aprovada**: SPEC atual agora inclui `setup.sh` + `setup.bat` (não SPEC nova). Cláusula no FORA ajustada para preservar "não reescrever `docker-compose.yml`/`backend/scripts/`" mas permitir wrappers novos.
 - [2026-05-13 09:50] Scripts **não instalam pré-requisitos** — só verificam e falham com instrução. Motivo: `sudo` + chaves de repo + distros divergentes = caminho de dor.
 - [2026-05-13 09:50] `setup.bat` é wrapper magrinho que delega ao `setup.sh` via `wsl -e bash -c "..."` com `wslpath -u` pra traduzir o cwd.
@@ -53,10 +54,14 @@ Escopo expandido: além do `README.md` (já commitado em `1cff2da`), agora há `
   Contexto: pedido de expansão de escopo — automatizar setup via scripts.
 - [2026-05-13 09:50] Usuário: *"Sim, topo"*
   Contexto: aprovação da expansão depois de eu apresentar as 3 considerações (limitação técnica do `.bat`, escopo declarado FORA mencionando "scripts cross-platform", pré-requisitos não instaláveis via script) e recomendar a abordagem.
+- [2026-05-13 10:15] Usuário: *"Mas porque está acontecendo isso, já o ecommerce utiliza docker. Da uma olhada no wynk_ecommerce/backend tem um script la acho que é run-backend.sh ou algo assim"*
+  Contexto: dev apontando que o e-commerce funciona com Docker no mesmo ambiente — pista crucial pra eu descobrir que o e-commerce usa `docker-compose` v1, não v2.
+- [2026-05-13 10:30] Usuário: *"Bora de v1, é mais facil"*
+  Contexto: aprovando a recomendação de adaptar `setup.sh` pra aceitar v1 como fallback em vez de forçar instalação do plugin v2.
 
 ### Tentativas que falharam (para NÃO repetir)
 
-_(nenhuma ainda — sessão #1)_
+- [2026-05-13 10:00] **`setup.sh` exigindo `docker compose` v2 estritamente** — falhou no ambiente do dev (Ubuntu 22.04 com `docker.io` + `docker-compose` v1, sem plugin v2 disponível no `apt`). Lição: o stack do dev e do `wynk_ecommerce` usa v1; aceitar ambos é o caminho. Ver decisão de 10:25.
 
 ### Arquivos ativamente sendo tocados
 
