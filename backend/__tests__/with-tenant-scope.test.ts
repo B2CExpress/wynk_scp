@@ -55,11 +55,11 @@ function makeSelectQbStub(options?: {
 }
 
 describe('withTenantScope', () => {
-  it("throws when called with empty tenantId", () => {
+  it('throws when called with empty tenantId', () => {
     expect(() => withTenantScope('')).toThrow(/tenantId obrigatorio em withTenant/);
   });
 
-  it("throws when tenantId is not a valid UUID v4", () => {
+  it('throws when tenantId is not a valid UUID v4', () => {
     expect(() => withTenantScope('uuid-fake')).toThrow(/UUID v4 obrigatorio/);
   });
 

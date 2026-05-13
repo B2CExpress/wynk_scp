@@ -11,8 +11,7 @@ import type {
 } from 'typeorm';
 import { requireTenantContext } from '../middleware/tenant-context';
 
-const UUID_V4_REGEX =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const UUID_V4_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 function assertTenantId(tenantId: string): void {
   if (!tenantId || !tenantId.trim()) {
@@ -25,17 +24,19 @@ function assertTenantId(tenantId: string): void {
 }
 
 function ensureTenantColumnOnMetadata(qb: unknown): void {
-  const mainAlias = (qb as {
-    expressionMap?: {
-      mainAlias?: {
-        targetName?: string;
-        metadata?: {
-          findColumnWithPropertyName?: (name: string) => unknown;
-          findColumnWithDatabaseName?: (name: string) => unknown;
+  const mainAlias = (
+    qb as {
+      expressionMap?: {
+        mainAlias?: {
+          targetName?: string;
+          metadata?: {
+            findColumnWithPropertyName?: (name: string) => unknown;
+            findColumnWithDatabaseName?: (name: string) => unknown;
+          };
         };
       };
-    };
-  }).expressionMap?.mainAlias;
+    }
+  ).expressionMap?.mainAlias;
 
   const metadata = mainAlias?.metadata;
   if (!metadata) {
@@ -135,9 +136,15 @@ export interface TenantScopedDb {
 export function withTenantScope(tenantId: string): TenantScopedDb {
   assertTenantId(tenantId);
 
-  function addTenantFilter<T extends ObjectLiteral>(qb: SelectQueryBuilder<T>): SelectQueryBuilder<T>;
-  function addTenantFilter<T extends ObjectLiteral>(qb: UpdateQueryBuilder<T>): UpdateQueryBuilder<T>;
-  function addTenantFilter<T extends ObjectLiteral>(qb: DeleteQueryBuilder<T>): DeleteQueryBuilder<T>;
+  function addTenantFilter<T extends ObjectLiteral>(
+    qb: SelectQueryBuilder<T>,
+  ): SelectQueryBuilder<T>;
+  function addTenantFilter<T extends ObjectLiteral>(
+    qb: UpdateQueryBuilder<T>,
+  ): UpdateQueryBuilder<T>;
+  function addTenantFilter<T extends ObjectLiteral>(
+    qb: DeleteQueryBuilder<T>,
+  ): DeleteQueryBuilder<T>;
   function addTenantFilter<T extends ObjectLiteral>(
     qb: SelectQueryBuilder<T> | UpdateQueryBuilder<T> | DeleteQueryBuilder<T>,
   ) {
