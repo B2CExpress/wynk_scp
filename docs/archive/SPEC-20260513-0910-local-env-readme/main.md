@@ -4,7 +4,7 @@
 **Criada:** 2026-05-13 09:10
 **Ativada:** 2026-05-13 09:10
 **Concluída:** 2026-05-13 19:45
-**Commit final:** — (preenchido após commit de arquivamento)
+**Commit final:** `1d9ea39`
 **Keywords:** readme, onboarding, setup, local, docker, wsl2, prerequisites, troubleshooting, monorepo
 **Features:** infra-base
 **Branch:** feature/local-env-readme

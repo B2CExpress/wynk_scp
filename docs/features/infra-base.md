@@ -24,7 +24,7 @@
 | ID | Data | Commit | Título |
 |---|---|---|---|
 | SPEC-20260503-1505 | 2026-05-11 | `968d389` | Base da plataforma multitenant |
-| SPEC-20260513-0910 | 2026-05-13 | — | README de setup local (Linux + Windows via WSL2) + scripts `setup.sh`/`run.sh` |
+| SPEC-20260513-0910 | 2026-05-13 | `1d9ea39` | README de setup local (Linux + Windows via WSL2) + scripts `setup.sh`/`run.sh` |
 
 ### Planejadas (future/)
 | ID | Título | Motivo |
