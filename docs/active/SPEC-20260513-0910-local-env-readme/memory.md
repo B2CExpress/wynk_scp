@@ -8,12 +8,12 @@
 
 ## TL;DR (sobrescrever ao fim de cada sessão)
 
-**Última atualização:** 2026-05-13 11:15 (sessão #1)
-**Onde tô:** **2ª expansão de escopo** — dividir setup (configura) e run (sobe dev servers). `run.sh` aceita `backend` (default), `portal`, `backoffice`, `all`. Modo `all` roda os 3 em paralelo com prefixo no log e Ctrl+C centralizado. `run.bat` espelha `setup.bat`. Working tree pendente: setup.sh (mensagem final), setup.bat (mensagem final), run.sh (novo), run.bat (novo), README.md (seção "Primeira execução" + Estrutura), main.md (Origem/Resumo/Escopo/Implementação/Critério), state.md, memory.md.
-**Próximo passo:** Commit `feat(setup): run.sh e run.bat como atalho para subir dev servers (SPEC-20260513-0910)`. Dev valida com `./setup.sh --seed` (já ajustado pra v1) e depois `./run.sh` ou `./run.sh all`.
-**Última decisão:** Dividir em 2 scripts: `setup.sh` configura, `run.sh` roda. 2026-05-13 11:00.
+**Última atualização:** 2026-05-13 19:30 (sessão #1)
+**Onde tô:** Validação humana confirmou pipeline e-2-e (`./setup.sh --seed` + `./run.sh backend` + portal manual = http://localhost:3000 renderizou). Durante validação descobri 4 itens: (a) Compose v2 não existia no Ubuntu universe → fix `aa20692` (aceitar v1); (b) `localhost` não estava cadastrado no seed → adicionei `local-dev`/`localhost` em `seeds/tenants.json`; (c) seed só roda se chamado → `run.sh` ganhou flag `--seed` opt-in (restrita a backend/all); (d) eu inverti portas no README (backend `:3001`, portal `:3000`) → fix no commit pendente.
+**Próximo passo:** Commit consolidado: `seeds/tenants.json` (tenant `localhost`) + `run.sh` (parser de args + `--seed`) + `README.md` (portas corretas + troubleshooting #9 novo) + `setup.sh` (mensagem final atualizada) + `main.md` (Implementação/Critério) + state/memory. Depois: opcional — bug do `notFound() in root layout` → SPEC nova ou gotcha em `theme-system.md`; e arquivamento da SPEC atual.
+**Última decisão:** `--seed` opt-in (não sempre), restrito a target `backend`/`all`. Latência fixa de 3-5s por start não justifica rodar sempre. 2026-05-13 19:30.
 **Bloqueio atual:** nenhum.
-**Se retomar, ler:** `run.sh` (especialmente `run_all` com trap+sed) + `run.bat` + seção "Primeira execução" do README + `main.md` desta SPEC.
+**Se retomar, ler:** `run.sh` (parser de args + bloco de `--seed`) + `README.md` (Atalho + Troubleshooting #9) + `main.md` desta SPEC.
 
 ---
 
@@ -30,6 +30,8 @@
 
 ### Decisões recentes que importam pra continuar
 
+- [2026-05-13 19:30] **`run.sh --seed`** opt-in, só pra target `backend`/`all`. Não roda sempre (custo 3-5s/start). Parser de args em loop com ordem livre. Documentado em README + setup.sh + troubleshooting #9.
+- [2026-05-13 19:00] **Tenant `localhost` cadastrado** em `seeds/tenants.json` (slug `local-dev`, flavorSlug `shopping-x`). DX local sem mexer no `/etc/hosts`. Re-rodar seed após editar JSON é obrigatório.
 - [2026-05-13 11:00] **Separar setup e run em 2 scripts**: `setup.sh`/`setup.bat` só configuram (deps, .env, docker, schema, migrations, seed); `run.sh`/`run.bat` sobem dev servers. `run.sh` aceita `backend` (default), `portal`, `backoffice`, `all` (paralelo com `sed -u` prefixando e trap Ctrl+C central).
 - [2026-05-13 10:25] **`setup.sh` aceita docker-compose v1 e v2**. Detecção em cascata: tenta `docker compose version` (v2) → `docker-compose --version` (v1) → erro com 3 opções. Variável `$COMPOSE` usada em todas as chamadas. Warn único quando cai no v1. Motivo: ambiente real do dev usa v1 (alinhado com `wynk_ecommerce`).
 - [2026-05-13 09:50] **Expansão de escopo aprovada**: SPEC atual agora inclui `setup.sh` + `setup.bat` (não SPEC nova). Cláusula no FORA ajustada para preservar "não reescrever `docker-compose.yml`/`backend/scripts/`" mas permitir wrappers novos.
@@ -65,6 +67,16 @@
   Contexto: proposta inicial de separar em 2 scripts (substituindo a ideia anterior dele de flags `--backend --backend --backend` que ele interrompeu).
 - [2026-05-13 11:05] Usuário: *"Sim, pode ser assim, não importa misturar os logs"*
   Contexto: aprovando a interface (`backend` default, `portal`/`backoffice` individual, `all` paralelo com logs misturados).
+- [2026-05-13 19:00] Usuário: *"Enfia ele no seed"*
+  Contexto: aprovando cadastrar tenant para `host=localhost` em vez do workaround com `/etc/hosts`.
+- [2026-05-13 19:15] Usuário: *"Agora foi, acho que era o seed, eu tinha rodado ele somente no momento do setup"*
+  Contexto: validação humana confirmada após re-rodar `npm run seed -w backend`. Confirma que o pipeline portal→backend→banco funciona.
+- [2026-05-13 19:20] Usuário: *"Acho que podemos tambem rodar o seed no run.sh... o que achas?"*
+  Contexto: gatilho para adicionar `--seed` ao `run.sh`.
+- [2026-05-13 19:25] Usuário: *"Mass tem que rodar apenas se repassamos o backend"*
+  Contexto: refinamento — `--seed` só com target `backend` ou `all`.
+- [2026-05-13 19:30] Usuário: *"overengineering por agora"*
+  Contexto: descartou auto-detect via mtime; confirma `--seed` como flag opt-in (não rodar sempre).
 
 ### Tentativas que falharam (para NÃO repetir)
 

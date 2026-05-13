@@ -191,16 +191,26 @@ Todos os comandos `npm` e `docker compose` rodam **dentro do Ubuntu do WSL**. Vo
 
 ```bash
 ./run.sh                # backend (default)
-./run.sh backend        # backend         http://localhost:3000
-./run.sh portal         # portal          http://localhost:3001
+./run.sh backend        # backend         http://localhost:3001
+./run.sh portal         # portal          http://localhost:3000
 ./run.sh backoffice     # backoffice      http://localhost:5173
 ./run.sh all            # os 3 em paralelo, logs prefixados [backend]/[portal]/[backoffice]
 ```
+
+**Editou `seeds/tenants.json`?** Acrescente `--seed` pra rodar o seed **antes** de subir:
+
+```bash
+./run.sh --seed backend     # ou: ./run.sh backend --seed
+./run.sh --seed all
+```
+
+`--seed` só faz sentido com `backend` ou `all` (o seed roda no backend, não em portal/backoffice — usar com `portal`/`backoffice` falha com erro).
 
 No Windows, equivalente via `run.bat` (verifica WSL2 + Docker Desktop e dispara `run.sh` dentro do WSL):
 
 ```cmd
 run.bat
+run.bat --seed backend
 run.bat all
 ```
 
@@ -211,11 +221,11 @@ run.bat all
 ```bash
 # Terminal 1 — backend (API Express)
 npm run dev -w backend
-# → http://localhost:3000
+# → http://localhost:3001 (PORT default em backend/.env.example)
 
 # Terminal 2 — portal (site público Next.js)
 npm run dev -w portal
-# → http://localhost:3001 (porta padrão do Next dev)
+# → http://localhost:3000 (porta padrão do Next dev)
 
 # Terminal 3 — backoffice (painel Vite + React)
 npm run dev -w backoffice
@@ -225,8 +235,8 @@ npm run dev -w backoffice
 Como confirmar que tudo subiu:
 
 - **Postgres + Redis:** `docker compose ps` mostra `scp_postgres` e `scp_redis` como `healthy`.
-- **Backend:** `curl http://localhost:3000/health` retorna `200 OK`.
-- **Portal:** abrir `http://localhost:3001` no navegador exibe a página inicial do shopping default (`shopping-x`).
+- **Backend:** `curl http://localhost:3001/health` retorna `200 OK`.
+- **Portal:** abrir `http://localhost:3000` no navegador exibe a homepage do tenant local (flavor `shopping-x`).
 - **Backoffice:** abrir `http://localhost:5173` exibe a tela de login do painel.
 
 ---
@@ -343,7 +353,13 @@ Formato: **Sintoma → Causa → Fix**.
   cd ~/wynk-scp
   ```
 
-### 9. `setup.sh` reclama "Docker Compose não encontrado"
+### 9. Editei `seeds/tenants.json` mas o backend continua retornando 404 pro novo tenant
+
+- **Causa:** o seed só roda quando você manda. O `setup.sh --seed` roda no setup inicial; depois disso, ele NÃO roda automaticamente no `run.sh` (é opt-in). Editar `seeds/tenants.json` não dispara nada sozinho.
+- **Fix A — passageiro:** `npm run seed -w backend` direto.
+- **Fix B — integrado:** `./run.sh --seed backend` (ou `./run.sh --seed all`) — flag `--seed` roda o seed antes de subir o(s) dev server(s). Funciona só com `backend`/`all` (rejeita pra `portal`/`backoffice`).
+
+### 10. `setup.sh` reclama "Docker Compose não encontrado"
 
 - **Causa comum (Ubuntu/Debian universe):** você instalou `docker.io` do repo do Ubuntu. Esse pacote **não** traz o plugin v2 (`docker compose`), e o repo do Ubuntu Jammy também não tem `docker-compose-plugin` no universe.
 - **Fix A — instalar plugin v2 (recomendado):** baixe o binário direto do GitHub (sem mexer no apt, sem `sudo` no apt):

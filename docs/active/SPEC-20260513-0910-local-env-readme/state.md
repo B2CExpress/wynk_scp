@@ -308,3 +308,37 @@ Próximos passos pra arquivar a SPEC:
 3. Marcar critério de aceite em `main.md`
 4. Atualizar `features/infra-base.md` (R.7): mover pra "Concluídas", atualizar "Estado atual"
 5. Mover pasta `active/` → `archive/`
+
+## 2026-05-13 19:30 — [MARCO] [decisão] `run.sh` ganha flag `--seed` (opt-in, só pra backend/all)
+
+Dev pediu: *"Acho que podemos tambem rodar o seed no run.sh... o que achas?"*. Apresentei 3 opções (sempre rodar / opt-in via flag / auto-detect via mtime do JSON) com trade-offs:
+- **Sempre rodar**: zero cognitive, mas +3-5s a cada start (~2-3min/dia em dev ativo), acoplamento maior (seed quebrar bloqueia backend).
+- **Opt-in via flag `--seed`**: zero custo no caso comum, explícito, copyable.
+- **Auto-detect via mtime**: melhor dos dois mundos, mas overengineering pra ganho marginal por enquanto.
+
+Dev respondeu uma observação importante: *"Mass tem que rodar apenas se repassamos o backend"* — `--seed` só faz sentido quando o target inclui backend (`backend` ou `all`); `--seed portal` não tem efeito real (o portal só consulta o backend que JÁ está rodando em outro terminal). Considerei warn-and-ignore vs erro, escolhi erro com mensagem explicativa pra evitar confusão de "rodei --seed e não fez nada".
+
+Depois dev questionou *"O que acontece se rodamos sempre o seed?"*, apresentei custos concretos, e ele fechou: *"overengineering por agora"* — confirmando opt-in com flag.
+
+Implementação:
+- `run.sh` ganhou parser de argumentos em loop (`for arg in "$@"; do case "${arg}" in ... esac done`) que aceita ordem livre entre target e `--seed`. Sentinela `target=""` + default no fim (`target="${target:-backend}"`).
+- Múltiplos targets passados (`./run.sh backend portal`) viram erro com mensagem.
+- Argumento desconhecido vira erro.
+- `--seed` antes do case de execução: se `do_seed=true`, switch por target — `backend|all` roda `npm run seed -w backend` em foreground; outros viram erro com instrução clara.
+- `usage()` atualizado pra documentar `--seed`.
+
+`README.md`:
+- Seção "Primeira execução > Atalho: `./run.sh`" agora documenta `--seed backend` / `--seed all` com nota sobre rejeição.
+- **Portas corrigidas** em todo o README: backend `:3001` (PORT default em `.env.example`), portal `:3000` (Next default). Bug que eu introduzi em `1cff2da` (inverti os dois).
+- Bloco manual de `npm run dev -w <app>` também corrigido pra apontar as portas certas.
+- "Como confirmar que tudo subiu" — `curl :3001/health` e portal em `:3000`.
+- Troubleshooting entrada **#9 nova**: "Editei `seeds/tenants.json` mas o backend continua retornando 404 pro novo tenant" → causa (seed não roda sozinho) + Fix A (`npm run seed -w backend`) + Fix B (`./run.sh --seed backend`). Antiga #9 ("Compose não encontrado") renumerada pra **#10**.
+
+`setup.sh`:
+- Mensagem final pós-setup atualizada: portas corretas (backend `:3001`, portal `:3000`) + linha nova mencionando `./run.sh --seed backend` como atalho ao editar `seeds/tenants.json`.
+
+`main.md`:
+- Especificação de `run.sh` atualizada documentando `--seed`, parser de argumentos, restrição a backend/all.
+- Critério de aceite ganhou 3 novos itens (`run.sh --seed`, `seeds/tenants.json` com `localhost`, fix de portas).
+
+Commit pendente único consolidando: `seeds/tenants.json`, `run.sh`, `README.md`, `setup.sh`, `main.md`, `state.md`, `memory.md`.

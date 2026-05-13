@@ -141,7 +141,8 @@ Reduzir atrito de onboarding documentando o setup local do monorepo `wynk-scp` n
 `run.sh` (raiz, modo `0755`):
 - Shebang `#!/usr/bin/env bash`; `set -euo pipefail`.
 - Mesma sanity check de raiz do repo que `setup.sh`.
-- Aceita 1 argumento: `backend` (default), `portal`, `backoffice`, `all`, `-h`/`--help`/`help`. Qualquer outro: erro com lista.
+- Parser de argumentos em loop (ordem livre): aceita target `backend` (default), `portal`, `backoffice`, `all`; flag `--seed`/`--with-seed`; `-h`/`--help`/`help`. Rejeita múltiplos targets ou args desconhecidos.
+- **`--seed`**: roda `npm run seed -w backend` ANTES de subir o(s) dev server(s). Só é aceito com target `backend` ou `all` (rejeita pra `portal`/`backoffice` com mensagem explicativa — o seed roda no backend; passar `--seed portal` é erro humano). Útil ao editar `seeds/tenants.json`. Mantém opt-in (não roda sempre) por trade-off: rodar sempre adicionaria 3-5s a cada start.
 - Para 1 app: `exec npm run dev -w <app>` — substitui o processo do shell pelo do npm, sinais propagam diretamente.
 - Para `all`: roda os 3 em background com `npm run dev -w <app> 2>&1 | sed -u "s/^/[<app>] /" &`, guarda PIDs em array, instala `trap cleanup SIGINT SIGTERM` (que mata todos os PIDs e faz `wait`), e finaliza com `wait` (bloqueia até todos terminarem). `sed -u` (unbuffered) garante que o prefixo aparece em tempo real.
 - Saída colorida básica idêntica ao `setup.sh`.
@@ -166,11 +167,14 @@ Reduzir atrito de onboarding documentando o setup local do monorepo `wynk-scp` n
 - [x] **`setup.sh`** criado na raiz, modo `0755`, idempotente, verifica pré-requisitos, executa passos 2-9 do Setup Linux, aceita `--seed` (2026-05-13 09:55, commit `451a92e`; ajustado em `aa20692` pra aceitar `docker-compose` v1)
 - [x] **`setup.bat`** criado na raiz, verifica WSL2 + Docker Desktop, dispara `setup.sh` dentro do WSL com translação de path via `wslpath` (2026-05-13 09:55, commit `451a92e`)
 - [x] README.md atualizado com seção "Setup rápido (atalho)" antes do passo-a-passo manual (2026-05-13 09:55, commit `451a92e`)
-- [ ] **`run.sh`** criado na raiz, modo `0755`, aceita `backend`/`portal`/`backoffice`/`all`, modo `all` roda os 3 em paralelo com prefixo no log + trap pra encerrar todos com Ctrl+C
-- [ ] **`run.bat`** criado na raiz, verifica WSL2 + Docker, dispara `run.sh` dentro do WSL repassando argumentos
-- [ ] README.md atualizado em "Primeira execução" com subseção "Atalho: `./run.sh`" antes do bloco manual
-- [ ] Validação humana — Alioth executa `./setup.sh --seed` em ambiente local e confirma que termina sem erro; depois roda `./run.sh` (ou `./run.sh all`) e vê `GET /health` 200 no backend
-- [ ] Sem alterações fora de: `README.md`, `setup.sh`, `setup.bat`, `run.sh`, `run.bat`, `docs/features/infra-base.md` (linha de SPEC), `docs/active/SPEC-20260513-0910-local-env-readme/` (esta SPEC)
+- [x] **`run.sh`** criado na raiz, modo `0755`, aceita `backend`/`portal`/`backoffice`/`all`, modo `all` roda os 3 em paralelo com prefixo no log + trap pra encerrar todos com Ctrl+C (2026-05-13 11:15, commit `bbeff4f`)
+- [x] **`run.bat`** criado na raiz, verifica WSL2 + Docker, dispara `run.sh` dentro do WSL repassando argumentos (2026-05-13 11:15, commit `bbeff4f`)
+- [x] README.md atualizado em "Primeira execução" com subseção "Atalho: `./run.sh`" antes do bloco manual (2026-05-13 11:15, commit `bbeff4f`)
+- [ ] **`run.sh` aceita `--seed`** em qualquer posição, com restrição a target `backend`/`all` (rejeita pra `portal`/`backoffice`); documentado no README seção "Atalho" + entrada de troubleshooting #9
+- [ ] **`seeds/tenants.json` cadastra tenant para `host=localhost`** (slug `local-dev`, flavorSlug `shopping-x`) — DX local sem precisar mexer no `/etc/hosts`
+- [ ] **Fix das portas no README** — backend é `:3001`, portal é `:3000` (eu inverti no commit `1cff2da`)
+- [ ] Validação humana — Alioth roda `./setup.sh --seed` e `./run.sh backend` em ambiente local; portal renderiza homepage em `http://localhost:3000`
+- [ ] Sem alterações fora de: `README.md`, `setup.sh`, `setup.bat`, `run.sh`, `run.bat`, `seeds/tenants.json`, `docs/features/infra-base.md` (linha de SPEC), `docs/active/SPEC-20260513-0910-local-env-readme/` (esta SPEC)
 - [ ] **Features tocadas (`infra-base`) atualizadas** com timestamp e referência a esta SPEC (R.7)
 - [ ] `state.md` com entrada `[conclusão]`
 - [ ] `memory.md` com TL;DR final atualizado
