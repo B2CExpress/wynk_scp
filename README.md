@@ -10,13 +10,14 @@ Plataforma multitenant para sites de shopping centers — um monorepo gerenciado
 
 1. [O que é](#o-que-é)
 2. [Pré-requisitos](#pré-requisitos)
-3. [Setup Linux (Ubuntu/Debian)](#setup-linux-ubuntudebian)
-4. [Setup Windows (via WSL2)](#setup-windows-via-wsl2)
-5. [Primeira execução](#primeira-execução)
-6. [Comandos do dia-a-dia](#comandos-do-dia-a-dia)
-7. [Estrutura do monorepo](#estrutura-do-monorepo)
-8. [Troubleshooting](#troubleshooting)
-9. [Saiba mais](#saiba-mais)
+3. [Setup rápido (atalho)](#setup-rápido-atalho)
+4. [Setup Linux (Ubuntu/Debian)](#setup-linux-ubuntudebian)
+5. [Setup Windows (via WSL2)](#setup-windows-via-wsl2)
+6. [Primeira execução](#primeira-execução)
+7. [Comandos do dia-a-dia](#comandos-do-dia-a-dia)
+8. [Estrutura do monorepo](#estrutura-do-monorepo)
+9. [Troubleshooting](#troubleshooting)
+10. [Saiba mais](#saiba-mais)
 
 ---
 
@@ -43,6 +44,36 @@ Antes de qualquer setup, instale o que está abaixo. Os links são oficiais.
 | **WSL2 + Ubuntu**     | Linux rodando dentro do Windows (só Windows)        | Caminho oficial pra rodar este monorepo em Windows — todo o resto do setup ocorre **dentro** do WSL | WSL 2 + Ubuntu 22.04+ | `wsl --install` no **PowerShell como Administrador** (requer Windows 10 build 2004+ ou Windows 11) |
 
 > **macOS:** não é caminho oficialmente testado hoje. Em tese funciona seguindo o "Setup Linux" com **Docker Desktop for Mac** e Node via [nvm](https://github.com/nvm-sh/nvm) ou [Homebrew](https://brew.sh/). Se algo quebrar, abra uma SPEC documentando o caminho.
+
+---
+
+## Setup rápido (atalho)
+
+Se você já tem **todos os pré-requisitos** instalados e só quer subir o ambiente:
+
+### Linux / WSL2
+
+```bash
+./setup.sh
+# ou, com seed de tenants de exemplo:
+./setup.sh --seed
+```
+
+### Windows (cmd, na raiz do repo)
+
+```cmd
+setup.bat
+:: ou, com seed:
+setup.bat --seed
+```
+
+Os scripts são **idempotentes** (rodar duas vezes não quebra nada) e cobrem os passos 2–9 do "Setup Linux" abaixo: `npm install`, copiar `.env.example` → `.env` (se faltar), `docker compose up -d`, esperar Postgres/Redis ficarem `healthy`, e rodar `db:setup` (schema + migrations) no backend. Opcionalmente populam tenants de exemplo com `--seed`.
+
+> **Os scripts não instalam pré-requisitos** (Node, Docker, Git). Só verificam que estão presentes — se faltar algum, falham com instrução clara. Para instalar pré-requisitos, siga a tabela acima.
+>
+> No Windows, `setup.bat` apenas verifica WSL2 + Docker Desktop e dispara o `setup.sh` **dentro do WSL** (o setup real roda no Linux).
+
+Se preferir entender cada passo manualmente, siga o passo-a-passo abaixo.
 
 ---
 
@@ -226,6 +257,8 @@ wynk-scp/
 ├── seeds/                  # Dados de seed (ex.: seeds/tenants.json)
 ├── scripts/                # Scripts auxiliares (validação de flavors, lint de docs)
 ├── docker-compose.yml      # Postgres 15 + Redis 7 (portas host: 5435 / 6382)
+├── setup.sh                # Atalho idempotente de setup local (Linux/WSL2)
+├── setup.bat               # Atalho para Windows (verifica WSL2 + Docker, dispara setup.sh no WSL)
 └── package.json            # npm workspaces (backend, portal, backoffice)
 ```
 

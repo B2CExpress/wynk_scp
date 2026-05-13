@@ -8,12 +8,12 @@
 
 ## TL;DR (sobrescrever ao fim de cada sessão)
 
-**Última atualização:** 2026-05-13 09:40
-**Onde tô:** `README.md` escrito na raiz (~290 linhas, 9 seções, 8 entradas de troubleshooting). Branch local `feature/local-env-readme` em commit `98c43aa` (criado anteriormente por sessão paralela com a mesma estrutura de SPEC). Working tree tem: `README.md` novo + `state.md`/`memory.md` modificados. **Falta commitar**.
-**Próximo passo:** Commit único — README.md + state/memory atualizados, com mensagem `docs(infra-base): README.md de setup local na raiz (SPEC-20260513-0910)`. Depois: pedir validação humana ao Alioth (executar passo-a-passo em ambiente limpo).
-**Última decisão:** Estilo do README — *Sintoma → Causa → Fix* no troubleshooting, comandos em fences ` ```bash `, pré-requisitos em tabela única com 5 colunas (ferramenta / o que é / pra que serve / versão / como instalar). Sem emojis. Português. Confirmado em 2026-05-13 09:35.
+**Última atualização:** 2026-05-13 09:55
+**Onde tô:** Escopo expandido pelo usuário ("topo") para incluir `setup.sh` (Linux/WSL2) e `setup.bat` (Windows). `main.md` atualizado (DENTRO, FORA, Implementação, Critério de aceite); `setup.sh` (~165 linhas, modo `0755`, `bash -n` OK) e `setup.bat` (~75 linhas) criados na raiz; `README.md` ganhou seção "Setup rápido (atalho)" antes do passo-a-passo manual e os scripts foram listados na "Estrutura do monorepo". Working tree pendente: 6 arquivos (main, state, memory, setup.sh novo, setup.bat novo, README modificado).
+**Próximo passo:** Commit consolidado `docs(infra-base): setup.sh e setup.bat como atalho de bootstrap local (SPEC-20260513-0910)`. Depois: validação humana — Alioth roda `./setup.sh` em VM/WSL limpo e confirma `npm run dev -w backend` aceitando 200 em `/health`.
+**Última decisão:** Scripts **não instalam pré-requisitos**, só verificam — instalar Node/Docker via script é caminho de dor (sudo, NodeSource keys, distros). Trade-off aceito: usuário instala pré-requisitos manualmente; ganho: scripts simples e sem `sudo`. 2026-05-13 09:50.
 **Bloqueio atual:** nenhum.
-**Se retomar, ler:** `README.md` recém-criado + `main.md` desta SPEC + `docs/features/infra-base.md`.
+**Se retomar, ler:** `setup.sh` + `setup.bat` + seção "Setup rápido (atalho)" do `README.md` + `main.md` desta SPEC.
 
 ---
 
@@ -25,17 +25,19 @@
 |---|----------------------------------------------------------------|--------------|------------------|--------|
 | 1 | Criar estrutura da SPEC (main + state + memory) + atualizar feature `infra-base` (linha "Em execução") | concluído    | 2026-05-13 09:20 | —      |
 | 2 | Validação humana do `main.md` por Alioth                       | concluído    | 2026-05-13 09:20 | —      |
-| 3 | Escrever `README.md` na raiz                                   | concluído    | 2026-05-13 09:40 | (pendente — virá no commit imediato) |
-| 4 | Validação humana — Alioth executa o passo-a-passo do README em ambiente limpo (Linux + WSL2) | pendente     | 2026-05-13 09:40 | —      |
-| 5 | Conclusão: marcar critério de aceite, atualizar `features/infra-base.md` (move para "Concluídas" + atualiza "Estado atual"), mover SPEC para `archive/` | pendente     | 2026-05-13 09:40 | —      |
+| 3 | Escrever `README.md` na raiz                                   | concluído    | 2026-05-13 09:40 | `1cff2da` |
+| 4 | **Expansão de escopo: `setup.sh` + `setup.bat` + atualizar `main.md` e `README.md`** | concluído | 2026-05-13 09:55 | (pendente — próximo commit) |
+| 5 | Validação humana — Alioth executa `./setup.sh` em ambiente limpo (Linux + WSL2) e confirma `npm run dev -w backend` aceitando `GET /health` 200 | pendente | 2026-05-13 09:55 | — |
+| 6 | Conclusão: marcar critério de aceite, atualizar `features/infra-base.md` (move para "Concluídas" + atualiza "Estado atual"), mover SPEC para `archive/` | pendente | 2026-05-13 09:55 | — |
 
 ### Próximos passos
 
 - [x] Alioth valida `main.md` (2026-05-13 09:20 — *"Isso mesmo, manda bala!"*)
-- [x] Estrutura inicial da SPEC + linha em `features/infra-base.md` (já no commit `98c43aa` por sessão anterior)
-- [x] Escrever `README.md` na raiz (2026-05-13 09:40)
-- [ ] Commit do `README.md` + state/memory atualizados
-- [ ] Validar passo-a-passo em ambiente limpo (Alioth)
+- [x] Estrutura inicial da SPEC + linha em `features/infra-base.md` (commit `98c43aa`)
+- [x] Escrever `README.md` na raiz (commit `1cff2da`, 2026-05-13 09:40)
+- [x] Expansão de escopo: `setup.sh` + `setup.bat` + atualizar `main.md` e `README.md` (2026-05-13 09:55, próximo commit)
+- [ ] Commit consolidado: `main.md`, `state.md`, `memory.md`, `setup.sh`, `setup.bat`, `README.md`
+- [ ] Validar `./setup.sh` em ambiente limpo (Alioth)
 - [ ] Arquivar (R.7 + R.5)
 
 ### Bloqueios ativos
@@ -158,3 +160,22 @@ Entregue: `README.md` (~290 linhas) com 9 seções (O que é / Pré-requisitos /
 - Licença comercial do Docker Desktop mencionada de forma neutra na seção de Windows (transparência sobre a escolha).
 
 Commit pendente — virá no próximo step desta sessão.
+
+## 2026-05-13 09:50 — [MARCO] [decisão] Expansão de escopo: `setup.sh` + `setup.bat` adicionados
+
+Usuário pediu (literal): *"Espera, podemos fazer um .sh para linix e um .bat para o windows? Assim o pessoal apenas roda ele"*. Apresentei 3 questões antes de executar: (a) limitação técnica do `.bat` (setup real roda no WSL), (b) escopo declarado "FORA" do `main.md` mencionava "reescrita de scripts/compose para cross-platform" — adição de wrappers novos não é reescrita mas dobra escopo, (c) scripts não vão instalar pré-requisitos.
+
+Recomendei: `setup.sh` completo (idempotente, automatiza passos 2-9 do README) + `setup.bat` magrinho (verifica WSL2 + Docker Desktop, dispara `setup.sh` dentro do WSL via `wsl -e bash -c "cd $(wslpath -u '%CD%') && bash ./setup.sh %*"`), com expansão da SPEC atual em vez de abrir SPEC nova. Usuário respondeu: *"Sim, topo"*.
+
+Decisões pontuais durante a expansão:
+- **Não instalar pré-requisitos via script** — verifica e falha com instrução clara. Motivo: `sudo`, NodeSource keys, distros divergentes (apt/dnf/pacman/brew) tornam isso frágil. Trade-off aceito.
+- **Idempotência em `.env`**: copia `.env.example` → `.env` só se não existir. Não sobrescreve customização do dev.
+- **Espera de healthy** com timeout de 60s: inspeciona `docker inspect --format '{{.State.Health.Status}}' scp_postgres` (e redis), porque `docker compose ps --format` varia entre versões.
+- **Cores ANSI condicionais a TTY** (`[ -t 1 ]`) — output limpo quando piped/log.
+- **`setup.bat` avisa quando `cwd` está em filesystem do Windows** (regex `[A-Za-z]:`) — reforça gotcha #8 do README; usuário pode prosseguir com `pause` ou cancelar com Ctrl+C.
+- **`setup.bat` traduz path via `wslpath -u`** — paths com espaço aceitos pois passamos pelo bash com aspas.
+- **Cláusula no FORA do `main.md` ajustada** — de "Reescrita de scripts/compose para cross-platform" para "Reescrita de `docker-compose.yml` ou de scripts em `backend/scripts/`", deixando claro que wrappers NOVOS na raiz são permitidos. Não é mudança de intenção; é precisão.
+
+Arquivos tocados nesta expansão: `main.md` (Resumo, Escopo DENTRO/FORA, Implementação, Critério de aceite), `setup.sh` (novo, `0755`, ~165 linhas, `bash -n` OK), `setup.bat` (novo, ~75 linhas), `README.md` (seção "Setup rápido (atalho)" entre Pré-requisitos e Setup Linux + entrada na Estrutura do monorepo + atualização do Sumário com novo item).
+
+Commit pendente.
