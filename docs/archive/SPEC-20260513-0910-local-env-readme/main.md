@@ -1,10 +1,10 @@
 # SPEC-20260513-0910: README de setup local (Linux + Windows via WSL2)
 
-**Status:** active
+**Status:** done
 **Criada:** 2026-05-13 09:10
 **Ativada:** 2026-05-13 09:10
-**Concluída:** —
-**Commit final:** —
+**Concluída:** 2026-05-13 19:45
+**Commit final:** — (preenchido após commit de arquivamento)
 **Keywords:** readme, onboarding, setup, local, docker, wsl2, prerequisites, troubleshooting, monorepo
 **Features:** infra-base
 **Branch:** feature/local-env-readme
@@ -170,11 +170,16 @@ Reduzir atrito de onboarding documentando o setup local do monorepo `wynk-scp` n
 - [x] **`run.sh`** criado na raiz, modo `0755`, aceita `backend`/`portal`/`backoffice`/`all`, modo `all` roda os 3 em paralelo com prefixo no log + trap pra encerrar todos com Ctrl+C (2026-05-13 11:15, commit `bbeff4f`)
 - [x] **`run.bat`** criado na raiz, verifica WSL2 + Docker, dispara `run.sh` dentro do WSL repassando argumentos (2026-05-13 11:15, commit `bbeff4f`)
 - [x] README.md atualizado em "Primeira execução" com subseção "Atalho: `./run.sh`" antes do bloco manual (2026-05-13 11:15, commit `bbeff4f`)
-- [ ] **`run.sh` aceita `--seed`** em qualquer posição, com restrição a target `backend`/`all` (rejeita pra `portal`/`backoffice`); documentado no README seção "Atalho" + entrada de troubleshooting #9
-- [ ] **`seeds/tenants.json` cadastra tenant para `host=localhost`** (slug `local-dev`, flavorSlug `shopping-x`) — DX local sem precisar mexer no `/etc/hosts`
-- [ ] **Fix das portas no README** — backend é `:3001`, portal é `:3000` (eu inverti no commit `1cff2da`)
-- [ ] Validação humana — Alioth roda `./setup.sh --seed` e `./run.sh backend` em ambiente local; portal renderiza homepage em `http://localhost:3000`
-- [ ] Sem alterações fora de: `README.md`, `setup.sh`, `setup.bat`, `run.sh`, `run.bat`, `seeds/tenants.json`, `docs/features/infra-base.md` (linha de SPEC), `docs/active/SPEC-20260513-0910-local-env-readme/` (esta SPEC)
-- [ ] **Features tocadas (`infra-base`) atualizadas** com timestamp e referência a esta SPEC (R.7)
-- [ ] `state.md` com entrada `[conclusão]`
-- [ ] `memory.md` com TL;DR final atualizado
+- [x] **`run.sh` aceita `--seed`** em qualquer posição, com restrição a target `backend`/`all` (rejeita pra `portal`/`backoffice`); documentado no README seção "Atalho" + entrada de troubleshooting #9 (2026-05-13 19:30, commit `c38d60a`)
+- [x] **`seeds/tenants.json` cadastra tenant para `host=localhost`** (slug `local-dev`, flavorSlug `shopping-x`) — DX local sem precisar mexer no `/etc/hosts` (2026-05-13 19:00, commit `dfc32e4`)
+- [x] **Fix das portas no README** — backend é `:3001`, portal é `:3000` (corrigido em todo o README + setup.sh, 2026-05-13 19:30, commit `c38d60a`)
+- [x] Validação humana — Alioth rodou `./setup.sh --seed` + `./run.sh backend` + `npm run dev -w portal`; portal renderizou homepage em `http://localhost:3000` (flavor `shopping-x`, cores roxa/amarela). Confirmação literal: *"Agora foi, acho que era o seed, eu tinha rodado ele somente no momento do setup"* (2026-05-13 19:15)
+- [x] Sem alterações fora de: `README.md`, `setup.sh`, `setup.bat`, `run.sh`, `run.bat`, `seeds/tenants.json`, `docs/features/{infra-base,theme-system}.md`, `docs/active/SPEC-20260513-0910-local-env-readme/` (esta SPEC) — `theme-system.md` recebeu apenas 1 gotcha novo (sem alterar arquitetura) referenciando esta SPEC
+- [x] **Features tocadas (`infra-base`) atualizadas** com timestamp e referência a esta SPEC (R.7) (2026-05-13 19:45, próximo commit)
+- [x] `state.md` com entrada `[conclusão]` (2026-05-13 19:45, próximo commit)
+- [x] `memory.md` com TL;DR final atualizado (2026-05-13 19:45, próximo commit)
+
+## Pendências não-bloqueantes (registradas como gotchas, sem fix nesta SPEC)
+
+- **Bug `notFound() in root layout`** em [portal/src/app/layout.tsx:37](../../../portal/src/app/layout.tsx) — registrado como gotcha em [`docs/features/theme-system.md`](../../features/theme-system.md). Fix completo (mover check pra `page.tsx` ou usar fallback `_default`) cabe em SPEC futura quando virar dor recorrente em prod. Durante esta SPEC, o workaround foi cadastrar `localhost` no seed pra que o tenant nunca resolva null em dev.
+- **`setup.bat`/`run.bat` não validados em Windows real** — sem dev nessa plataforma agora. Permanecem como "validados por inspeção, não por execução". Cabe SPEC futura quando entrar dev Windows.

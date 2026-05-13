@@ -8,12 +8,12 @@
 
 ## TL;DR (sobrescrever ao fim de cada sessão)
 
-**Última atualização:** 2026-05-13 19:30 (sessão #1)
-**Onde tô:** Validação humana confirmou pipeline e-2-e (`./setup.sh --seed` + `./run.sh backend` + portal manual = http://localhost:3000 renderizou). Durante validação descobri 4 itens: (a) Compose v2 não existia no Ubuntu universe → fix `aa20692` (aceitar v1); (b) `localhost` não estava cadastrado no seed → adicionei `local-dev`/`localhost` em `seeds/tenants.json`; (c) seed só roda se chamado → `run.sh` ganhou flag `--seed` opt-in (restrita a backend/all); (d) eu inverti portas no README (backend `:3001`, portal `:3000`) → fix no commit pendente.
-**Próximo passo:** Commit consolidado: `seeds/tenants.json` (tenant `localhost`) + `run.sh` (parser de args + `--seed`) + `README.md` (portas corretas + troubleshooting #9 novo) + `setup.sh` (mensagem final atualizada) + `main.md` (Implementação/Critério) + state/memory. Depois: opcional — bug do `notFound() in root layout` → SPEC nova ou gotcha em `theme-system.md`; e arquivamento da SPEC atual.
-**Última decisão:** `--seed` opt-in (não sempre), restrito a target `backend`/`all`. Latência fixa de 3-5s por start não justifica rodar sempre. 2026-05-13 19:30.
-**Bloqueio atual:** nenhum.
-**Se retomar, ler:** `run.sh` (parser de args + bloco de `--seed`) + `README.md` (Atalho + Troubleshooting #9) + `main.md` desta SPEC.
+**Última atualização:** 2026-05-13 19:45 (sessão #1, encerramento)
+**Onde tô:** **SPEC concluída em 2026-05-13 19:45.** Entrega: `README.md` raiz + 4 scripts (`setup.sh`/`setup.bat`/`run.sh`/`run.bat`) + tenant `localhost` no seed + 10 entradas de troubleshooting. Validação humana confirmada — portal renderizando em `http://localhost:3000`. Features atualizadas (R.7): `infra-base` (SPEC nas Concluídas + "Onboarding e atalhos de dev" no Estado atual + 2 gotchas); `theme-system` (1 gotcha do `notFound()`). Pasta movida pra `archive/`.
+**Próximo passo:** _(nenhum — SPEC concluída)_
+**Última decisão:** Arquivar. Pendências não-bloqueantes (registradas como gotchas, sem fix nesta SPEC): bug `notFound() in root layout` em `portal/src/app/layout.tsx:37` (escopo de SPEC futura na feature `theme-system`); `setup.bat`/`run.bat` não validados em Windows real (sem dev nessa plataforma).
+**Bloqueio atual:** _(nenhum — concluída)_
+**Se retomar, ler:** _(SPEC arquivada; se algo da entrega quebrar, abrir SPEC nova de fix referenciando esta)_
 
 ---
 

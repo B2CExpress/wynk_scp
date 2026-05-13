@@ -34,14 +34,14 @@ Plataforma multitenant para sites de shopping centers — um monorepo gerenciado
 
 Antes de qualquer setup, instale o que está abaixo. Os links são oficiais.
 
-| Ferramenta            | O que é                                            | Pra que serve no projeto                                                       | Versão mínima | Como instalar                                                                  |
-| --------------------- | -------------------------------------------------- | ------------------------------------------------------------------------------ | ------------- | ------------------------------------------------------------------------------ |
-| **Node.js**           | Runtime JavaScript no servidor                     | Roda o backend (Express) e o build/dev-server do portal e do backoffice         | **22+**       | https://nodejs.org/en/download (LTS) — ou via [nvm](https://github.com/nvm-sh/nvm) |
-| **npm**               | Gerenciador de pacotes do Node                     | Instala dependências dos 3 workspaces e dispara scripts (`dev`, `test`, `lint`) | **10+**       | Já vem incluso com o Node 22                                                   |
-| **Git**               | Controle de versão                                 | Clonar o repo e interagir com o GitHub                                          | 2.30+         | https://git-scm.com/downloads                                                  |
-| **Docker Engine**     | Plataforma de containers                           | Sobe Postgres 15 e Redis 7 locais sem instalar nada direto no host              | 24+           | Linux: https://docs.docker.com/engine/install/ &nbsp;·&nbsp; Windows/Mac: https://www.docker.com/products/docker-desktop/ |
-| **Docker Compose**    | CLI que orquestra `docker-compose.yml`             | Sobe Postgres + Redis com um comando só                                       | v2 (preferido) ou v1 (legacy) | **v2** (recomendado): Docker Desktop já vem com ele; no Linux com `docker-ce` `sudo apt install docker-compose-plugin` ou baixe o binário de https://github.com/docker/compose/releases. &nbsp;**v1** (fallback, EOL jul/2023): `sudo apt install docker-compose` |
-| **WSL2 + Ubuntu**     | Linux rodando dentro do Windows (só Windows)        | Caminho oficial pra rodar este monorepo em Windows — todo o resto do setup ocorre **dentro** do WSL | WSL 2 + Ubuntu 22.04+ | `wsl --install` no **PowerShell como Administrador** (requer Windows 10 build 2004+ ou Windows 11) |
+| Ferramenta         | O que é                                      | Pra que serve no projeto                                                                            | Versão mínima                 | Como instalar                                                                                                                                                                                                                                                     |
+| ------------------ | -------------------------------------------- | --------------------------------------------------------------------------------------------------- | ----------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Node.js**        | Runtime JavaScript no servidor               | Roda o backend (Express) e o build/dev-server do portal e do backoffice                             | **22+**                       | https://nodejs.org/en/download (LTS) — ou via [nvm](https://github.com/nvm-sh/nvm)                                                                                                                                                                                |
+| **npm**            | Gerenciador de pacotes do Node               | Instala dependências dos 3 workspaces e dispara scripts (`dev`, `test`, `lint`)                     | **10+**                       | Já vem incluso com o Node 22                                                                                                                                                                                                                                      |
+| **Git**            | Controle de versão                           | Clonar o repo e interagir com o GitHub                                                              | 2.30+                         | https://git-scm.com/downloads                                                                                                                                                                                                                                     |
+| **Docker Engine**  | Plataforma de containers                     | Sobe Postgres 15 e Redis 7 locais sem instalar nada direto no host                                  | 24+                           | Linux: https://docs.docker.com/engine/install/ &nbsp;·&nbsp; Windows/Mac: https://www.docker.com/products/docker-desktop/                                                                                                                                         |
+| **Docker Compose** | CLI que orquestra `docker-compose.yml`       | Sobe Postgres + Redis com um comando só                                                             | v2 (preferido) ou v1 (legacy) | **v2** (recomendado): Docker Desktop já vem com ele; no Linux com `docker-ce` `sudo apt install docker-compose-plugin` ou baixe o binário de https://github.com/docker/compose/releases. &nbsp;**v1** (fallback, EOL jul/2023): `sudo apt install docker-compose` |
+| **WSL2 + Ubuntu**  | Linux rodando dentro do Windows (só Windows) | Caminho oficial pra rodar este monorepo em Windows — todo o resto do setup ocorre **dentro** do WSL | WSL 2 + Ubuntu 22.04+         | `wsl --install` no **PowerShell como Administrador** (requer Windows 10 build 2004+ ou Windows 11)                                                                                                                                                                |
 
 > **macOS:** não é caminho oficialmente testado hoje. Em tese funciona seguindo o "Setup Linux" com **Docker Desktop for Mac** e Node via [nvm](https://github.com/nvm-sh/nvm) ou [Homebrew](https://brew.sh/). Se algo quebrar, abra uma SPEC documentando o caminho.
 
@@ -245,27 +245,27 @@ Como confirmar que tudo subiu:
 
 Todos rodam **a partir da raiz** do repositório.
 
-| Comando                                                       | O que faz                                                                |
-| ------------------------------------------------------------- | ------------------------------------------------------------------------ |
-| `npm install`                                                 | Instala dependências de todos os workspaces                              |
-| `npm run dev -w <app>`                                        | Sobe `<app>` em watch mode (backend / portal / backoffice)               |
-| `npm run build -w <app>`                                      | Build de produção do app                                                 |
-| `npm run lint`                                                | ESLint em todos os workspaces                                            |
-| `npm run typecheck`                                           | TypeScript `--noEmit` em todos                                           |
-| `npm test`                                                    | Jest em todos os workspaces                                              |
-| `npm run format`                                              | Prettier `--write` em todo o repo                                        |
-| `npm run format:check`                                        | Prettier `--check` (mesma checagem que a CI roda)                        |
-| `npm run validate:flavors`                                    | Confere mapeamento `seeds/tenants.json` ↔ `portal/public/flavors/<slug>/` |
-| `npm run prepare:schema -w backend`                           | Cria o schema `scp` no Postgres (idempotente)                            |
-| `npm run db:setup -w backend`                                 | `prepare:schema` + `migration:run` (use **na primeira vez**)              |
-| `npm run migration:run -w backend`                            | Aplica migrations pendentes                                              |
-| `npm run migration:revert -w backend`                         | Desfaz a última migration aplicada                                       |
-| `npm run migration:create -w backend -- <NomePascalCase>`     | Cria um arquivo vazio de migration                                       |
-| `npm run seed -w backend`                                     | Popula tenants de exemplo a partir de `seeds/tenants.json`               |
-| `docker compose up -d`                                        | Sobe Postgres + Redis em background                                      |
-| `docker compose down`                                         | Para os containers (**preserva** os dados)                               |
-| `docker compose down -v`                                      | Para e **apaga volumes** (reset total do banco e do Redis)               |
-| `docker compose logs -f postgres`                             | Acompanha logs do Postgres                                               |
+| Comando                                                   | O que faz                                                                 |
+| --------------------------------------------------------- | ------------------------------------------------------------------------- |
+| `npm install`                                             | Instala dependências de todos os workspaces                               |
+| `npm run dev -w <app>`                                    | Sobe `<app>` em watch mode (backend / portal / backoffice)                |
+| `npm run build -w <app>`                                  | Build de produção do app                                                  |
+| `npm run lint`                                            | ESLint em todos os workspaces                                             |
+| `npm run typecheck`                                       | TypeScript `--noEmit` em todos                                            |
+| `npm test`                                                | Jest em todos os workspaces                                               |
+| `npm run format`                                          | Prettier `--write` em todo o repo                                         |
+| `npm run format:check`                                    | Prettier `--check` (mesma checagem que a CI roda)                         |
+| `npm run validate:flavors`                                | Confere mapeamento `seeds/tenants.json` ↔ `portal/public/flavors/<slug>/` |
+| `npm run prepare:schema -w backend`                       | Cria o schema `scp` no Postgres (idempotente)                             |
+| `npm run db:setup -w backend`                             | `prepare:schema` + `migration:run` (use **na primeira vez**)              |
+| `npm run migration:run -w backend`                        | Aplica migrations pendentes                                               |
+| `npm run migration:revert -w backend`                     | Desfaz a última migration aplicada                                        |
+| `npm run migration:create -w backend -- <NomePascalCase>` | Cria um arquivo vazio de migration                                        |
+| `npm run seed -w backend`                                 | Popula tenants de exemplo a partir de `seeds/tenants.json`                |
+| `docker compose up -d`                                    | Sobe Postgres + Redis em background                                       |
+| `docker compose down`                                     | Para os containers (**preserva** os dados)                                |
+| `docker compose down -v`                                  | Para e **apaga volumes** (reset total do banco e do Redis)                |
+| `docker compose logs -f postgres`                         | Acompanha logs do Postgres                                                |
 
 ---
 

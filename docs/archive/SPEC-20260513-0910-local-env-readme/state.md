@@ -8,12 +8,12 @@
 
 ## TL;DR (sobrescrever ao fim de cada sessão)
 
-**Última atualização:** 2026-05-13 11:15
-**Onde tô:** **2ª expansão de escopo** (3ª revisão da SPEC). Após o dev questionar *"então o setup não roda nada, apenas configura?"*, dividimos a responsabilidade: `setup.sh`/`setup.bat` ficam só com configuração; `run.sh`/`run.bat` cuidam de subir os dev servers. Aceita `backend` (default), `portal`, `backoffice`, `all` (paralelo com logs prefixados via `sed -u` e trap centralizado). `main.md` atualizado (Resumo, Escopo DENTRO, Implementação, Critério de aceite). Scripts criados (`run.sh` modo `0755`, `bash -n` OK; `run.bat` análogo ao `setup.bat`). README atualizado em "Primeira execução" com subseção "Atalho: `./run.sh`" e na "Estrutura do monorepo".
-**Próximo passo:** Commit `feat(setup): run.sh e run.bat como atalho para subir dev servers (SPEC-20260513-0910)`. Depois: dev roda `./run.sh` (e/ou `./run.sh all`) pra validar que o backend sobe e responde `GET /health` 200.
-**Última decisão:** Dividir responsabilidades em 2 scripts (configurar vs rodar). 2026-05-13 11:00. Motivo: dev server é processo foreground/watch, não cabe num script de configuração; com 3 apps, gerência de processos é melhor isolada no `run.sh`.
-**Bloqueio atual:** nenhum (aguardando dev rodar `./run.sh` ou `./run.sh all`).
-**Se retomar, ler:** `run.sh` + `run.bat` + seção "Primeira execução" do `README.md` (subseção "Atalho: `./run.sh`") + `main.md` desta SPEC.
+**Última atualização:** 2026-05-13 19:45 (sessão #1, encerramento)
+**Onde tô:** **SPEC concluída e arquivada.** Validação humana e-2-e OK (portal renderizando em `http://localhost:3000`). Todos os critérios de aceite marcados. Features atualizadas conforme R.7 (`infra-base` ganhou SPEC nas Concluídas + "Onboarding e atalhos de dev" no Estado atual + 2 gotchas novos; `theme-system` ganhou 1 gotcha do `notFound() in root layout`). Pasta movida pra `archive/`.
+**Próximo passo:** _(nenhum — SPEC concluída)_
+**Última decisão:** Arquivar SPEC. 2026-05-13 19:45. Pendências não-bloqueantes registradas: bug do `notFound()` (gotcha em `theme-system`, fix em SPEC futura), `setup.bat`/`run.bat` não validados em Windows real (SPEC futura).
+**Bloqueio atual:** _(nenhum — concluída)_
+**Se retomar, ler:** _(SPEC arquivada; se algo da entrega quebrar, abrir SPEC nova de fix referenciando esta)_
 
 ---
 
@@ -28,23 +28,28 @@
 | 3 | Escrever `README.md` na raiz                                   | concluído    | 2026-05-13 09:40 | `1cff2da` |
 | 4 | Expansão de escopo: `setup.sh` + `setup.bat` + atualizar `main.md` e `README.md` | concluído | 2026-05-13 09:55 | `451a92e` |
 | 5 | Fix do `setup.sh`: aceitar `docker-compose` v1 como fallback | concluído | 2026-05-13 10:30 | `aa20692` |
-| 6 | **2ª expansão de escopo: `run.sh` + `run.bat` (configurar e rodar = 2 scripts)** | concluído | 2026-05-13 11:15 | (pendente — próximo commit) |
-| 7 | Validação humana — Alioth executa `./setup.sh --seed` e depois `./run.sh` (ou `./run.sh all`); confirma backend respondendo `GET /health` 200 | em progresso | 2026-05-13 11:15 | — |
-| 8 | Conclusão: marcar critério de aceite, atualizar `features/infra-base.md` (move para "Concluídas" + atualiza "Estado atual"), mover SPEC para `archive/` | pendente | 2026-05-13 11:15 | — |
+| 6 | 2ª expansão de escopo: `run.sh` + `run.bat` (configurar e rodar = 2 scripts) | concluído | 2026-05-13 11:15 | `bbeff4f` |
+| 7 | Cadastrar tenant `localhost` em `seeds/tenants.json` (DX local) | concluído | 2026-05-13 19:00 | `dfc32e4` |
+| 8 | Flag `--seed` opt-in no `run.sh` + fix das portas no README (3001/3000) | concluído | 2026-05-13 19:30 | `c38d60a` |
+| 9 | Validação humana — Alioth rodou `./setup.sh --seed` + `./run.sh backend` + portal manual; renderizou em `http://localhost:3000` | concluído | 2026-05-13 19:15 | — (sem commit de código; validação humana) |
+| 10 | Conclusão: critério de aceite marcado, `features/infra-base.md` atualizada (R.7), `features/theme-system.md` recebeu 1 gotcha, SPEC movida pra `archive/` | concluído | 2026-05-13 19:45 | (próximo commit) |
 
 ### Próximos passos
 
 - [x] Alioth valida `main.md` (2026-05-13 09:20 — *"Isso mesmo, manda bala!"*)
 - [x] Estrutura inicial da SPEC + linha em `features/infra-base.md` (commit `98c43aa`)
 - [x] Escrever `README.md` na raiz (commit `1cff2da`, 2026-05-13 09:40)
-- [x] Expansão de escopo: `setup.sh` + `setup.bat` + atualizar `main.md` e `README.md` (2026-05-13 09:55, próximo commit)
-- [ ] Commit consolidado: `main.md`, `state.md`, `memory.md`, `setup.sh`, `setup.bat`, `README.md`
-- [ ] Validar `./setup.sh` em ambiente limpo (Alioth)
-- [ ] Arquivar (R.7 + R.5)
+- [x] Expansão de escopo: `setup.sh` + `setup.bat` + atualizar `main.md` e `README.md` (commit `451a92e`)
+- [x] Fix v1 fallback no `setup.sh` (commit `aa20692`)
+- [x] Expansão `run.sh`/`run.bat` (commit `bbeff4f`)
+- [x] Cadastro `localhost` no seed (commit `dfc32e4`)
+- [x] Flag `--seed` + fix de portas (commit `c38d60a`)
+- [x] Validação humana e-2-e (2026-05-13 19:15)
+- [x] Arquivamento (R.7 + R.5) — este commit
 
 ### Bloqueios ativos
 
-_(nenhum — 2026-05-13 09:20)_
+_(nenhum — SPEC concluída em 2026-05-13 19:45)_
 
 ---
 
@@ -342,3 +347,38 @@ Implementação:
 - Critério de aceite ganhou 3 novos itens (`run.sh --seed`, `seeds/tenants.json` com `localhost`, fix de portas).
 
 Commit pendente único consolidando: `seeds/tenants.json`, `run.sh`, `README.md`, `setup.sh`, `main.md`, `state.md`, `memory.md`.
+
+## 2026-05-13 19:45 — [MARCO] [conclusão] SPEC entregue e arquivada
+
+**Entrega final:**
+- `README.md` na raiz (~300 linhas, 10 seções, 10 entradas de troubleshooting) — porta de entrada de onboarding documentando Linux/WSL2.
+- 4 scripts de atalho na raiz: `setup.sh`/`setup.bat` (configuram) + `run.sh`/`run.bat` (rodam dev servers).
+- `run.sh` aceita `backend|portal|backoffice|all` + flag opt-in `--seed` (restrita a `backend`/`all`).
+- `seeds/tenants.json` ganhou tenant `local-dev`/`localhost` pra DX sem `/etc/hosts`.
+- `setup.sh` aceita Compose v2 (preferido) ou v1 (fallback EOL) via cascade detection.
+
+**Validação humana confirmada em 2026-05-13 19:15:** dev rodou `./setup.sh --seed` → `./run.sh backend` → `npm run dev -w portal`; portal renderizou em `http://localhost:3000` com flavor `shopping-x`. Citação literal: *"Agora foi, acho que era o seed, eu tinha rodado ele somente no momento do setup"*.
+
+**Critério de aceite:** todos os 21+ checkboxes em `main.md` marcados (alguns com commit hash, validação humana sem hash de código, ou marcados no commit de arquivamento).
+
+**Features tocadas (R.7):**
+- `infra-base` (vinculada na criação): SPEC movida de "Em execução" → "Concluídas" (commit final = este); seção "Onboarding e atalhos de dev" adicionada ao "Estado atual" descrevendo os 4 scripts e os tenants do seed; 2 gotchas novos ("`docker.io` Ubuntu universe sem plugin v2", "Editar `seeds/tenants.json` não dispara seed").
+- `theme-system` (não-vinculada mas tocada): 1 gotcha novo registrado ("`notFound()` em `portal/src/app/layout.tsx:37` viola contrato do Next App Router"). Fix completo é escopo de SPEC futura.
+
+**Commits da SPEC:**
+- `98c43aa` — estrutura inicial da SPEC (criada por sessão Claude paralela)
+- `1cff2da` — `README.md` na raiz (~290 linhas, 9 seções)
+- `451a92e` — `setup.sh`/`setup.bat` + README seção "Setup rápido"
+- `aa20692` — `setup.sh` aceita docker-compose v1 (fallback)
+- `bbeff4f` — `run.sh`/`run.bat` + README "Primeira execução"
+- `dfc32e4` — cadastro `local-dev`/`localhost` em `seeds/tenants.json`
+- `c38d60a` — `run.sh --seed` opt-in + fix de portas 3001/3000 + troubleshooting #9
+- (este commit) — arquivamento + R.7 features + theme-system gotcha
+
+**Pendências não-bloqueantes** (não desta SPEC, registradas como gotchas pra SPEC futura):
+1. Bug `notFound() in root layout` em `portal/src/app/layout.tsx:37` — gotcha em `theme-system.md`. Fix em SPEC futura (mover check pra `page.tsx` ou usar fallback `_default`).
+2. `setup.bat`/`run.bat` não validados em Windows real — sem dev nessa plataforma. SPEC futura quando entrar dev Windows.
+
+**Total da SPEC:** 1 sessão (~11h elapsed, 8 commits). Escopo expandiu 2x durante execução (de "só doc" pra "doc + setup.sh" pra "doc + setup + run separados"), motivado por pedidos do dev. Validação humana real pegou 4 problemas que escapavam de inspeção (Compose v1/v2, host `localhost` ausente do seed, seed não roda sozinho, portas invertidas no README) — efeito direto da regra de não pular validação humana.
+
+_(SPEC arquivada — sem mais entradas neste log)_
