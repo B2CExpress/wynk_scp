@@ -1,8 +1,15 @@
+
 [
   {
     "slug": "shopping-x",
     "host": "shopping-x.local",
-    "flavorSlug": "shopping-x",
-    "name": "Shopping X"
+    "flavor_slug": "shopping-x",
+    "name": "Shopping x"
+  },
+  {
+    "slug": "validacao-fase-1",
+    "host": "validacao-fase-1.local",
+    "flavor_slug": "shopping-x",
+    "name": "Validação Fase 1"
   }
 ]
