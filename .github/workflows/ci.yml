@@ -64,3 +64,56 @@ jobs:
 
       - name: Validate seeds/tenants.json ↔ portal/public/flavors
         run: npm run validate:flavors
+
+  isolation:
+    name: isolation tests
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_USER: scp
+          POSTGRES_PASSWORD: scp
+          POSTGRES_DB: scp
+        ports:
+          - 5435:5432
+        options: >-
+          --health-cmd "pg_isready -U scp -d scp"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6382:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run isolation tests
+        env:
+          DB_HOST: 127.0.0.1
+          DB_PORT: 5435
+          DB_USER: scp
+          DB_PASS: scp
+          DB_NAME: scp_test
+          DB_SCHEMA: scp
+          REDIS_HOST: 127.0.0.1
+          REDIS_PORT: 6382
+          JWT_ACCESS_SECRET: ci-access-secret
+          JWT_REFRESH_SECRET: ci-refresh-secret
+        run: npm run test:isolation

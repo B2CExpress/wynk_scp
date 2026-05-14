@@ -1,4 +1,4 @@
-import type { DataSource, Repository } from 'typeorm';
+import { In, type DataSource, type Repository } from 'typeorm';
 import { Store } from '../entities/Store';
 import { Category } from '../entities/Category';
 import { StoreCategory } from '../entities/StoreCategory';
@@ -18,10 +18,16 @@ export function escapeLikePattern(s: string): string {
 }
 
 export class StoreRepository {
+  private readonly dataSource: DataSource;
   private readonly storeRepo: Repository<Store>;
+  private readonly categoryRepo: Repository<Category>;
+  private readonly storeCategoryRepo: Repository<StoreCategory>;
 
   constructor(dataSource: DataSource) {
+    this.dataSource = dataSource;
     this.storeRepo = dataSource.getRepository(Store);
+    this.categoryRepo = dataSource.getRepository(Category);
+    this.storeCategoryRepo = dataSource.getRepository(StoreCategory);
   }
 
   async findActiveListing(
@@ -94,5 +100,143 @@ export class StoreRepository {
       })),
       total,
     };
+  }
+
+  async findActiveBySlug(slug: string): Promise<Store | null> {
+    return withTenant(this.storeRepo.createQueryBuilder('store'))
+      .andWhere('store.store_status = :status', { status: ACTIVE_STATUS })
+      .andWhere('store.store_slug = :slug', { slug })
+      .getOne();
+  }
+
+  async findByIdForCurrentTenant(id: string): Promise<Store | null> {
+    return withTenant(this.storeRepo.createQueryBuilder('store'))
+      .andWhere('store.store_id = :id', { id })
+      .getOne();
+  }
+
+  async countCategoriesForCurrentTenant(categoryIds: string[]): Promise<number> {
+    const { tenantId } = requireTenantContext();
+    const uniqueIds = [...new Set(categoryIds)];
+    if (uniqueIds.length === 0) {
+      return 0;
+    }
+
+    return this.categoryRepo.count({
+      where: {
+        tenantId,
+        id: In(uniqueIds),
+      },
+    });
+  }
+
+  async createForCurrentTenant(input: {
+    name: string;
+    slug: string;
+    logoUrl?: string | null;
+    coverImageUrl?: string | null;
+    floor?: string | null;
+    phone?: string | null;
+    isRestaurant?: boolean;
+    isFeatured?: boolean;
+    status?: string;
+    sortOrder?: number;
+    categoryIds?: string[];
+  }): Promise<Store> {
+    const { tenantId } = requireTenantContext();
+    const uniqueCategoryIds = [...new Set(input.categoryIds ?? [])];
+
+    return this.dataSource.transaction(async (manager) => {
+      const storeRepo = manager.getRepository(Store);
+      const relationRepo = manager.getRepository(StoreCategory);
+
+      const store = storeRepo.create({
+        tenantId,
+        name: input.name,
+        slug: input.slug,
+        logoUrl: input.logoUrl ?? null,
+        coverImageUrl: input.coverImageUrl ?? null,
+        floor: input.floor ?? null,
+        phone: input.phone ?? null,
+        isRestaurant: input.isRestaurant ?? false,
+        isFeatured: input.isFeatured ?? false,
+        status: input.status ?? ACTIVE_STATUS,
+        sortOrder: input.sortOrder ?? 0,
+      });
+
+      const created = await storeRepo.save(store);
+
+      if (uniqueCategoryIds.length > 0) {
+        const relations = uniqueCategoryIds.map((categoryId) =>
+          relationRepo.create({
+            storeId: created.id,
+            categoryId,
+            tenantId,
+          }),
+        );
+        await relationRepo.save(relations);
+      }
+
+      return created;
+    });
+  }
+
+  async updateForCurrentTenant(
+    id: string,
+    input: {
+      name?: string;
+      slug?: string;
+      logoUrl?: string | null;
+      coverImageUrl?: string | null;
+      floor?: string | null;
+      phone?: string | null;
+      isRestaurant?: boolean;
+      isFeatured?: boolean;
+      status?: string;
+      sortOrder?: number;
+      categoryIds?: string[];
+    },
+  ): Promise<Store | null> {
+    const { tenantId } = requireTenantContext();
+    const existing = await this.findByIdForCurrentTenant(id);
+    if (!existing) {
+      return null;
+    }
+
+    const uniqueCategoryIds = input.categoryIds ? [...new Set(input.categoryIds)] : undefined;
+
+    return this.dataSource.transaction(async (manager) => {
+      const storeRepo = manager.getRepository(Store);
+      const relationRepo = manager.getRepository(StoreCategory);
+
+      if (input.name !== undefined) existing.name = input.name;
+      if (input.slug !== undefined) existing.slug = input.slug;
+      if (input.logoUrl !== undefined) existing.logoUrl = input.logoUrl;
+      if (input.coverImageUrl !== undefined) existing.coverImageUrl = input.coverImageUrl;
+      if (input.floor !== undefined) existing.floor = input.floor;
+      if (input.phone !== undefined) existing.phone = input.phone;
+      if (input.isRestaurant !== undefined) existing.isRestaurant = input.isRestaurant;
+      if (input.isFeatured !== undefined) existing.isFeatured = input.isFeatured;
+      if (input.status !== undefined) existing.status = input.status;
+      if (input.sortOrder !== undefined) existing.sortOrder = input.sortOrder;
+
+      const saved = await storeRepo.save(existing);
+
+      if (uniqueCategoryIds !== undefined) {
+        await relationRepo.delete({ storeId: saved.id, tenantId });
+        if (uniqueCategoryIds.length > 0) {
+          const relations = uniqueCategoryIds.map((categoryId) =>
+            relationRepo.create({
+              storeId: saved.id,
+              categoryId,
+              tenantId,
+            }),
+          );
+          await relationRepo.save(relations);
+        }
+      }
+
+      return saved;
+    });
   }
 }

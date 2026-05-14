@@ -1,0 +1,13 @@
+process.env.NODE_ENV = 'test';
+process.env.DB_HOST ??= 'localhost';
+process.env.DB_PORT ??= '5435';
+process.env.DB_USER ??= 'scp';
+process.env.DB_PASS ??= 'scp';
+process.env.DB_NAME ??= 'scp_test';
+process.env.DB_SCHEMA ??= 'scp';
+process.env.REDIS_HOST ??= 'localhost';
+process.env.REDIS_PORT ??= '6382';
+process.env.JWT_ACCESS_SECRET ??= 'vitest-access-secret';
+process.env.JWT_REFRESH_SECRET ??= 'vitest-refresh-secret';
+process.env.JWT_ACCESS_TTL_SECONDS ??= '900';
+process.env.JWT_REFRESH_TTL_SECONDS ??= '604800';

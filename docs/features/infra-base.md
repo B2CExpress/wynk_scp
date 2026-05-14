@@ -35,6 +35,7 @@
 | ID | Título | Branch |
 |---|---|---|
 | _(nenhuma)_ | | |
+| SPEC-20260514-2012 | Isolamento multitenant de stores com testes reais | feature/SQU-47-validacao-de-isolamento |
 
 ## Estado atual
 

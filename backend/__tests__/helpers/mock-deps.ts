@@ -48,6 +48,9 @@ export function makeStubStoreController(): StoreController {
   };
   return {
     list: notImplemented,
+    detail: notImplemented,
+    createAdmin: notImplemented,
+    updateAdmin: notImplemented,
   } as unknown as StoreController;
 }
 
