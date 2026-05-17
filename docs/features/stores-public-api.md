@@ -30,6 +30,7 @@
 |---|---|---|
 | SPEC-20260506-1400 | Endpoints públicos de lojas com cache Redis | feature/SQU-43-api-publica |
 | SPEC-20260514-2012 | Isolamento multitenant de stores com testes reais | feature/SQU-47-validacao-de-isolamento |
+| SPEC-20260516-1430 | CRUD completo de lojas no admin | feature/SQU-42-api-admin-crud-de-lojas |
 
 ## Estado atual
 

@@ -35,6 +35,15 @@ export class Store {
   @Column({ name: 'store_phone', type: 'varchar', length: 40, nullable: true })
   phone: string | null;
 
+  @Column({ name: 'store_description', type: 'text', nullable: true })
+  description: string | null;
+
+  @Column({ name: 'store_external_url', type: 'text', nullable: true })
+  externalUrl: string | null;
+
+  @Column({ name: 'store_opening_hours', type: 'jsonb', nullable: true })
+  openingHours: Record<string, any> | null;
+
   @Column({ name: 'store_is_restaurant', type: 'boolean', default: false })
   isRestaurant: boolean;
 
