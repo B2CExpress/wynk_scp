@@ -1,14 +1,15 @@
 import type Redis from 'ioredis';
-import type { StoreRepository } from '../repositories/store.repository';
-import { requireTenantContext } from '../middleware/tenant-context';
-import { cached, invalidateByPattern } from '../utils/cache';
-import type { StoreListQuery, StoreListResponse } from '../dtos/store-list.dto';
 import type { Category } from '../entities/Category';
 import { sanitizeStoreDescription } from '../lib/sanitize';
 import { slugifyStoreName } from '../lib/slug';
-import { validateCreateStore, validateStoreInput } from '../lib/validators';
+import { uploadStoreImage } from '../lib/storage';
+import { validateCreateStore, validateStoreInput, type UploadStubInput } from '../lib/validators';
+import { requireTenantContext } from '../middleware/tenant-context';
+import type { StoreRepository } from '../repositories/store.repository';
+import type { StoreListQuery, StoreListResponse } from '../dtos/store-list.dto';
+import { cached, invalidateByPattern } from '../utils/cache';
 
-const CACHE_TTL_SECONDS = 300; // 5 min
+const CACHE_TTL_SECONDS = 300;
 
 export interface StoreListResult {
   response: StoreListResponse;
@@ -34,6 +35,13 @@ export interface StoreCategoryResponse {
   id: string;
   name: string;
   slug: string;
+}
+
+export interface PublicStoreDetailResponse extends StoreDetailResponse {
+  description: string | null;
+  externalUrl: string | null;
+  openingHours: Record<string, unknown> | null;
+  categories: StoreCategoryResponse[];
 }
 
 export interface AdminStoreListItemResponse extends StoreDetailResponse {
@@ -70,12 +78,12 @@ export class StoreSlugConflictError extends Error {
   }
 }
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
-}
-
 function hasOwn(obj: Record<string, unknown>, key: string): boolean {
   return Object.prototype.hasOwnProperty.call(obj, key);
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
 function mapCategory(category: Category): StoreCategoryResponse {
@@ -83,36 +91,6 @@ function mapCategory(category: Category): StoreCategoryResponse {
     id: category.id,
     name: category.name,
     slug: category.slug,
-  };
-}
-
-function serializeStore(store: StoreDetailResponse): StoreDetailResponse {
-  return store;
-}
-
-function serializeAdminListItem(
-  store: StoreDetailResponse,
-  categories: Category[],
-): AdminStoreListItemResponse {
-  return {
-    ...serializeStore(store),
-    categories: categories.map(mapCategory),
-  };
-}
-
-function serializeAdminDetail(
-  store: StoreDetailResponse & {
-    description: string | null;
-    externalUrl: string | null;
-    openingHours: Record<string, unknown> | null;
-    categories: Category[];
-  },
-): AdminStoreDetailResponse {
-  return {
-    ...serializeAdminListItem(store, store.categories),
-    description: store.description,
-    externalUrl: store.externalUrl,
-    openingHours: store.openingHours,
   };
 }
 
@@ -130,7 +108,7 @@ function buildStoreSummary(store: {
   status: string;
   sortOrder: number;
 }): StoreDetailResponse {
-  return serializeStore({
+  return {
     id: store.id,
     tenantId: store.tenantId,
     name: store.name,
@@ -143,7 +121,7 @@ function buildStoreSummary(store: {
     isFeatured: store.isFeatured,
     status: store.status,
     sortOrder: store.sortOrder,
-  });
+  };
 }
 
 function sanitizeDescription(description: string | null | undefined): string | null | undefined {
@@ -154,24 +132,12 @@ function sanitizeDescription(description: string | null | undefined): string | n
   return sanitizeStoreDescription(description);
 }
 
-/**
- * Compõe a chave de cache de listagem com TODOS os filtros incluídos. Sem
- * isso, cache HIT com filtros diferentes retornaria resultado errado.
- *
- * Convenção: chave começa com `stores:list:{tenant_id}:` (prefixo usado
- * pela invalidação por SCAN). Parâmetros em ordem alfabética. Valores
- * `undefined` viram `-`.
- */
-function buildCacheKey(tenantId: string, q: StoreListQuery): string {
-  const parts = [
-    `cat=${q.category ?? '-'}`,
-    `feat=${q.featured === undefined ? '-' : String(q.featured)}`,
-    `l=${q.limit}`,
-    `p=${q.page}`,
-    `q=${q.search ?? '-'}`,
-    `rest=${q.isRestaurant === undefined ? '-' : String(q.isRestaurant)}`,
-  ];
-  return `stores:list:${tenantId}:${parts.join(':')}`;
+function buildCacheKey(tenantId: string, query: StoreListQuery): string {
+  return `stores:list:${tenantId}:cat=${query.category ?? '-'}:feat=${
+    query.featured === undefined ? '-' : String(query.featured)
+  }:l=${query.limit}:p=${query.page}:q=${query.search ?? '-'}:rest=${
+    query.isRestaurant === undefined ? '-' : String(query.isRestaurant)
+  }`;
 }
 
 export class StoreService {
@@ -197,13 +163,19 @@ export class StoreService {
     return { response: data, cacheHit: hit };
   }
 
-  async getActiveBySlug(slug: string): Promise<StoreDetailResponse> {
-    const store = await this.storeRepo.findActiveBySlug(slug);
+  async getActiveBySlug(slug: string): Promise<PublicStoreDetailResponse> {
+    const store = await this.storeRepo.findActiveBySlugWithCategories(slug);
     if (!store) {
       throw new StoreNotFoundError();
     }
 
-    return buildStoreSummary(store);
+    return {
+      ...buildStoreSummary(store),
+      description: store.description,
+      externalUrl: store.externalUrl,
+      openingHours: (store.openingHours as Record<string, unknown> | null) ?? null,
+      categories: store.categories.map(mapCategory),
+    };
   }
 
   async createAdmin(input: unknown): Promise<AdminStoreDetailResponse> {
@@ -214,17 +186,21 @@ export class StoreService {
 
     const desiredSlug = this.buildSlug(validation.data.name, validation.data.slug ?? undefined);
     await this.assertSlugAvailable(desiredSlug);
-
     const categoryIds = validation.data.category_ids ?? [];
     await this.assertValidCategories(categoryIds);
 
     try {
+      const uploaded = await this.resolveUploadedImages(
+        desiredSlug,
+        validation.data.logo_upload ?? null,
+        validation.data.cover_upload ?? null,
+      );
       const created = await this.storeRepo.createForCurrentTenant({
         name: validation.data.name,
         slug: desiredSlug,
         description: sanitizeDescription(validation.data.description),
-        logoUrl: validation.data.logo_url,
-        coverImageUrl: validation.data.cover_image_url,
+        logoUrl: uploaded.logoUrl ?? validation.data.logo_url,
+        coverImageUrl: uploaded.coverImageUrl ?? validation.data.cover_image_url,
         externalUrl: validation.data.external_url,
         floor: validation.data.floor,
         phone: validation.data.phone,
@@ -244,18 +220,12 @@ export class StoreService {
       const { tenantId } = requireTenantContext();
       await this.invalidateListings(tenantId);
 
-      return serializeAdminDetail({
-        ...buildStoreSummary(hydrated),
-        description: hydrated.description,
-        externalUrl: hydrated.externalUrl,
-        openingHours: (hydrated.openingHours as Record<string, unknown> | null) ?? null,
-        categories: hydrated.categories,
-      });
-    } catch (err) {
-      if (this.isSlugConflictError(err)) {
+      return this.serializeAdminDetail(hydrated);
+    } catch (error) {
+      if (this.isSlugConflictError(error)) {
         throw new StoreSlugConflictError(desiredSlug);
       }
-      throw err;
+      throw error;
     }
   }
 
@@ -286,12 +256,23 @@ export class StoreService {
     }
 
     try {
+      const uploaded = await this.resolveUploadedImages(
+        desiredSlug,
+        validation.data.logo_upload ?? null,
+        validation.data.cover_upload ?? null,
+      );
       const updated = await this.storeRepo.updateForCurrentTenant(id, {
         name: validation.data.name,
         slug: slugWasProvided ? desiredSlug : undefined,
         description: sanitizeDescription(validation.data.description),
-        logoUrl: validation.data.logo_url,
-        coverImageUrl: validation.data.cover_image_url,
+        logoUrl:
+          uploaded.logoUrl ??
+          (validation.data.logo_url === undefined ? undefined : validation.data.logo_url),
+        coverImageUrl:
+          uploaded.coverImageUrl ??
+          (validation.data.cover_image_url === undefined
+            ? undefined
+            : validation.data.cover_image_url),
         externalUrl: validation.data.external_url,
         floor: validation.data.floor,
         phone: validation.data.phone,
@@ -318,18 +299,12 @@ export class StoreService {
       const { tenantId } = requireTenantContext();
       await this.invalidateListings(tenantId);
 
-      return serializeAdminDetail({
-        ...buildStoreSummary(hydrated),
-        description: hydrated.description,
-        externalUrl: hydrated.externalUrl,
-        openingHours: (hydrated.openingHours as Record<string, unknown> | null) ?? null,
-        categories: hydrated.categories,
-      });
-    } catch (err) {
-      if (this.isSlugConflictError(err)) {
+      return this.serializeAdminDetail(hydrated);
+    } catch (error) {
+      if (this.isSlugConflictError(error)) {
         throw new StoreSlugConflictError(desiredSlug);
       }
-      throw err;
+      throw error;
     }
   }
 
@@ -343,40 +318,23 @@ export class StoreService {
     const { stores, total, categoriesByStoreId } = await this.storeRepo.listAdminWithFilters(query);
 
     return {
-      data: stores.map((store) =>
-        serializeAdminListItem(
-          buildStoreSummary(store),
-          categoriesByStoreId.get(store.id) ?? [],
-        ),
-      ),
+      data: stores.map((store) => ({
+        ...buildStoreSummary(store),
+        categories: (categoriesByStoreId.get(store.id) ?? []).map(mapCategory),
+      })),
       total,
       page: query.page,
       limit: Math.min(query.limit, 100),
     };
   }
 
-  /**
-   * Invalida todo cache de listagem do tenant atual. Caller futuro:
-   * endpoints admin de stores/categories (POST/PUT/DELETE) — chegam em
-   * SPEC futura. TTL de 5 min cobre o gap até lá.
-   */
-  async invalidateListings(tenantId: string): Promise<void> {
-    await invalidateByPattern(this.redis, `stores:list:${tenantId}:*`);
-  }
-
   async getDetailAdmin(id: string): Promise<AdminStoreDetailResponse> {
-    const storeWithCats = await this.storeRepo.findByIdWithCategoriesAdmin(id);
-    if (!storeWithCats) {
+    const store = await this.storeRepo.findByIdWithCategoriesAdmin(id);
+    if (!store) {
       throw new StoreNotFoundError();
     }
 
-    return serializeAdminDetail({
-      ...buildStoreSummary(storeWithCats),
-      description: storeWithCats.description,
-      externalUrl: storeWithCats.externalUrl,
-      openingHours: (storeWithCats.openingHours as Record<string, unknown> | null) ?? null,
-      categories: storeWithCats.categories,
-    });
+    return this.serializeAdminDetail(store);
   }
 
   async deleteAdmin(id: string): Promise<void> {
@@ -389,14 +347,34 @@ export class StoreService {
     await this.invalidateListings(tenantId);
   }
 
+  async invalidateListings(tenantId: string): Promise<void> {
+    await invalidateByPattern(this.redis, `stores:list:${tenantId}:*`);
+  }
+
+  private serializeAdminDetail(store: StoreDetailResponse & {
+    description: string | null;
+    externalUrl: string | null;
+    openingHours: Record<string, unknown> | null;
+    categories: Category[];
+  }): AdminStoreDetailResponse {
+    return {
+      ...buildStoreSummary(store),
+      description: store.description,
+      externalUrl: store.externalUrl,
+      openingHours: store.openingHours,
+      categories: store.categories.map(mapCategory),
+    };
+  }
+
   private buildSlug(name: string, requestedSlug?: string): string {
-    const candidate = requestedSlug ?? slugifyStoreName(name);
-    if (!candidate) {
+    const slug = requestedSlug ?? slugifyStoreName(name);
+    if (!slug) {
       throw new StoreValidationError({
         slug: 'slug could not be generated from name',
       });
     }
-    return candidate;
+
+    return slug;
   }
 
   private async assertValidCategories(categoryIds: string[]): Promise<void> {
@@ -417,6 +395,46 @@ export class StoreService {
     }
   }
 
+  private async resolveUploadedImages(
+    storeSlug: string,
+    logoUpload: UploadStubInput | null,
+    coverUpload: UploadStubInput | null,
+  ): Promise<{ logoUrl: string | null; coverImageUrl: string | null }> {
+    const { tenantId } = requireTenantContext();
+
+    const logoUrl = logoUpload
+      ? await uploadStoreImage(
+          {
+            fieldname: 'logo_upload',
+            originalname: logoUpload.file_name,
+            encoding: '7bit',
+            mimetype: logoUpload.mime_type ?? 'application/octet-stream',
+            buffer: Buffer.alloc(0),
+            size: logoUpload.size ?? 0,
+          },
+          tenantId,
+          storeSlug,
+        )
+      : null;
+
+    const coverImageUrl = coverUpload
+      ? await uploadStoreImage(
+          {
+            fieldname: 'cover_upload',
+            originalname: coverUpload.file_name,
+            encoding: '7bit',
+            mimetype: coverUpload.mime_type ?? 'application/octet-stream',
+            buffer: Buffer.alloc(0),
+            size: coverUpload.size ?? 0,
+          },
+          tenantId,
+          storeSlug,
+        )
+      : null;
+
+    return { logoUrl, coverImageUrl };
+  }
+
   private isSlugConflictError(error: unknown): boolean {
     if (!error || typeof error !== 'object') {
       return false;
@@ -425,8 +443,6 @@ export class StoreService {
     const driverError = (error as { driverError?: { code?: string; constraint?: string } })
       .driverError;
 
-    return (
-      driverError?.code === '23505' && driverError.constraint === 'uq_tb_store_tenant_slug'
-    );
+    return driverError?.code === '23505' && driverError.constraint === 'uq_tb_store_tenant_slug';
   }
 }

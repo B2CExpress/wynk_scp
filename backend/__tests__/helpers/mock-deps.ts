@@ -3,6 +3,7 @@ import type { TenantResolverService } from '../../src/services/tenant-resolver.s
 import type { TenantContext } from '../../src/middleware/tenant-context';
 import type { AuthController } from '../../src/controllers/auth.controller';
 import type { StoreController } from '../../src/controllers/store.controller';
+import type { StoreCategoryController } from '../../src/controllers/store-category.controller';
 import type { AppDeps } from '../../src/app';
 
 /**
@@ -59,6 +60,7 @@ export function makeAppDeps(overrides: Partial<AppDeps> = {}): AppDeps {
     tenantResolver: makeFakeTenantResolver(),
     authController: makeStubAuthController(),
     storeController: makeStubStoreController(),
+    storeCategoryController: undefined as StoreCategoryController | undefined,
     ...overrides,
   };
 }
