@@ -32,6 +32,7 @@
 | SPEC-20260512-1900 | 2026-05-13 | `43424f3` | Validação ponta-a-ponta da Fase 1 Multitenant |
 | SPEC-20260514-2012 | 2026-05-18 | `b38052c` | Isolamento multitenant de stores com testes reais |
 | SPEC-20260516-1430 | 2026-05-18 | `7642216` | CRUD completo de lojas no admin |
+| SPEC-20260516-1730 | 2026-05-18 | `8aef2da` | Catálogo de lojas - fase 2 pública e operacional |
 
 ### Planejadas (future/)
 | ID | Título | Motivo |

@@ -1,12 +1,17 @@
 import { In, type DataSource, type Repository } from 'typeorm';
-import { Store } from '../entities/Store';
 import { Category } from '../entities/Category';
+import { Store } from '../entities/Store';
 import { StoreCategory } from '../entities/StoreCategory';
-import { withTenant } from '../utils/with-tenant';
+import type { StoreListItem, StoreListQuery } from '../dtos/store-list.dto';
 import { requireTenantContext } from '../middleware/tenant-context';
-import type { StoreListQuery, StoreListItem } from '../dtos/store-list.dto';
+import { withTenant } from '../utils/with-tenant';
 
 const ACTIVE_STATUS = 'active';
+
+export function escapeLikePattern(value: string): string {
+  return value.replace(/[\\%_]/g, '\\$&');
+}
+
 export class StoreRepository {
   private readonly dataSource: DataSource;
   private readonly storeRepo: Repository<Store>;
@@ -25,7 +30,6 @@ export class StoreRepository {
   ): Promise<{ items: StoreListItem[]; total: number }> {
     const ctx = requireTenantContext();
     const offset = (query.page - 1) * query.limit;
-
     let qb = withTenant(this.storeRepo.createQueryBuilder('store')).andWhere(
       'store.store_status = :status',
       { status: ACTIVE_STATUS },
@@ -42,19 +46,28 @@ export class StoreRepository {
     }
 
     if (query.search) {
+      const escaped = escapeLikePattern(query.search);
       qb = qb
-        .andWhere(`store.store_search_vector @@ plainto_tsquery('portuguese', :search)`, {
-          search: query.search,
-        })
-        .addOrderBy(
-          `ts_rank(store.store_search_vector, plainto_tsquery('portuguese', :search))`,
-          'DESC',
+        .addSelect(
+          `ts_rank_cd(
+            store.store_search_vector,
+            websearch_to_tsquery('simple', :searchQuery)
+          )`,
+          'search_rank',
+        )
+        .andWhere(
+          `(
+            store.store_search_vector @@ websearch_to_tsquery('simple', :searchQuery)
+            OR store.store_name ILIKE :searchLike
+          )`,
+          {
+            searchQuery: query.search,
+            searchLike: `%${escaped}%`,
+          },
         );
     }
 
     if (query.category) {
-      // JOIN com tb_store_category + tb_category, filtrando por slug e
-      // sempre incluindo tenant_id no join pra defesa em profundidade.
       qb = qb
         .innerJoin(
           StoreCategory,
@@ -66,12 +79,19 @@ export class StoreRepository {
           Category,
           'cat',
           'cat.category_id = sc.category_id AND cat.tenant_id = :tenantId AND cat.category_slug = :categorySlug',
-          { tenantId: ctx.tenantId, categorySlug: query.category },
+          {
+            tenantId: ctx.tenantId,
+            categorySlug: query.category,
+          },
         );
     }
 
-    qb = qb
-      .orderBy('store.store_is_featured', 'DESC')
+    qb = (
+      query.search
+        ? qb.orderBy('search_rank', 'DESC')
+        : qb.orderBy('store.store_is_featured', 'DESC')
+    )
+      .addOrderBy('store.store_is_featured', 'DESC')
       .addOrderBy('store.store_sort_order', 'ASC')
       .addOrderBy('store.store_name', 'ASC')
       .take(query.limit)
@@ -102,6 +122,21 @@ export class StoreRepository {
       .andWhere('store.store_status = :status', { status: ACTIVE_STATUS })
       .andWhere('store.store_slug = :slug', { slug })
       .getOne();
+  }
+
+  async findActiveBySlugWithCategories(
+    slug: string,
+  ): Promise<(Store & { categories: Category[] }) | null> {
+    const store = await this.findActiveBySlug(slug);
+    if (!store) {
+      return null;
+    }
+
+    const categoriesByStoreId = await this.findCategoriesByStoreIdsForCurrentTenant([store.id]);
+    return {
+      ...store,
+      categories: categoriesByStoreId.get(store.id) ?? [],
+    };
   }
 
   async findByIdForCurrentTenant(id: string): Promise<Store | null> {
@@ -154,34 +189,35 @@ export class StoreRepository {
       const storeRepo = manager.getRepository(Store);
       const relationRepo = manager.getRepository(StoreCategory);
 
-      const store = storeRepo.create({
-        tenantId,
-        name: input.name,
-        slug: input.slug,
-        description: input.description ?? null,
-        logoUrl: input.logoUrl ?? null,
-        coverImageUrl: input.coverImageUrl ?? null,
-        externalUrl: input.externalUrl ?? null,
-        floor: input.floor ?? null,
-        phone: input.phone ?? null,
-        openingHours: input.openingHours ?? null,
-        isRestaurant: input.isRestaurant ?? false,
-        isFeatured: input.isFeatured ?? false,
-        status: input.status ?? ACTIVE_STATUS,
-        sortOrder: input.sortOrder ?? 0,
-      });
-
-      const created = await storeRepo.save(store);
+      const created = await storeRepo.save(
+        storeRepo.create({
+          tenantId,
+          name: input.name,
+          slug: input.slug,
+          description: input.description ?? null,
+          logoUrl: input.logoUrl ?? null,
+          coverImageUrl: input.coverImageUrl ?? null,
+          externalUrl: input.externalUrl ?? null,
+          floor: input.floor ?? null,
+          phone: input.phone ?? null,
+          openingHours: input.openingHours ?? null,
+          isRestaurant: input.isRestaurant ?? false,
+          isFeatured: input.isFeatured ?? false,
+          status: input.status ?? ACTIVE_STATUS,
+          sortOrder: input.sortOrder ?? 0,
+        }),
+      );
 
       if (uniqueCategoryIds.length > 0) {
-        const relations = uniqueCategoryIds.map((categoryId) =>
-          relationRepo.create({
-            storeId: created.id,
-            categoryId,
-            tenantId,
-          }),
+        await relationRepo.save(
+          uniqueCategoryIds.map((categoryId) =>
+            relationRepo.create({
+              storeId: created.id,
+              categoryId,
+              tenantId,
+            }),
+          ),
         );
-        await relationRepo.save(relations);
       }
 
       return created;
@@ -238,14 +274,15 @@ export class StoreRepository {
       if (uniqueCategoryIds !== undefined) {
         await relationRepo.delete({ storeId: saved.id, tenantId });
         if (uniqueCategoryIds.length > 0) {
-          const relations = uniqueCategoryIds.map((categoryId) =>
-            relationRepo.create({
-              storeId: saved.id,
-              categoryId,
-              tenantId,
-            }),
+          await relationRepo.save(
+            uniqueCategoryIds.map((categoryId) =>
+              relationRepo.create({
+                storeId: saved.id,
+                categoryId,
+                tenantId,
+              }),
+            ),
           );
-          await relationRepo.save(relations);
         }
       }
 
@@ -261,7 +298,7 @@ export class StoreRepository {
     search?: string;
   }): Promise<{ stores: Store[]; total: number; categoriesByStoreId: Map<string, Category[]> }> {
     const offset = (query.page - 1) * query.limit;
-    const clamped = Math.min(query.limit, 100); // max 100 per page
+    const clamped = Math.min(query.limit, 100);
 
     let qb = withTenant(this.storeRepo.createQueryBuilder('store'));
 
@@ -274,15 +311,33 @@ export class StoreRepository {
     }
 
     if (query.search) {
-      // Escape inline de wildcards LIKE/ILIKE (`%`, `_`, `\`) no admin —
-      // a versão pública usa fulltext (tsvector); aqui mantemos ILIKE simples
-      // por agora pra preservar o comportamento do SPEC-1430.
-      const escaped = query.search.replace(/[\\%_]/g, '\\$&');
-      qb = qb.andWhere('store.store_name ILIKE :search', { search: `%${escaped}%` });
+      const escaped = escapeLikePattern(query.search);
+      qb = qb
+        .addSelect(
+          `ts_rank_cd(
+            store.store_search_vector,
+            websearch_to_tsquery('simple', :searchQuery)
+          )`,
+          'search_rank',
+        )
+        .andWhere(
+          `(
+            store.store_search_vector @@ websearch_to_tsquery('simple', :searchQuery)
+            OR store.store_name ILIKE :searchLike
+          )`,
+          {
+            searchQuery: query.search,
+            searchLike: `%${escaped}%`,
+          },
+        );
     }
 
-    qb = qb
-      .orderBy('store.store_is_featured', 'DESC')
+    qb = (
+      query.search
+        ? qb.orderBy('search_rank', 'DESC')
+        : qb.orderBy('store.store_is_featured', 'DESC')
+    )
+      .addOrderBy('store.store_is_featured', 'DESC')
       .addOrderBy('store.store_sort_order', 'ASC')
       .addOrderBy('store.store_name', 'ASC')
       .take(clamped)
@@ -292,6 +347,7 @@ export class StoreRepository {
     const categoriesByStoreId = await this.findCategoriesByStoreIdsForCurrentTenant(
       stores.map((store) => store.id),
     );
+
     return { stores, total, categoriesByStoreId };
   }
 
@@ -304,11 +360,9 @@ export class StoreRepository {
     }
 
     const categoriesByStoreId = await this.findCategoriesByStoreIdsForCurrentTenant([id]);
-    const categories = categoriesByStoreId.get(id) ?? [];
-
     return {
       ...store,
-      categories,
+      categories: categoriesByStoreId.get(id) ?? [],
     };
   }
 
@@ -323,10 +377,7 @@ export class StoreRepository {
       const relationRepo = manager.getRepository(StoreCategory);
       const storeRepo = manager.getRepository(Store);
 
-      // Delete relations first (foreign key constraint)
       await relationRepo.delete({ storeId: id, tenantId });
-
-      // Then delete the store
       await storeRepo.delete({ id, tenantId });
 
       return true;
@@ -362,6 +413,10 @@ export class StoreRepository {
         id: In(uniqueCategoryIds),
         tenantId,
       },
+      order: {
+        sortOrder: 'ASC',
+        name: 'ASC',
+      },
     });
     const categoriesById = new Map(categories.map((category) => [category.id, category]));
 
@@ -372,6 +427,12 @@ export class StoreRepository {
       }
 
       grouped.get(relation.storeId)?.push(category);
+    });
+
+    grouped.forEach((categories) => {
+      categories.sort((a, b) =>
+        a.sortOrder === b.sortOrder ? a.name.localeCompare(b.name) : a.sortOrder - b.sortOrder,
+      );
     });
 
     return grouped;

@@ -51,6 +51,14 @@ function validateWithSchema<T extends z.ZodTypeAny>(
   return { success: false, errors: mapZodErrors(result.error) };
 }
 
+const UploadStubSchema = z.object({
+  file_name: z.string().min(1, 'file_name is required').max(255, 'file_name is too long'),
+  mime_type: z.string().max(120, 'mime_type is too long').optional(),
+  size: z.number().int().nonnegative().optional(),
+});
+
+export type UploadStubInput = z.infer<typeof UploadStubSchema>;
+
 export const StoreAdminInputSchema = z.object({
   name: z.preprocess(
     (value) => normalizeTrimmedString(value),
@@ -99,6 +107,8 @@ export const StoreAdminInputSchema = z.object({
   status: z.enum(['active', 'inactive', 'archived']).optional(),
   sort_order: z.number().int().optional(),
   category_ids: z.array(z.string().uuid()).optional().nullable(),
+  logo_upload: UploadStubSchema.optional().nullable(),
+  cover_upload: UploadStubSchema.optional().nullable(),
 });
 
 export type StoreAdminInput = z.infer<typeof StoreAdminInputSchema>;
@@ -123,4 +133,53 @@ export function validateCreateStore(data: unknown):
       errors: Record<string, string>;
     } {
   return validateWithSchema(CreateStoreSchema, data);
+}
+
+export const StoreCategoryInputSchema = z.object({
+  name: z.preprocess(
+    (value) => normalizeTrimmedString(value),
+    z
+      .string()
+      .min(2, 'name must be at least 2 characters')
+      .max(120, 'name must not exceed 120 characters'),
+  ),
+  slug: z.preprocess(
+    (value) => normalizeTrimmedString(value, { emptyAs: 'null' }),
+    z
+      .string()
+      .regex(slugRegex, 'slug must contain only lowercase letters, numbers, and hyphens')
+      .max(140, 'slug must not exceed 140 characters')
+      .optional()
+      .nullable(),
+  ),
+  sort_order: z.number().int().optional(),
+});
+
+export function validateStoreCategoryInput(data: unknown):
+  | { success: true; data: z.infer<typeof StoreCategoryInputSchema> }
+  | {
+      success: false;
+      errors: Record<string, string>;
+    } {
+  return validateWithSchema(StoreCategoryInputSchema, data);
+}
+
+export const StoreCategoryReorderSchema = z.object({
+  items: z
+    .array(
+      z.object({
+        id: z.string().uuid(),
+        sort_order: z.number().int().optional(),
+      }),
+    )
+    .min(1, 'items must contain at least one category'),
+});
+
+export function validateStoreCategoryReorder(data: unknown):
+  | { success: true; data: z.infer<typeof StoreCategoryReorderSchema> }
+  | {
+      success: false;
+      errors: Record<string, string>;
+    } {
+  return validateWithSchema(StoreCategoryReorderSchema, data);
 }
