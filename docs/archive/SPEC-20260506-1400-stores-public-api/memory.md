@@ -10,7 +10,7 @@
 
 **Última atualização:** 2026-05-18 (sessão #5 — arquivamento)
 **Onde tô:** SPEC concluída e arquivada. Código mergeado em `main` no commit `8199c7e` (re-escopo #2 da SPEC com schema mínimo absorvido após descarte da SPEC-1506). Feature `stores-public-api` atualizada (linha em "Concluídas" + "Em execução" zerada).
-**Próximo passo:** nenhum — SPEC está em `archive/`. Cobertura E2E real ficou de dívida absorvida pela SPEC-20260514-2012-stores-tenant-isolation (PR #13 em draft).
+**Próximo passo:** nenhum — SPEC está em `archive/`. Cobertura E2E real ficou de dívida absorvida pelo PR #13 (`feature/SQU-47-validacao-de-isolamento`, draft em 2026-05-18) que adiciona testes de integração ponta-a-ponta entre tenants.
 **Última decisão:** Arquivar com base nos critérios técnicos atendidos via cobertura unit, registrando explicitamente quais critérios E2E não foram validados localmente.
 **Bloqueio atual:** —
 **Se retomar, ler:** entrada `[conclusão]` em `state.md` (2026-05-18) — lista exatamente o que ficou pendente e quem absorveu.
