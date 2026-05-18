@@ -7,6 +7,9 @@ import { RefreshToken } from '../entities/RefreshToken';
 import { Store } from '../entities/Store';
 import { Category } from '../entities/Category';
 import { StoreCategory } from '../entities/StoreCategory';
+import { Event } from '../entities/Event';
+import { TheaterShow } from '../entities/TheaterShow';
+import { TheaterSession } from '../entities/TheaterSession';
 
 /**
  * AppDataSource — instância única do TypeORM compartilhada por toda a aplicação.
@@ -28,7 +31,7 @@ export const AppDataSource = new DataSource({
   schema: config.database.schema,
   synchronize: false,
   logging: process.env.TYPEORM_LOGGING === 'true',
-  entities: [Tenant, User, RefreshToken, Store, Category, StoreCategory],
+  entities: [Tenant, User, RefreshToken, Store, Category, StoreCategory, Event, TheaterShow, TheaterSession],
   migrations: [
     config.nodeEnv === 'production' ? 'dist/migrations/**/*.js' : 'src/migrations/**/*.{ts,js}',
   ],

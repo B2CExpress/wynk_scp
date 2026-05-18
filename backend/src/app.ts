@@ -8,16 +8,22 @@ import { logger } from './utils/logger';
 import type { TenantResolverService } from './services/tenant-resolver.service';
 import type { AuthController } from './controllers/auth.controller';
 import type { StoreController } from './controllers/store.controller';
+import type { EventController } from './controllers/event.controller';
+import type { TheaterController } from './controllers/theater.controller';
 import { createResolveTenantByHostMiddleware } from './middleware/resolve-tenant-by-host';
 import { tenantContextMiddleware } from './middleware/tenant-context';
 import { tenantRoutes } from './routes/tenant.routes';
 import { createAuthRoutes } from './routes/auth.routes';
 import { createStoreRoutes } from './routes/store.routes';
+import { createEventRoutes } from './routes/event.routes';
+import { createTheaterRoutes } from './routes/theater.routes';
 
 export interface AppDeps {
   tenantResolver: TenantResolverService;
   authController: AuthController;
   storeController: StoreController;
+  eventController: EventController;
+  theaterController: TheaterController;
 }
 
 /**
@@ -77,6 +83,8 @@ export function createApp(deps: AppDeps): Express {
   app.use(tenantRoutes);
   app.use(createAuthRoutes(deps.authController));
   app.use(createStoreRoutes(deps.storeController));
+  app.use(createEventRoutes(deps.eventController));
+  app.use(createTheaterRoutes(deps.theaterController));
 
   // 404
   app.use((_req: Request, res: Response) => {

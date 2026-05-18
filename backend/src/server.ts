@@ -8,11 +8,18 @@ import { TenantRepository } from './repositories/tenant.repository';
 import { UserRepository } from './repositories/user.repository';
 import { RefreshTokenRepository } from './repositories/refresh-token.repository';
 import { StoreRepository } from './repositories/store.repository';
+import { EventRepository } from './repositories/event.repository';
+import { TheaterShowRepository } from './repositories/theater-show.repository';
+import { TheaterSessionRepository } from './repositories/theater-session.repository';
 import { TenantResolverService } from './services/tenant-resolver.service';
 import { AuthService } from './services/auth.service';
 import { StoreService } from './services/store.service';
+import { EventService } from './services/event.service';
+import { TheaterService } from './services/theater.service';
 import { AuthController } from './controllers/auth.controller';
 import { StoreController } from './controllers/store.controller';
+import { EventController } from './controllers/event.controller';
+import { TheaterController } from './controllers/theater.controller';
 
 async function main(): Promise<void> {
   // Inicialização do banco e Redis fica opt-in pra ambiente: em dev/prod conectamos,
@@ -37,14 +44,27 @@ async function main(): Promise<void> {
   const userRepo = new UserRepository(AppDataSource);
   const refreshTokenRepo = new RefreshTokenRepository(AppDataSource);
   const storeRepo = new StoreRepository(AppDataSource);
+  const eventRepo = new EventRepository(AppDataSource);
+  const theaterShowRepo = new TheaterShowRepository(AppDataSource);
+  const theaterSessionRepo = new TheaterSessionRepository(AppDataSource);
 
   const tenantResolver = new TenantResolverService(tenantRepo, redis);
   const authService = new AuthService(tenantRepo, userRepo, refreshTokenRepo);
   const storeService = new StoreService(storeRepo, redis);
+  const eventService = new EventService(eventRepo, redis);
+  const theaterService = new TheaterService(theaterShowRepo, theaterSessionRepo, redis);
   const authController = new AuthController(authService, userRepo);
   const storeController = new StoreController(storeService);
+  const eventController = new EventController(eventService);
+  const theaterController = new TheaterController(theaterService);
 
-  const app = createApp({ tenantResolver, authController, storeController });
+  const app = createApp({
+    tenantResolver,
+    authController,
+    storeController,
+    eventController,
+    theaterController,
+  });
 
   app.listen(config.port, () => {
     logger.info('server listening', { port: config.port, env: config.nodeEnv });
