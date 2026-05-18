@@ -137,3 +137,32 @@ ID real confirmado:
 
 ```txt
 SPEC-20260512-1900-validacao-ponta-a-ponta
+```
+
+## 2026-05-18 — [MARCO] [conclusão]
+
+SPEC arquivada após merge do PR #12 em `main` (commit `43424f3`, merge `496b882`, 2026-05-13 17:04 BRT).
+
+**O que foi entregue (commit final `43424f3`):**
+- Estrutura da SPEC (`main.md`, `state.md`, `memory.md`) sob `docs/active/SPEC-20260512-1900-validacao-ponta-a-ponta/`.
+- `docs/fase-1-validacao.md` (fora da pasta da SPEC).
+- `seeds/tenants.json` atualizado com o tenant `validacao-fase1` adicional (sem apagar o tenant `shopping-x` existente).
+
+**O que NÃO foi entregue (bloqueado por Docker):**
+- Validação real ponta-a-ponta de Postgres, Redis, migrations, seed, autenticação JWT, cache, e fluxo de tenant resolution. O ambiente local da autora não conseguiu subir o Docker Desktop (erro "500 Internal Server Error for API route").
+- `docs/fase-1-validacao.md` ficou registrando o bloqueio, sem o relatório de validação real.
+
+**Decisão de arquivamento:** marcar a SPEC como `done` apesar do bloqueio, porque o critério estrutural foi atingido. A validação real fica como dívida técnica para outro ambiente — quando houver Docker funcional, alguém pode executar o checklist do `main.md` e atualizar `docs/fase-1-validacao.md` em uma SPEC nova (não reativar esta).
+
+**Documentos sem `Resumo:` quando criados originalmente:** o header foi corrigido no commit anterior do arquivamento (lint-docs requeria o campo).
+
+**Documentos com newlines/code fences cortados ao serem criados:** corrigidos neste commit (esse mesmo state.md tinha o ID da SPEC numa code fence aberta).
+
+**Features tocadas atualizadas (R.7):**
+- `docs/features/infra-base.md` — linha em "Concluídas" adicionada (2026-05-18).
+- `docs/features/tenant-resolution.md` — linha em "Concluídas" adicionada (2026-05-18).
+- `docs/features/theme-system.md` — linha em "Concluídas" adicionada (2026-05-18).
+
+Nenhuma delas tinha linha em "Em execução" pra esta SPEC (a autora não rodou o passo R.11 ao ativar; documentação retroativa).
+
+Commit do arquivamento: este commit.

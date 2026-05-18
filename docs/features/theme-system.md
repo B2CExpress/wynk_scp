@@ -22,6 +22,7 @@
 | ID | Data | Commit | Título |
 |---|---|---|---|
 | SPEC-20260503-1505 | 2026-05-11 | `968d389` | Base da plataforma multitenant |
+| SPEC-20260512-1900 | 2026-05-13 | `43424f3` | Validação ponta-a-ponta da Fase 1 Multitenant |
 
 ### Planejadas (future/)
 | ID | Título | Motivo |

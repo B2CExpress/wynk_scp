@@ -20,21 +20,23 @@
 
 ## Specs desta feature
 
-### Concluidas
-| ID | Data | Commit | Titulo |
+### Concluídas
+| ID | Data | Commit | Título |
 |---|---|---|---|
 | SPEC-20260503-1505 | 2026-05-11 | `968d389` | Base da plataforma multitenant |
 | SPEC-20260513-0910 | 2026-05-13 | `1d9ea39` | README de setup local (Linux + Windows via WSL2) + scripts `setup.sh`/`run.sh` |
+| SPEC-20260512-1601 | 2026-05-12 | `99a29d1` | Hardening do cache Redis de tenant |
+| SPEC-20260512-1900 | 2026-05-13 | `43424f3` | Validação ponta-a-ponta da Fase 1 Multitenant |
 
 ### Planejadas (future/)
-| ID | Titulo | Motivo |
+| ID | Título | Motivo |
 |---|---|---|
 | _(nenhuma)_ | | |
 
-### Em execucao (so em branches - nao aparece em main)
-| ID | Titulo | Branch |
+### Em execução (só em branches — não aparece em main)
+| ID | Título | Branch |
 |---|---|---|
-| SPEC-20260512-1601 | Hardening do cache Redis de tenant | feature/SQU-35-redis-cache |
+| _(nenhuma)_ | | |
 
 ## Estado atual
 
@@ -60,7 +62,7 @@ Quatro scripts de atalho na raiz, idempotentes, sem instalar pré-requisitos (ap
 
 Tenants no `seeds/tenants.json`: `shopping-x` (host `shopping-x.local`, exige `/etc/hosts`) + `local-dev` (host `localhost`, DX local sem mexer em hosts).
 
-## Decisoes arquiteturais ativas
+## Decisões arquiteturais ativas
 
 - **npm workspaces (nao pnpm)** (origem: SPEC-20260503-1505, 2026-05-08 15:33) - Zero dependencia extra no host; pnpm exigiria corepack + alteracao de PATH. Trade-off: sem strict peer deps + `node_modules` duplicado entre apps. Migracao futura e trivial se CI ficar lenta com mais apps.
 - **Express 4 + TypeORM 0.3 cru (nao NestJS)** (origem: SPEC-20260503-1505, 2026-05-08 16:43) - Alinha com `wynk_ecommerce` (4 services backend usam Express+TypeORM). Time ja domina, PR mais facil de revisar, sem build step de DI metadata. Trade-off: tenant context vira middleware + AsyncLocalStorage (nao interceptor Nest), DI e factory manual em `server.ts` (composition root). Substitui decisao anterior de 2026-05-08 14:31 que tinha escolhido NestJS antes de inspecionar o padrao da casa.
