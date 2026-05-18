@@ -54,7 +54,11 @@ function validateWithSchema<T extends z.ZodTypeAny>(
 export const StoreAdminInputSchema = z.object({
   name: z.preprocess(
     (value) => normalizeTrimmedString(value),
-    z.string().min(2, 'name must be at least 2 characters').max(200, 'name must not exceed 200 characters').optional(),
+    z
+      .string()
+      .min(2, 'name must be at least 2 characters')
+      .max(200, 'name must not exceed 200 characters')
+      .optional(),
   ),
   slug: z.preprocess(
     (value) => normalizeTrimmedString(value, { emptyAs: 'null' }),
@@ -112,11 +116,11 @@ export const CreateStoreSchema = StoreAdminInputSchema.extend({
     .max(200, 'name must not exceed 200 characters'),
 });
 
-export function validateCreateStore(
-  data: unknown,
-): { success: true; data: z.infer<typeof CreateStoreSchema> } | {
-  success: false;
-  errors: Record<string, string>;
-} {
+export function validateCreateStore(data: unknown):
+  | { success: true; data: z.infer<typeof CreateStoreSchema> }
+  | {
+      success: false;
+      errors: Record<string, string>;
+    } {
   return validateWithSchema(CreateStoreSchema, data);
 }

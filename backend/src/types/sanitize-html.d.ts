@@ -6,8 +6,5 @@ declare module 'sanitize-html' {
     disallowedTagsMode?: 'discard' | 'completelyDiscard' | 'escape' | 'recursiveEscape';
   }
 
-  export default function sanitizeHtml(
-    dirty: string,
-    options?: SanitizeHtmlOptions,
-  ): string;
+  export default function sanitizeHtml(dirty: string, options?: SanitizeHtmlOptions): string;
 }

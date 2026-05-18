@@ -18,7 +18,8 @@
 ### Concluídas
 | ID | Data | Commit | Título |
 |---|---|---|---|
-| _(nenhuma ainda)_ | — | — | — |
+| SPEC-20260506-1400 | 2026-05-12 | `8199c7e` | Endpoints públicos de lojas com cache Redis (+ schema mínimo) |
+| SPEC-20260514-2012 | 2026-05-18 | `b38052c` | Isolamento multitenant de stores com testes reais |
 
 ### Planejadas (future/)
 | ID | Título | Motivo |
@@ -28,8 +29,6 @@
 ### Em execução (só em branches — não aparece em main)
 | ID | Título | Branch |
 |---|---|---|
-| SPEC-20260506-1400 | Endpoints públicos de lojas com cache Redis | feature/SQU-43-api-publica |
-| SPEC-20260514-2012 | Isolamento multitenant de stores com testes reais | feature/SQU-47-validacao-de-isolamento |
 | SPEC-20260516-1430 | CRUD completo de lojas no admin | feature/SQU-42-api-admin-crud-de-lojas |
 
 ## Estado atual

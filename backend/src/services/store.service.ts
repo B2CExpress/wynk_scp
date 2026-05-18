@@ -344,10 +344,7 @@ export class StoreService {
 
     return {
       data: stores.map((store) =>
-        serializeAdminListItem(
-          buildStoreSummary(store),
-          categoriesByStoreId.get(store.id) ?? [],
-        ),
+        serializeAdminListItem(buildStoreSummary(store), categoriesByStoreId.get(store.id) ?? []),
       ),
       total,
       page: query.page,
@@ -425,8 +422,6 @@ export class StoreService {
     const driverError = (error as { driverError?: { code?: string; constraint?: string } })
       .driverError;
 
-    return (
-      driverError?.code === '23505' && driverError.constraint === 'uq_tb_store_tenant_slug'
-    );
+    return driverError?.code === '23505' && driverError.constraint === 'uq_tb_store_tenant_slug';
   }
 }

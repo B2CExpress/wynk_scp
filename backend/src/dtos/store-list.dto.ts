@@ -14,6 +14,7 @@ export interface StoreListQuery {
 export interface StoreListItem {
   id: string;
   name: string;
+  description: string | null;
   slug: string;
   logoUrl: string | null;
   coverImageUrl: string | null;
