@@ -22,6 +22,17 @@ function int(name: string, fallback: number): number {
   return parsed;
 }
 
+function redisUrl(): string {
+  const fromUrl = process.env.REDIS_URL;
+  if (fromUrl) {
+    return fromUrl;
+  }
+
+  const host = optional('REDIS_HOST', 'localhost');
+  const port = int('REDIS_PORT', 6379);
+  return `redis://${host}:${port}`;
+}
+
 export const config = {
   nodeEnv: optional('NODE_ENV', 'development'),
   port: int('PORT', 3001),
@@ -36,8 +47,11 @@ export const config = {
   },
 
   redis: {
-    host: optional('REDIS_HOST', 'localhost'),
-    port: int('REDIS_PORT', 6382),
+    url: redisUrl(),
+  },
+
+  cache: {
+    tenantTtlSeconds: int('CACHE_TTL_TENANT_SECONDS', 600),
   },
 
   jwt: {
