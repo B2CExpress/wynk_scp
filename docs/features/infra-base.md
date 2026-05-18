@@ -1,10 +1,9 @@
 # Feature: infra-base
-
 **Keywords:** bootstrap, repositório, ci, lint, format, stack, monorepo, npm-workspaces, docker, onboarding, setup-local, readme
 **Arquivos principais:**
   - `package.json` (raiz, workspaces: backend/portal/backoffice)
-  - `docker-compose.yml` (Postgres 15 + Redis 7, portas 5435/6382)
-  - `.github/workflows/ci.yml` (matrix app × task + format:check + validate-flavors)
+  - `docker-compose.yml` (Postgres 15 + Redis 7, portas 5435/6379)
+  - `.github/workflows/ci.yml` (matrix app x task + format:check + validate-flavors)
   - `.prettierrc.json`, `.prettierignore`, `.editorconfig`
   - `README.md` (raiz — porta de entrada de onboarding; setup local Linux/WSL2 + troubleshooting de gotchas conhecidos)
   - `setup.sh`, `setup.bat` (raiz — atalho idempotente de bootstrap; `setup.bat` é wrapper Windows que dispara `setup.sh` no WSL via `wslpath`)
@@ -12,36 +11,43 @@
   - `seeds/tenants.json` (raiz — fonte canônica `tb_tenant` ↔ flavor folder; inclui `localhost` (slug `local-dev`) pra DX sem `/etc/hosts`)
   - `backend/package.json`, `backend/tsconfig.json`, `backend/jest.config.js`, `backend/eslint.config.js`
   - `backend/src/{server,app}.ts` (Express bootstrap + composition root)
-  - `backend/src/config/{index,database,redis}.ts` (env tipada, AppDataSource, ioredis)
-  - `backend/scripts/{ensure-schema,seed}.ts` (schema bootstrap + seed reproduzível)
+  - `backend/src/config/{index,database,redis}.ts` (env tipada, AppDataSource, `REDIS_URL`, `CACHE_TTL_TENANT_SECONDS`, ioredis)
+  - `backend/scripts/{ensure-schema,seed}.ts` (schema bootstrap + seed reproduzivel)
   - `portal/` (Next.js App Router scaffold, src-dir, eslint, --no-tailwind)
   - `backoffice/` (Vite + React TS scaffold)
+
 **Resumo:** Esqueleto do monorepo (npm workspaces, Node 22+), stack alinhada com `wynk_ecommerce` (Express 4 + TypeORM 0.3 no backend; Next.js App Router no portal; Vite+React no backoffice), pipeline de CI com matriz `[backend, portal, backoffice] × [lint, typecheck, test]` + jobs auxiliares (`format:check`, `validate-flavors`), Postgres+Redis locais via Docker, schema dedicado `scp`. Onboarding documentado em `README.md` raiz + scripts de atalho (`setup.sh`/`setup.bat` configuram; `run.sh`/`run.bat` rodam dev servers).
 
 ## Specs desta feature
 
-### Concluídas
-| ID | Data | Commit | Título |
+### Concluidas
+| ID | Data | Commit | Titulo |
 |---|---|---|---|
 | SPEC-20260503-1505 | 2026-05-11 | `968d389` | Base da plataforma multitenant |
 | SPEC-20260513-0910 | 2026-05-13 | `1d9ea39` | README de setup local (Linux + Windows via WSL2) + scripts `setup.sh`/`run.sh` |
 
 ### Planejadas (future/)
-| ID | Título | Motivo |
+| ID | Titulo | Motivo |
 |---|---|---|
 | _(nenhuma)_ | | |
 
-### Em execução (só em branches — não aparece em main)
-| ID | Título | Branch |
+### Em execucao (so em branches - nao aparece em main)
+| ID | Titulo | Branch |
 |---|---|---|
-| _(nenhuma)_ | | |
+| SPEC-20260512-1601 | Hardening do cache Redis de tenant | feature/SQU-35-redis-cache |
 
 ## Estado atual
 
-Monorepo `wynk-scp` com 3 workspaces (`backend/`, `portal/`, `backoffice/`) gerenciado por **npm workspaces** (Node 22+). Sem Turborepo. Lint via ESLint flat config + `eslint-config-prettier`, format via Prettier (com `docs/`, `*.ico`, `*.lock`, `next-env.d.ts` no `.prettierignore`). CI no GitHub Actions roda 4 jobs em paralelo: a matriz `app × task` (9 combinações) + `format:check` + `validate-flavors` (mapeamento `seeds/tenants.json` ↔ `portal/public/flavors/<slug>/`).
+Monorepo `wynk-scp` com 3 workspaces (`backend/`, `portal/`, `backoffice/`) gerenciado por **npm workspaces** (Node 22+). Sem Turborepo. Lint via ESLint flat config + `eslint-config-prettier`, format via Prettier (com `docs/`, `*.ico`, `*.lock`, `next-env.d.ts` no `.prettierignore`). CI no GitHub Actions roda 4 jobs em paralelo: a matriz `app x task` (9 combinacoes) + `format:check` + `validate-flavors` (mapeamento `seeds/tenants.json` -> `portal/public/flavors/<slug>/`).
 
-Backend é Express 4 + TypeORM 0.3 com pasta espelhando `wynk_ecommerce/backend/src/` (controllers/services/repositories/routes/entities/migrations/subscribers/middleware/dtos/config/utils). Schema dedicado `scp`. Postgres 15 + Redis 7 via `docker-compose.yml` na raiz (portas 5435/6382 expostas no host pra evitar conflito com `wynk_ecommerce` 5434/6381). Bootstrap orquestrado: `scripts/ensure-schema.ts` (cria `scp` schema via cliente `pg` cru antes de TypeORM tocar) → `migration:run` → `seed.ts`.
+Backend e Express 4 + TypeORM 0.3 com pasta espelhando `wynk_ecommerce/backend/src/` (controllers/services/repositories/routes/entities/migrations/subscribers/middleware/dtos/config/utils). Schema dedicado `scp`. Postgres 15 + Redis 7 via `docker-compose.yml` na raiz (portas 5435/6379 expostas no host por default). Bootstrap orquestrado: `scripts/ensure-schema.ts` (cria `scp` schema via cliente `pg` cru antes de TypeORM tocar) -> `migration:run` -> `seed.ts`.
 
+Configuracao de Redis no backend:
+- `REDIS_URL` e a fonte principal de conexao
+- `REDIS_HOST`/`REDIS_PORT` continuam aceitos como fallback de compatibilidade
+- `CACHE_TTL_TENANT_SECONDS` controla o TTL do cache de resolucao de tenant sem exigir deploy de codigo
+- `backend/src/config/redis.ts` usa singleton de `ioredis` e registra falhas de conexao no logger estruturado
+=======
 ### Onboarding e atalhos de dev (SPEC-20260513-0910)
 
 Onboarding tem porta de entrada única no `README.md` raiz: passo-a-passo de pré-requisitos (Node 22+, npm 10+, Git, Docker engine + Compose v2 OU v1, WSL2 no Windows), setup Linux/WSL2, comandos do dia-a-dia, estrutura do monorepo e troubleshooting com 10 gotchas conhecidos (formato *Sintoma → Causa → Fix*).
@@ -54,21 +60,20 @@ Quatro scripts de atalho na raiz, idempotentes, sem instalar pré-requisitos (ap
 
 Tenants no `seeds/tenants.json`: `shopping-x` (host `shopping-x.local`, exige `/etc/hosts`) + `local-dev` (host `localhost`, DX local sem mexer em hosts).
 
-> Última atualização: 2026-05-13 19:45 (SPEC-20260513-0910)
+## Decisoes arquiteturais ativas
 
-## Decisões arquiteturais ativas
-
-- **npm workspaces (não pnpm)** (origem: SPEC-20260503-1505, 2026-05-08 15:33) — Zero dependência extra no host; pnpm exigiria corepack + alteração de PATH. Trade-off: sem strict peer deps + `node_modules` duplicado entre apps. Migração futura é trivial se CI ficar lenta com mais apps.
-- **Express 4 + TypeORM 0.3 cru (não NestJS)** (origem: SPEC-20260503-1505, 2026-05-08 16:43) — Alinha com `wynk_ecommerce` (4 services backend usam Express+TypeORM). Time já domina, PR mais fácil de revisar, sem build step de DI metadata. Trade-off: tenant context vira middleware + AsyncLocalStorage (não interceptor Nest), DI é factory manual em `server.ts` (composition root). Substitui decisão anterior de 2026-05-08 14:31 que tinha escolhido NestJS antes de inspecionar o padrão da casa.
-- **Naming Postgres alinhado com wynk_ecommerce** (origem: SPEC-20260503-1505, 2026-05-08 16:43) — Tabelas `tb_<entity>`, colunas snake_case com prefixo da entity (`tenant_slug`, `user_email`), property TS em camelCase via `name:` no decorator. PK `uuid`. Migrations SQL puro com schema dinâmico (`${schemaName}.tb_X`), `CREATE TABLE IF NOT EXISTS`, constraints nomeadas (`pk_tb_X`, `uq_tb_X_<col>`, `fk_tb_X_<col>`).
-- **`synchronize: false` + migrations versionadas** (origem: SPEC-20260503-1505, 2026-05-08 17:42) — Schema sempre via migrations; nenhum auto-sync. Entities listadas explicitamente em `AppDataSource.entities[]` (sem glob); migrations e subscribers via glob (`src/` em dev, `dist/` em prod).
+- **npm workspaces (nao pnpm)** (origem: SPEC-20260503-1505, 2026-05-08 15:33) - Zero dependencia extra no host; pnpm exigiria corepack + alteracao de PATH. Trade-off: sem strict peer deps + `node_modules` duplicado entre apps. Migracao futura e trivial se CI ficar lenta com mais apps.
+- **Express 4 + TypeORM 0.3 cru (nao NestJS)** (origem: SPEC-20260503-1505, 2026-05-08 16:43) - Alinha com `wynk_ecommerce` (4 services backend usam Express+TypeORM). Time ja domina, PR mais facil de revisar, sem build step de DI metadata. Trade-off: tenant context vira middleware + AsyncLocalStorage (nao interceptor Nest), DI e factory manual em `server.ts` (composition root). Substitui decisao anterior de 2026-05-08 14:31 que tinha escolhido NestJS antes de inspecionar o padrao da casa.
+- **Naming Postgres alinhado com wynk_ecommerce** (origem: SPEC-20260503-1505, 2026-05-08 16:43) - Tabelas `tb_<entity>`, colunas snake_case com prefixo da entity (`tenant_slug`, `user_email`), property TS em camelCase via `name:` no decorator. PK `uuid`. Migrations SQL puro com schema dinamico (`${schemaName}.tb_X`), `CREATE TABLE IF NOT EXISTS`, constraints nomeadas (`pk_tb_X`, `uq_tb_X_<col>`, `fk_tb_X_<col>`).
+- **`synchronize: false` + migrations versionadas** (origem: SPEC-20260503-1505, 2026-05-08 17:42) - Schema sempre via migrations; nenhum auto-sync. Entities listadas explicitamente em `AppDataSource.entities[]` (sem glob); migrations e subscribers via glob (`src/` em dev, `dist/` em prod).
+- **Redis configurado por URL + TTL operacional via env** (origem: SPEC-20260512-1601, 2026-05-12 16:01) - `REDIS_URL` simplifica configuracao local e remota; `CACHE_TTL_TENANT_SECONDS` evita microajustes de performance via deploy de codigo. Trade-off: precisa coordenar porta default do Docker local com eventuais Redis ja instalados no host.
 
 ## Alternativas consideradas e rejeitadas
 
-- **NestJS no backend** (2026-05-08 14:31, revertida em 16:43) — Inicialmente escolhida pelo encaixe natural de interceptors/guards/DI no fluxo multitenant. Rejeitada após descobrir que `wynk_ecommerce` usa Express+TypeORM cru em 4 services. Reuso do padrão da casa venceu.
-- **Fastify** (2026-05-08 14:31) — Performance alta, sintaxe enxuta, mas exigiria wirar DI/validação manualmente e diverge do padrão Wynk. Descartada.
-- **pnpm workspaces** (2026-05-08 15:33) — Estritamente melhor que npm em isolamento de deps + cache global. Rejeitada por exigir `corepack` + alteração de PATH no host do dev (`/usr/bin` não-writable sem `sudo`).
-- **Turborepo** (2026-05-08 14:31) — Não antecipado. Entra só se CI ficar lenta com mais apps. Por ora npm workspaces basta pra 3 apps.
+- **NestJS no backend** (2026-05-08 14:31, revertida em 16:43) - Inicialmente escolhida pelo encaixe natural de interceptors/guards/DI no fluxo multitenant. Rejeitada apos descobrir que `wynk_ecommerce` usa Express+TypeORM cru em 4 services. Reuso do padrao da casa venceu.
+- **Fastify** (2026-05-08 14:31) - Performance alta, sintaxe enxuta, mas exigiria wirar DI/validacao manualmente e diverge do padrao Wynk. Descartada.
+- **pnpm workspaces** (2026-05-08 15:33) - Estritamente melhor que npm em isolamento de deps + cache global. Rejeitada por exigir `corepack` + alteracao de PATH no host do dev (`/usr/bin` nao-writable sem `sudo`).
+- **Turborepo** (2026-05-08 14:31) - Nao antecipado. Entra so se CI ficar lenta com mais apps. Por ora npm workspaces basta para 3 apps.
 
 ## Gotchas
 
