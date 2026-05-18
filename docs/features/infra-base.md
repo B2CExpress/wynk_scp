@@ -27,6 +27,7 @@
 | SPEC-20260513-0910 | 2026-05-13 | `1d9ea39` | README de setup local (Linux + Windows via WSL2) + scripts `setup.sh`/`run.sh` |
 | SPEC-20260512-1601 | 2026-05-12 | `99a29d1` | Hardening do cache Redis de tenant |
 | SPEC-20260512-1900 | 2026-05-13 | `43424f3` | Validação ponta-a-ponta da Fase 1 Multitenant |
+| SPEC-20260514-2012 | 2026-05-18 | `b38052c` | Isolamento multitenant de stores com testes reais |
 
 ### Planejadas (future/)
 | ID | Título | Motivo |
