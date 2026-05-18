@@ -1,3 +1,15 @@
+import * as path from 'node:path';
+import { register } from 'ts-node';
+
+// TypeORM runMigrations() carrega cada migration via require() puro. O Vitest
+// transpila o que ele próprio importa, mas o require interno do TypeORM não
+// passa pelo transformer do Vite. Sem ts-node registrado, require('.ts')
+// quebra com "SyntaxError: Invalid or unexpected token".
+register({
+  transpileOnly: true,
+  project: path.resolve(__dirname, '../../backend/tsconfig.json'),
+});
+
 process.env.NODE_ENV = 'test';
 process.env.DB_HOST ??= 'localhost';
 process.env.DB_PORT ??= '5435';
