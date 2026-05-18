@@ -8,12 +8,12 @@
 
 ## TL;DR (sobrescrever ao fim de cada sessão)
 
-**Última atualização:** 2026-05-12 16:01 (sessão #1)
-**Onde tô:** A SPEC ativa já documenta a mudança entregue no cache Redis de tenant; features vivas também foram alinhadas.
-**Próximo passo:** revisar a SPEC com o dev, fazer commit e arquivar quando houver smoke de Docker em ambiente compatível.
-**Última decisão:** deixar a SPEC em `active` porque ainda falta commit final/smoke externo, apesar dos testes locais verdes.
-**Bloqueio atual:** `docker` indisponível neste host.
-**Se retomar, ler:** `state.md` inteiro, com foco nas entradas `[decisão]` e `[tentativa]`.
+**Última atualização:** 2026-05-18 (sessão #2 — arquivamento)
+**Onde tô:** SPEC concluída e arquivada. PR #7 mergeado em `main` no commit `99a29d1`. CI validou no merge; smoke real com Docker rodou nos ambientes do reviewer/CI.
+**Próximo passo:** nenhum — SPEC está em `archive/`. Cache de tenant é best-effort permanentemente.
+**Última decisão:** Arquivar mesmo sem ter rodado smoke local — CI cobriu no merge do PR #7.
+**Bloqueio atual:** —
+**Se retomar, ler:** entrada `[conclusão]` em `state.md` (2026-05-18) e as decisões arquiteturais ativas em `docs/features/tenant-resolution.md`.
 
 ---
 

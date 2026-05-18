@@ -65,3 +65,24 @@ SPEC ativada para cobrir lacuna de documentação da entrega de `withTenantScope
 
 Implementação e testes do helper já estavam feitos no backend; faltava apenas a pasta da SPEC em `docs/active`.
 
+
+## 2026-05-18 — [MARCO] [conclusão]
+
+SPEC arquivada após merge do PR #8 em `main` (`4315bb7`, 2026-05-12 16:49 BRT).
+
+**O que foi entregue (commit final `4315bb7`, code já estava em `ec5596b`):**
+- `withTenantScope(tenantId)` em `backend/src/utils/with-tenant.ts` — escopo explícito por tenantId para uso fora do `AsyncLocalStorage` (scripts/jobs).
+- Valida `tenantId` vazio e formato UUID v4 (fail-fast).
+- API: `select`, `insertValues`, `update`, `delete`, `findOne`.
+- Falha claro quando tabela alvo não tem coluna `tenant_id` (via metadata do TypeORM).
+- Testes unitários em `backend/__tests__/with-tenant-scope.test.ts` cobrindo erros e aplicação de escopo.
+- README do backend documenta regra obrigatória de uso do helper.
+
+**Compatibilidade:** `withTenant(qb)` original mantido — `withTenantScope` é complemento, não substituição.
+
+**Features tocadas atualizadas (R.7):**
+- `docs/features/tenant-resolution.md` — linha em "Concluídas" adicionada (2026-05-18).
+
+Observação: o PR #8 não havia adicionado linha em "Em execução" antes do merge (foi documentação retroativa), então não há linha a remover.
+
+Commit do arquivamento: este commit.

@@ -1,10 +1,10 @@
 # SPEC-20260512-1640: withTenantScope com validação UUID e docs operacionais
 
-**Status:** active
+**Status:** done
 **Criada:** 2026-05-12 16:40
 **Ativada:** 2026-05-12 16:40
-**Concluída:** —
-**Commit final:** —
+**Concluída:** 2026-05-12
+**Commit final:** `4315bb7`
 **Keywords:** tenant-resolution, withTenant, uuid, isolamento, docs
 **Features:** tenant-resolution
 **Branch:** feature/SQU-33-helper-withtenant
@@ -54,11 +54,11 @@ Validação executada:
 
 ## Critério de aceite
 
-- [ ] Pasta da SPEC criada em `docs/active/SPEC-20260512-1640-with-tenant-scope/` com `main.md`, `state.md`, `memory.md`
-- [ ] `withTenantScope` implementado com validação de UUID v4 e erros claros
-- [ ] Testes unitários cobrindo erros e aplicação de escopo por tenant
-- [ ] README do backend com regra de uso obrigatório do helper
-- [ ] Feature tocada (`tenant-resolution`) atualizada com referência a esta SPEC
-- [ ] `state.md` com entrada `[conclusão]`
-- [ ] `memory.md` com TL;DR final atualizado
+- [x] Pasta da SPEC criada em `docs/active/SPEC-20260512-1640-with-tenant-scope/` com `main.md`, `state.md`, `memory.md` (2026-05-12 16:40)
+- [x] `withTenantScope` implementado com validação de UUID v4 e erros claros (2026-05-12 16:40, commit `ec5596b`)
+- [x] Testes unitários cobrindo erros e aplicação de escopo por tenant (2026-05-12 16:40, commit `ec5596b`)
+- [x] README do backend com regra de uso obrigatório do helper (2026-05-12 16:49, commit `4315bb7`)
+- [x] Features tocadas (`tenant-resolution`) atualizadas com referência a esta SPEC (2026-05-18 — arquivamento R.7)
+- [x] `state.md` com entrada `[conclusão]` (2026-05-18 — arquivamento R.7)
+- [x] `memory.md` com TL;DR final atualizado (2026-05-18 — arquivamento R.7)
 

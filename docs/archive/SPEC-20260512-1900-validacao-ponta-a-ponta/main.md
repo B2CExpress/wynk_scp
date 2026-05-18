@@ -1,10 +1,10 @@
 # SPEC-20260512-1900: Validação ponta-a-ponta da Fase 1 Multitenant
 
-**Status:** active  
+**Status:** done  
 **Criada:** 2026-05-12 19:00  
 **Ativada:** 2026-05-12 19:00  
-**Concluída:** —  
-**Commit final:** —  
+**Concluída:** 2026-05-13  
+**Commit final:** `43424f3`  
 **Keywords:** fase-1, multitenant, validacao, ponta-a-ponta, tenants, auth, redis, theme, tenant-resolution, seed, flavors  
 **Features:** infra-base, tenant-resolution, theme-system  
 **Branch:** feature/validacao-ponta-a-ponta-fase-1  
@@ -110,18 +110,18 @@ Esse tenant usa o flavor `shopping-x`, porque a pasta `portal/public/flavors/sho
 
 ## Critério de aceite
 
-- [ ] A pasta `docs/active/SPEC-20260512-1900-validacao-ponta-a-ponta/` existe com `main.md`, `memory.md` e `state.md`. (2026-05-12 19:00)
-- [ ] O arquivo `docs/fase-1-validacao.md` existe fora da pasta da SPEC. (2026-05-12 19:00)
-- [ ] O arquivo `seeds/tenants.json` mantém o tenant existente da empresa. (2026-05-12 19:00)
-- [ ] O arquivo `seeds/tenants.json` adiciona um tenant específico para esta SPEC. (2026-05-12 19:00)
-- [ ] O conteúdo completo de `seeds/tenants.json` não está duplicado dentro dos documentos da SPEC. (2026-05-12 19:00)
-- [ ] O tenant específico da SPEC aponta para um `flavor_slug` existente em `portal/public/flavors/`. (2026-05-12 19:00)
-- [ ] Os assets do flavor `shopping-x` existem em `portal/public/flavors/shopping-x/`. (2026-05-12 19:00)
-- [ ] A validação manual foi documentada em `docs/fase-1-validacao.md`. (2026-05-12 19:00)
-- [ ] Features tocadas (`infra-base`, `tenant-resolution`, `theme-system`) atualizadas com referência a esta SPEC e timestamp. (2026-05-12 19:00)
-- [ ] O `state.md` foi atualizado com o andamento real da validação. (2026-05-12 19:00)
-- [ ] O `memory.md` foi atualizado com o TL;DR final da sessão. (2026-05-12 19:00)
-- [ ] PR aberto na branch `feature/validacao-ponta-a-ponta-fase-1`. (2026-05-12 19:00)
+- [x] A pasta `docs/active/SPEC-20260512-1900-validacao-ponta-a-ponta/` existe com `main.md`, `memory.md` e `state.md`. (2026-05-13, commit `43424f3`)
+- [x] O arquivo `docs/fase-1-validacao.md` existe fora da pasta da SPEC. (2026-05-13, commit `43424f3`)
+- [x] O arquivo `seeds/tenants.json` mantém o tenant existente da empresa. (2026-05-13, commit `43424f3`)
+- [x] O arquivo `seeds/tenants.json` adiciona um tenant específico para esta SPEC. (2026-05-13, commit `43424f3`)
+- [x] O conteúdo completo de `seeds/tenants.json` não está duplicado dentro dos documentos da SPEC. (2026-05-13, commit `43424f3`)
+- [x] O tenant específico da SPEC aponta para um `flavor_slug` existente em `portal/public/flavors/`. (2026-05-13, commit `43424f3`)
+- [x] Os assets do flavor `shopping-x` existem em `portal/public/flavors/shopping-x/`. (2026-05-13, commit `43424f3`)
+- [ ] A validação manual foi documentada em `docs/fase-1-validacao.md`. — **parcial**: `fase-1-validacao.md` registra apenas o bloqueio do Docker; a validação efetiva ficou pendente (ver `state.md`).
+- [x] Features tocadas (`infra-base`, `tenant-resolution`, `theme-system`) atualizadas com referência a esta SPEC e timestamp. (2026-05-18 — arquivamento R.7)
+- [x] O `state.md` foi atualizado com o andamento real da validação. (2026-05-18 — arquivamento R.7, entrada `[conclusão]`)
+- [x] O `memory.md` foi atualizado com o TL;DR final da sessão. (2026-05-18 — arquivamento R.7)
+- [x] PR aberto na branch `feature/validacao-ponta-a-ponta-fase-1`. (PR #12 mergeado em `496b882`)
 
 ---
 

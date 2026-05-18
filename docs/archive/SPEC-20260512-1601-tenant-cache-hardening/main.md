@@ -1,10 +1,10 @@
 # SPEC-20260512-1601: Hardening do cache Redis de tenant
 
-**Status:** active
+**Status:** done
 **Criada:** 2026-05-12 16:01
 **Ativada:** 2026-05-12 16:01
-**Concluída:** —
-**Commit final:** —
+**Concluída:** 2026-05-12
+**Commit final:** `99a29d1`
 **Keywords:** tenant-resolution, redis, cache, ttl, fallback, docker
 **Features:** tenant-resolution, infra-base
 **Branch:** feature/SQU-35-redis-cache
@@ -54,9 +54,9 @@ Limitação conhecida nesta sessão: o host atual não possui `docker` no PATH, 
 
 ## Critério de aceite
 
-- [ ] SPEC criada em `docs/active/` com `main.md`, `state.md` e `memory.md`
-- [ ] Mudança de cache best-effort, `REDIS_URL`, TTL configurável e invalidação helper documentadas nesta SPEC
-- [ ] Validação executada (`typecheck`, teste do resolver e suite completa do backend) registrada no `state.md`
-- [ ] **Features tocadas (tenant-resolution, infra-base) atualizadas** com timestamp e referência a esta SPEC
-- [ ] `state.md` com entrada `[conclusão]`
-- [ ] `memory.md` com TL;DR final atualizado
+- [x] SPEC criada em `docs/active/` com `main.md`, `state.md` e `memory.md` (2026-05-12 16:01)
+- [x] Mudança de cache best-effort, `REDIS_URL`, TTL configurável e invalidação helper documentadas nesta SPEC (2026-05-12 16:01)
+- [x] Validação executada (`typecheck`, teste do resolver e suite completa do backend) registrada no `state.md` (2026-05-12 16:01)
+- [x] **Features tocadas (tenant-resolution, infra-base) atualizadas** com timestamp e referência a esta SPEC (2026-05-18 — arquivamento R.7)
+- [x] `state.md` com entrada `[conclusão]` (2026-05-18 — arquivamento R.7)
+- [x] `memory.md` com TL;DR final atualizado (2026-05-18 — arquivamento R.7)

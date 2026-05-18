@@ -8,12 +8,12 @@
 
 ## TL;DR (sobrescrever ao fim de cada sessão)
 
-**Última atualização:** 2026-05-12 13:24 (sessão #4 — extensa)
-**Onde tô:** Implementação técnica completa. 3 entidades + 1 migration + helper de cache + camadas controller/service/repository/routes/DTO. SPEC-1506 descartada formalmente (movida para `discard/`). Critérios técnicos do `main.md` quase todos marcados; E2E (migration:run/revert + smoke da rota com DB+Redis reais) explicitamente pendentes. Typecheck/lint verdes, **71 testes passando** (50 antigos + 21 novos).
-**Próximo passo:** Validar contra DB+Redis reais (rodar migrations + smoke test); subir PR; pós-merge mover SPEC pra `archive/`.
-**Última decisão:** Marcar critérios técnicos baseados em cobertura unit, deixando E2E explicitamente pendentes em vez de mascarar. SPEC fica honest sobre o que está atestado vs precisa de DB real.
-**Bloqueio atual:** nenhum. Pendente: testes E2E + revisão do PR pelo dev.
-**Se retomar, ler:** `state.md` entradas `[MARCO] [decisão] Re-escopo #2` (2026-05-12 12:42), `[MARCO] [decisão] SPEC-1506 descartada` (2026-05-12 12:42) e `[MARCO] [implementação] Schema + API + testes unit entregues` (2026-05-12 13:24) — esta última lista exatamente o que falta validar com DB real antes do merge.
+**Última atualização:** 2026-05-18 (sessão #5 — arquivamento)
+**Onde tô:** SPEC concluída e arquivada. Código mergeado em `main` no commit `8199c7e` (re-escopo #2 da SPEC com schema mínimo absorvido após descarte da SPEC-1506). Feature `stores-public-api` atualizada (linha em "Concluídas" + "Em execução" zerada).
+**Próximo passo:** nenhum — SPEC está em `archive/`. Cobertura E2E real ficou de dívida absorvida pela SPEC-20260514-2012-stores-tenant-isolation (PR #13 em draft).
+**Última decisão:** Arquivar com base nos critérios técnicos atendidos via cobertura unit, registrando explicitamente quais critérios E2E não foram validados localmente.
+**Bloqueio atual:** —
+**Se retomar, ler:** entrada `[conclusão]` em `state.md` (2026-05-18) — lista exatamente o que ficou pendente e quem absorveu.
 
 ---
 

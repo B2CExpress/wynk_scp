@@ -23,20 +23,23 @@
 
 ## Specs desta feature
 
-### Concluidas
-| ID | Data | Commit | Titulo |
+### Concluídas
+| ID | Data | Commit | Título |
 |---|---|---|---|
 | SPEC-20260503-1505 | 2026-05-11 | `968d389` | Base da plataforma multitenant |
+| SPEC-20260512-1601 | 2026-05-12 | `99a29d1` | Hardening do cache Redis de tenant |
+| SPEC-20260512-1640 | 2026-05-12 | `4315bb7` | withTenantScope com validação UUID e docs operacionais |
+| SPEC-20260512-1900 | 2026-05-13 | `43424f3` | Validação ponta-a-ponta da Fase 1 Multitenant |
 
 ### Planejadas (future/)
-| ID | Titulo | Motivo |
+| ID | Título | Motivo |
 |---|---|---|
 | _(nenhuma)_ | | |
 
-### Em execucao (so em branches - nao aparece em main)
-| ID | Titulo | Branch |
+### Em execução (só em branches — não aparece em main)
+| ID | Título | Branch |
 |---|---|---|
-| SPEC-20260512-1601 | Hardening do cache Redis de tenant | feature/SQU-35-redis-cache |
+| _(nenhuma)_ | | |
 
 ## Estado atual
 

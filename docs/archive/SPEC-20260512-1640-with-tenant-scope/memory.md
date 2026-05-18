@@ -8,12 +8,12 @@
 
 ## TL;DR (sobrescrever ao fim de cada sessão)
 
-**Última atualização:** 2026-05-12 16:40 (sessão #1)
-**Onde tô:** SPEC criada para documentar helper `withTenantScope` já entregue no código.
-**Próximo passo:** atualizar linha de feature em execução e fechar commit.
-**Última decisão:** manter compatibilidade com `withTenant(qb)` e expandir para uso explícito por `tenantId`.
-**Bloqueio atual:** nenhum.
-**Se retomar, ler:** `state.md` completo.
+**Última atualização:** 2026-05-18 (sessão #2 — arquivamento)
+**Onde tô:** SPEC concluída e arquivada. PR #8 mergeado em `main` no commit `4315bb7`. Implementação técnica em `ec5596b` (anterior ao PR — SPEC nasceu retroativa).
+**Próximo passo:** nenhum — SPEC em `archive/`. Helper `withTenantScope` é a forma canônica de aplicar isolamento fora de request.
+**Última decisão:** Não adicionar regra ESLint custom automática agora (fora de escopo); revisitar em SPEC própria se o time decidir.
+**Bloqueio atual:** —
+**Se retomar, ler:** entrada `[conclusão]` em `state.md` (2026-05-18) e `backend/README.md` (seção "Regra obrigatória de isolamento por tenant").
 
 ---
 

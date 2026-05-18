@@ -87,3 +87,26 @@ Commit: —
 ## 2026-05-12 16:01 — [nota] Features vivas atualizadas
 
 `docs/features/tenant-resolution.md` e `docs/features/infra-base.md` foram atualizadas para incluir a linha desta SPEC em `Em execução` e refletir o novo estado real do cache/configuração de Redis.
+
+## 2026-05-18 — [MARCO] [conclusão]
+
+SPEC arquivada após merge do PR #7 em `main` (`99a29d1`, 2026-05-12 16:16 BRT).
+
+**O que foi entregue (commit final `99a29d1`):**
+- `TenantResolverService` trata Redis como best-effort (`GET`/`SET`/`DEL` falham sem derrubar a request, fallback para Postgres + warning estruturado).
+- `REDIS_URL` como fonte principal de conexão; `CACHE_TTL_TENANT_SECONDS` (default 600) configurável via env.
+- `invalidateTenantCache(host)` exportado pro mesmo módulo do resolver.
+- Logs estruturados (`logger.info`/`logger.warn`) substituem `console.error`.
+- Validação tipada do payload do Redis antes de retornar (evita `any` silencioso).
+- 9 testes no `tenant-resolver.service.test.ts` (3 novos pra fallback de Redis).
+
+**O que ficou pendente:**
+- Smoke real em `docker-compose up -d postgres redis` não pôde ser executado no host original (sem Docker no PATH). Validado em CI no merge do PR #7.
+
+**Features tocadas atualizadas (R.7):**
+- `docs/features/tenant-resolution.md` — linha em "Concluídas" + linha em "Em execução" removida; **Decisão arquitetural ativa** "Cache Redis de tenant é best-effort + TTL configurável por env" adicionada com origem nesta SPEC (já feito no commit `99a29d1`).
+- `docs/features/infra-base.md` — linha em "Concluídas" + linha em "Em execução" removida; nova decisão "Redis configurado por URL + TTL operacional via env" referenciando esta SPEC (já feito no commit `99a29d1`).
+
+Observação: o PR #7 já tinha atualizado as decisões nas features vivas; este commit completa o R.7 movendo a SPEC para `archive/`, completando a linha em "Concluídas" e removendo a linha de "Em execução" que ficou pendente após o merge.
+
+Commit do arquivamento: este commit.

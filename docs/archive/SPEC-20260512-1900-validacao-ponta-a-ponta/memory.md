@@ -8,12 +8,12 @@
 
 ## TL;DR
 
-**Última atualização:** 2026-05-13 16:29  
-**Onde tô:** SPEC de validação ponta-a-ponta da Fase 1 criada com ID real `SPEC-20260512-1900-validacao-ponta-a-ponta`. A estrutura correta mantém `main.md`, `memory.md` e `state.md` dentro da pasta da SPEC, enquanto `docs/fase-1-validacao.md` fica direto dentro de `docs/`.  
-**Próximo passo:** Ajustar `seeds/tenants.json` mantendo o tenant existente da empresa e adicionando apenas um tenant específico para esta SPEC. Depois, commitar e enviar a branch.  
-**Última decisão:** Não duplicar o conteúdo completo de `seeds/tenants.json` dentro dos documentos; apenas referenciar o arquivo real.  
-**Bloqueio atual:** Docker Desktop não carrega corretamente no ambiente local, impedindo validação real de Postgres, Redis, migrations e seed.  
-**Se retomar, ler:** `main.md`, TL;DR do `state.md` e seção "Bloqueios ativos".
+**Última atualização:** 2026-05-18 (sessão #3 — arquivamento)  
+**Onde tô:** SPEC concluída e arquivada. PR #12 mergeado em `main` no commit `43424f3` (merge `496b882`). Critério estrutural atingido (pasta da SPEC, `docs/fase-1-validacao.md`, `seeds/tenants.json` com tenant adicional). Validação real ficou bloqueada por Docker — registrada como dívida técnica, não como falha de entrega.  
+**Próximo passo:** nenhum — SPEC em `archive/`. Quando alguém tiver Docker funcional e quiser executar o checklist, criar SPEC nova (não reativar esta).  
+**Última decisão:** Arquivar como `done` apesar do bloqueio do Docker, porque a SPEC entregou tudo o que dependia da autora; o resto era ambiente.  
+**Bloqueio atual:** —  
+**Se retomar, ler:** entrada `[conclusão]` em `state.md` (2026-05-18) e o trecho "O que NÃO foi entregue (bloqueado por Docker)".
 
 ---
 
@@ -141,3 +141,18 @@ docs/
 │       ├── memory.md
 │       └── state.md
 ├── fase-1-validacao.md
+└── features/
+    ├── infra-base.md
+    ├── tenant-resolution.md
+    └── theme-system.md
+```
+
+---
+
+## Histórico de sessões
+
+| # | Início | Duração | Tipo | Sumário 1 linha |
+|---|--------|---------|------|-----------------|
+| 1 | 2026-05-12 19:00 | ~1h | ativação | SPEC criada; estrutura inicial + tenant adicional em `seeds/tenants.json` |
+| 2 | 2026-05-13 16:29 | ~30min | continuidade | Bloqueio do Docker registrado; SPEC enviada como entrega estrutural |
+| 3 | 2026-05-18 | ~10min | conclusão (R.7) | SPEC arquivada após merge do PR #12; features tocadas atualizadas |
