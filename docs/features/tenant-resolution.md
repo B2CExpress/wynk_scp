@@ -124,3 +124,4 @@ helmet -> cors -> json/urlencoded/cookie-parser -> morgan
 ## Estado congelado (se houver)
 
 _(nenhum)_
+
