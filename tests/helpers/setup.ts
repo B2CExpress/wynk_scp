@@ -79,24 +79,34 @@ export interface IsolationContext {
 let cachedContext: IsolationContext | null = null;
 
 async function ensureTestDatabase(): Promise<void> {
-  const client = new Client({
+  const connection = {
     host: process.env.DB_HOST ?? 'localhost',
     port: Number(process.env.DB_PORT ?? '5435'),
     user: process.env.DB_USER ?? 'scp',
     password: process.env.DB_PASS ?? 'scp',
-    database: 'postgres',
-  });
+  };
 
-  await client.connect();
+  const adminClient = new Client({ ...connection, database: 'postgres' });
+  await adminClient.connect();
   try {
-    const existing = await client.query('SELECT 1 FROM pg_database WHERE datname = $1', [
+    const existing = await adminClient.query('SELECT 1 FROM pg_database WHERE datname = $1', [
       TEST_DB_NAME,
     ]);
     if (existing.rowCount === 0) {
-      await client.query(`CREATE DATABASE ${TEST_DB_NAME}`);
+      await adminClient.query(`CREATE DATABASE ${TEST_DB_NAME}`);
     }
   } finally {
-    await client.end();
+    await adminClient.end();
+  }
+
+  // TypeORM falha em runMigrations() se o schema não existir antes — mesmo
+  // gotcha de backend/scripts/ensure-schema.ts no fluxo de dev.
+  const dbClient = new Client({ ...connection, database: TEST_DB_NAME });
+  await dbClient.connect();
+  try {
+    await dbClient.query(`CREATE SCHEMA IF NOT EXISTS ${TEST_DB_SCHEMA}`);
+  } finally {
+    await dbClient.end();
   }
 }
 
@@ -158,7 +168,7 @@ export async function createIsolationContext(): Promise<IsolationContext> {
 
   const redis = new Redis({
     host: process.env.REDIS_HOST ?? 'localhost',
-    port: Number(process.env.REDIS_PORT ?? '6382'),
+    port: Number(process.env.REDIS_PORT ?? '6379'),
     db: TEST_REDIS_DB,
     maxRetriesPerRequest: 1,
     lazyConnect: false,
@@ -357,7 +367,8 @@ export async function createCategoryFixture(input: {
 }): Promise<CategoryFixture> {
   const context = await createIsolationContext();
   const { AppDataSource } = context.databaseModule;
-  const { Category } = (await import('../../backend/src/entities/Category')) as CategoryEntityModule;
+  const { Category } =
+    (await import('../../backend/src/entities/Category')) as CategoryEntityModule;
   const repo = AppDataSource.getRepository(Category);
   const created = await repo.save(
     repo.create({

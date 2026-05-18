@@ -65,7 +65,9 @@ export class StoreCategoryRepository {
     return true;
   }
 
-  async reorderForCurrentTenant(items: Array<{ id: string; sortOrder: number }>): Promise<Category[]> {
+  async reorderForCurrentTenant(
+    items: Array<{ id: string; sortOrder: number }>,
+  ): Promise<Category[]> {
     const ids = items.map((item) => item.id);
     const categories = await withTenant(this.repo.createQueryBuilder('category'))
       .andWhere('category.category_id IN (:...ids)', { ids })

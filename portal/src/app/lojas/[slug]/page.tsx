@@ -32,7 +32,9 @@ export default async function StoreDetailPage({ params }: StoreDetailPageProps) 
             <h1>{store.name}</h1>
             <div className={styles.detailMeta}>
               <span>{store.isRestaurant ? 'Restaurante' : 'Loja'}</span>
-              <span>{store.floor ? `Piso ${store.floor}` : 'Consulte localizacao no shopping'}</span>
+              <span>
+                {store.floor ? `Piso ${store.floor}` : 'Consulte localizacao no shopping'}
+              </span>
               <span>{store.phone ?? 'Telefone sob consulta'}</span>
             </div>
             {store.categories.length > 0 ? (
@@ -45,7 +47,12 @@ export default async function StoreDetailPage({ params }: StoreDetailPageProps) 
               </div>
             ) : null}
             {store.externalUrl ? (
-              <a className={styles.button} href={store.externalUrl} target="_blank" rel="noreferrer">
+              <a
+                className={styles.button}
+                href={store.externalUrl}
+                target="_blank"
+                rel="noreferrer"
+              >
                 Abrir site oficial
               </a>
             ) : null}
@@ -101,7 +108,9 @@ export default async function StoreDetailPage({ params }: StoreDetailPageProps) 
             <div className={styles.detailInfoCard}>
               <h3>Horario</h3>
               {store.openingHours ? (
-                <pre className={styles.hoursBlock}>{JSON.stringify(store.openingHours, null, 2)}</pre>
+                <pre className={styles.hoursBlock}>
+                  {JSON.stringify(store.openingHours, null, 2)}
+                </pre>
               ) : (
                 <p>Horario ainda nao informado.</p>
               )}

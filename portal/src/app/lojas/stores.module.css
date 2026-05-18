@@ -2,9 +2,21 @@
   min-height: 100vh;
   padding: 2.5rem clamp(1.25rem, 4vw, 4rem) 4rem;
   background:
-    radial-gradient(circle at top right, color-mix(in srgb, var(--color-primary) 20%, transparent), transparent 32%),
-    radial-gradient(circle at bottom left, color-mix(in srgb, var(--color-secondary) 22%, transparent), transparent 28%),
-    linear-gradient(180deg, color-mix(in srgb, var(--color-background) 88%, white), var(--color-background));
+    radial-gradient(
+      circle at top right,
+      color-mix(in srgb, var(--color-primary) 20%, transparent),
+      transparent 32%
+    ),
+    radial-gradient(
+      circle at bottom left,
+      color-mix(in srgb, var(--color-secondary) 22%, transparent),
+      transparent 28%
+    ),
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--color-background) 88%, white),
+      var(--color-background)
+    );
   color: var(--color-text);
 }
 
@@ -54,7 +66,11 @@
   gap: 0.5rem;
   padding: 1.75rem;
   border-radius: 28px;
-  background: linear-gradient(160deg, var(--color-primary), color-mix(in srgb, var(--color-secondary) 80%, black));
+  background: linear-gradient(
+    160deg,
+    var(--color-primary),
+    color-mix(in srgb, var(--color-secondary) 80%, black)
+  );
   color: white;
   min-height: 220px;
 }
@@ -73,7 +89,9 @@
 
 .filters {
   display: grid;
-  grid-template-columns: minmax(220px, 2fr) minmax(180px, 1fr) repeat(2, max-content) auto max-content;
+  grid-template-columns:
+    minmax(220px, 2fr) minmax(180px, 1fr) repeat(2, max-content)
+    auto max-content;
   gap: 0.85rem;
   align-items: center;
   padding: 1rem;
@@ -138,7 +156,9 @@
   border-radius: 26px;
   background: color-mix(in srgb, var(--color-background) 84%, white);
   border: 1px solid color-mix(in srgb, var(--color-text) 8%, transparent);
-  transition: transform 160ms ease, box-shadow 160ms ease;
+  transition:
+    transform 160ms ease,
+    box-shadow 160ms ease;
 }
 
 .card:hover {

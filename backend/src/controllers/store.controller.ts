@@ -113,7 +113,8 @@ export class StoreController {
       const page = Math.max(1, parseInt(req.query.page as string) || 1);
       const limit = Math.max(1, Math.min(100, parseInt(req.query.limit as string) || 20));
       const status = req.query.status as string | undefined;
-      const featured = req.query.featured === 'true' ? true : req.query.featured === 'false' ? false : undefined;
+      const featured =
+        req.query.featured === 'true' ? true : req.query.featured === 'false' ? false : undefined;
       const search = req.query.search as string | undefined;
 
       const result = await this.storeService.listAdminWithFilters({

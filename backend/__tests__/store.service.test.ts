@@ -13,6 +13,7 @@ const CTX: TenantContext = {
 const SAMPLE_ITEM: StoreListItem = {
   id: 'store-1',
   name: 'McDonald',
+  description: 'Líder mundial em lanches rápidos e hambúrgueres icônicos.',
   slug: 'mcdonald',
   logoUrl: null,
   coverImageUrl: null,

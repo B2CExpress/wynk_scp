@@ -1,4 +1,5 @@
 import 'reflect-metadata';
+import * as path from 'node:path';
 import { DataSource } from 'typeorm';
 import { config } from './index';
 import { Tenant } from '../entities/Tenant';
@@ -7,6 +8,19 @@ import { RefreshToken } from '../entities/RefreshToken';
 import { Store } from '../entities/Store';
 import { Category } from '../entities/Category';
 import { StoreCategory } from '../entities/StoreCategory';
+
+// Resolve globs de migrations/subscribers absolutos ao próprio módulo, não ao
+// CWD. Necessário pra Vitest da raiz (`npm run test:isolation`) achar os mesmos
+// arquivos que o Jest/CLI do backend acham.
+const BACKEND_SRC = path.resolve(__dirname, '..');
+const MIGRATIONS_GLOB =
+  config.nodeEnv === 'production'
+    ? path.join(BACKEND_SRC.replace(/\/src$/, '/dist'), 'migrations', '**', '*.js')
+    : path.join(BACKEND_SRC, 'migrations', '**', '*.{ts,js}');
+const SUBSCRIBERS_GLOB =
+  config.nodeEnv === 'production'
+    ? path.join(BACKEND_SRC.replace(/\/src$/, '/dist'), 'subscribers', '**', '*.js')
+    : path.join(BACKEND_SRC, 'subscribers', '**', '*.{ts,js}');
 
 /**
  * AppDataSource — instância única do TypeORM compartilhada por toda a aplicação.
@@ -29,10 +43,6 @@ export const AppDataSource = new DataSource({
   synchronize: false,
   logging: process.env.TYPEORM_LOGGING === 'true',
   entities: [Tenant, User, RefreshToken, Store, Category, StoreCategory],
-  migrations: [
-    config.nodeEnv === 'production' ? 'dist/migrations/**/*.js' : 'src/migrations/**/*.{ts,js}',
-  ],
-  subscribers: [
-    config.nodeEnv === 'production' ? 'dist/subscribers/**/*.js' : 'src/subscribers/**/*.{ts,js}',
-  ],
+  migrations: [MIGRATIONS_GLOB],
+  subscribers: [SUBSCRIBERS_GLOB],
 });

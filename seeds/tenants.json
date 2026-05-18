@@ -6,6 +6,12 @@
     "name": "Shopping X"
   },
   {
+    "slug": "validacao-fase1",
+    "host": "validacao-fase1.local",
+    "flavorSlug": "shopping-x",
+    "name": "Validação Fase 1"
+  },
+  {
     "slug": "local-dev",
     "host": "localhost",
     "flavorSlug": "shopping-x",

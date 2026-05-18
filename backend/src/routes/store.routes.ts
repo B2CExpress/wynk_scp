@@ -16,20 +16,10 @@ export function createStoreRoutes(controller: StoreController): Router {
     controller.deleteAdmin
   ) {
     router.get('/api/admin/stores', requireAuth, requireTenantAdmin, controller.listAdmin);
-    router.get(
-      '/api/admin/stores/:id',
-      requireAuth,
-      requireTenantAdmin,
-      controller.getDetailAdmin,
-    );
+    router.get('/api/admin/stores/:id', requireAuth, requireTenantAdmin, controller.getDetailAdmin);
     router.post('/api/admin/stores', requireAuth, requireTenantAdmin, controller.createAdmin);
     router.put('/api/admin/stores/:id', requireAuth, requireTenantAdmin, controller.updateAdmin);
-    router.delete(
-      '/api/admin/stores/:id',
-      requireAuth,
-      requireTenantAdmin,
-      controller.deleteAdmin,
-    );
+    router.delete('/api/admin/stores/:id', requireAuth, requireTenantAdmin, controller.deleteAdmin);
   }
 
   return router;

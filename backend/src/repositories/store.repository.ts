@@ -86,7 +86,11 @@ export class StoreRepository {
         );
     }
 
-    qb = (query.search ? qb.orderBy('search_rank', 'DESC') : qb.orderBy('store.store_is_featured', 'DESC'))
+    qb = (
+      query.search
+        ? qb.orderBy('search_rank', 'DESC')
+        : qb.orderBy('store.store_is_featured', 'DESC')
+    )
       .addOrderBy('store.store_is_featured', 'DESC')
       .addOrderBy('store.store_sort_order', 'ASC')
       .addOrderBy('store.store_name', 'ASC')
@@ -96,17 +100,18 @@ export class StoreRepository {
     const [rows, total] = await qb.getManyAndCount();
 
     return {
-      items: rows.map((store) => ({
-        id: store.id,
-        name: store.name,
-        slug: store.slug,
-        logoUrl: store.logoUrl,
-        coverImageUrl: store.coverImageUrl,
-        floor: store.floor,
-        phone: store.phone,
-        isRestaurant: store.isRestaurant,
-        isFeatured: store.isFeatured,
-        sortOrder: store.sortOrder,
+      items: rows.map((s) => ({
+        id: s.id,
+        name: s.name,
+        description: s.description,
+        slug: s.slug,
+        logoUrl: s.logoUrl,
+        coverImageUrl: s.coverImageUrl,
+        floor: s.floor,
+        phone: s.phone,
+        isRestaurant: s.isRestaurant,
+        isFeatured: s.isFeatured,
+        sortOrder: s.sortOrder,
       })),
       total,
     };
@@ -327,7 +332,11 @@ export class StoreRepository {
         );
     }
 
-    qb = (query.search ? qb.orderBy('search_rank', 'DESC') : qb.orderBy('store.store_is_featured', 'DESC'))
+    qb = (
+      query.search
+        ? qb.orderBy('search_rank', 'DESC')
+        : qb.orderBy('store.store_is_featured', 'DESC')
+    )
       .addOrderBy('store.store_is_featured', 'DESC')
       .addOrderBy('store.store_sort_order', 'ASC')
       .addOrderBy('store.store_name', 'ASC')
@@ -342,7 +351,9 @@ export class StoreRepository {
     return { stores, total, categoriesByStoreId };
   }
 
-  async findByIdWithCategoriesAdmin(id: string): Promise<(Store & { categories: Category[] }) | null> {
+  async findByIdWithCategoriesAdmin(
+    id: string,
+  ): Promise<(Store & { categories: Category[] }) | null> {
     const store = await this.findByIdForCurrentTenant(id);
     if (!store) {
       return null;

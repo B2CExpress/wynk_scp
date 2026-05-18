@@ -8,12 +8,12 @@
 
 ## TL;DR (sobrescrever ao fim de cada sessão)
 
-**Última atualização:** 2026-05-16 14:30 (sessão #1)
-**Onde tô:** Ativação — plano inicial feito, leitura de SPECs anteriores concluída
-**Próximo passo:** Ler schema Store entity + começar validators Zod + sanitize lib
-**Última decisão:** Transação em POST (INSERT store + category relations) e PUT (DELETE + reINSERT relações)
-**Bloqueio atual:** nenhum
-**Se retomar, ler:** State.md seção [ativação] + schema existente em SPEC-1400
+**Última atualização:** 2026-05-18 (sessão #2 — arquivamento)
+**Onde tô:** SPEC concluída e arquivada. CRUD admin completo entregue no commit `145f0cd` (sessão #1, Leonardo), validado no CI no commit `7642216` (sessão #2 pós-merge com main). 12/12 checks verdes; isolation tests (SPEC-20260514-2012) cobre os cenários cross-tenant dos endpoints desta SPEC.
+**Próximo passo:** nenhum — SPEC em `archive/`. PR #15 stacked acima precisa de rebase quando o #14 mergear.
+**Última decisão:** Migration `1746748500000` foi simplificada/renomeada pra só adicionar `external_url` e `opening_hours` — `description` foi removido por já existir na `1746748400000` (absorvida pelo PR #9 fulltext). Stub de storage continua dívida técnica explícita pra Fase 6.
+**Bloqueio atual:** —
+**Se retomar, ler:** entrada `[conclusão]` em `state.md` (2026-05-18) — caminho dos 2 commits da sessão #2 (merge + fix migration).
 
 ---
 

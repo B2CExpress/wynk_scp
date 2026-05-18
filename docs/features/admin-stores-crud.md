@@ -17,7 +17,7 @@
 ### Concluidas
 | ID | Data | Commit | Titulo |
 |---|---|---|---|
-| _(nenhuma ainda)_ | — | — | — |
+| SPEC-20260516-1430 | 2026-05-18 | `7642216` | CRUD completo de lojas no admin |
 
 ### Planejadas (future/)
 | ID | Titulo | Motivo |
@@ -28,8 +28,7 @@
 ### Em execucao (so em branches - nao aparece em main)
 | ID | Titulo | Branch |
 |---|---|---|
-| SPEC-20260516-1430 | CRUD completo de lojas no admin | feature/SQU-42-api-admin-crud-de-lojas |
-| SPEC-20260516-1730 | Catalogo de lojas - fase 2 publica e operacional | feature/store-catalog-phase-2 |
+| SPEC-20260516-1730 | Catalogo de lojas - fase 2 publica e operacional | feature/SQU-39-fase-2-modulo-de-lojas |
 
 ## Estado atual
 
@@ -42,3 +41,13 @@ Dependencias:
 - `withTenant()` e `AsyncLocalStorage` da feature `tenant-resolution`
 - schema base de `tb_store`, `tb_category` e `tb_store_category`
 - auth por cookie com `requireAuth`
+
+## Decisões arquiteturais ativas
+
+- **Validação Zod centralizada em `lib/validators.ts`** (origem: SPEC-20260516-1430, 2026-05-16) — schemas com mensagens campo-a-campo + helper `validateWithSchema` mapeando erros pra `Record<string,string>`. Aplicado em create/update + endpoint de reorder de categorias.
+- **Sanitização HTML server-side via `sanitize-html`** (origem: SPEC-20260516-1430, 2026-05-16) — allowlist conservadora (`p, br, strong, em, u, h2-h4, ul, ol, li, a, img, blockquote`) + schemes `http/https/mailto`. Aplicado em `description` antes de gravar; portal renderiza HTML sanitizado.
+- **Slug auto-gerado quando omitido + uniqueness por tenant** (origem: SPEC-20260516-1430, 2026-05-16) — `slugifyStoreName(name)` (NFKD + lower + dash) na ausência de slug; regex `^[a-z0-9-]+$` quando fornecido; conflict detection via `StoreSlugConflictError` (409).
+- **RBAC com `requireTenantAdmin` middleware** (origem: SPEC-20260516-1430, 2026-05-16) — checa `req.user.role ∈ {tenant_admin, admin}` em rotas admin; tenant context vem do JWT (não do header), evitando cross-check redundante.
+- **Transação em mutações de relações N:M (store ↔ categorias)** (origem: SPEC-20260516-1430, 2026-05-16) — POST e PUT com `category_ids` rodam em `DataSource.transaction()`. PUT sem `category_ids` no body não toca em relações; com `category_ids` faz DELETE all + INSERT new dentro da transação.
+- **Upload é stub por metadata, não multipart** (origem: SPEC-20260516-1730, 2026-05-16) — admin envia `{file_name, mime_type, size}` em `logo_upload`/`cover_upload`; backend gera URL fake `/uploads/{tenant_id}/stores/{slug}/{filename}`. Upload real para CDN fica na Fase 6 (SPEC futura).
+- **Categorias de outro tenant em payload retornam 422 (não 404)** (origem: SPEC-20260514-2012, validado em testes) — `InvalidStoreCategoriesError` é semanticamente "input inválido"; 404 é reservado pro recurso principal não existir.

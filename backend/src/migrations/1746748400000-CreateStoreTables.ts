@@ -32,7 +32,12 @@ export class CreateStoreTables1746748400000 implements MigrationInterface {
         store_id uuid NOT NULL DEFAULT ${uuidFn},
         tenant_id uuid NOT NULL,
         store_name varchar(120) NOT NULL,
+        store_description text NULL,
         store_slug varchar(140) NOT NULL,
+        store_search_vector tsvector GENERATED ALWAYS AS (
+          setweight(to_tsvector('portuguese', coalesce(store_name, '')), 'A') ||
+          setweight(to_tsvector('portuguese', coalesce(store_description, '')), 'B')
+        ) STORED NOT NULL,
         store_logo_url text NULL,
         store_cover_image_url text NULL,
         store_floor varchar(40) NULL,
@@ -53,6 +58,12 @@ export class CreateStoreTables1746748400000 implements MigrationInterface {
     );
     await queryRunner.query(
       `CREATE INDEX IF NOT EXISTS ix_tb_store_tenant_status_sort ON ${schemaName}.tb_store (tenant_id, store_status, store_sort_order)`,
+    );
+    await queryRunner.query(
+      `CREATE INDEX IF NOT EXISTS ix_tb_store_tenant_search ON ${schemaName}.tb_store (tenant_id) INCLUDE (store_search_vector)`,
+    );
+    await queryRunner.query(
+      `CREATE INDEX IF NOT EXISTS ix_tb_store_search_vector ON ${schemaName}.tb_store USING GIN(store_search_vector)`,
     );
 
     await queryRunner.query(`

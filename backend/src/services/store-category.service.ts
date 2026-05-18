@@ -1,8 +1,5 @@
 import { slugifyStoreName } from '../lib/slug';
-import {
-  validateStoreCategoryInput,
-  validateStoreCategoryReorder,
-} from '../lib/validators';
+import { validateStoreCategoryInput, validateStoreCategoryReorder } from '../lib/validators';
 import { requireTenantContext } from '../middleware/tenant-context';
 import type { StoreCategoryRepository } from '../repositories/store-category.repository';
 
@@ -71,7 +68,10 @@ export class StoreCategoryService {
       throw new StoreCategoryValidationError(validation.errors);
     }
 
-    const slug = await this.resolveUniqueSlug(validation.data.name, validation.data.slug ?? undefined);
+    const slug = await this.resolveUniqueSlug(
+      validation.data.name,
+      validation.data.slug ?? undefined,
+    );
     const sortOrder =
       validation.data.sort_order ?? (await this.repo.findMaxSortOrderForCurrentTenant()) + 1;
     const { tenantId } = requireTenantContext();

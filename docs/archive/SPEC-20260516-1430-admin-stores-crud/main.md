@@ -1,10 +1,10 @@
 # SPEC-20260516-1430: CRUD completo de lojas no admin
 
-**Status:** active
+**Status:** done
 **Criada:** 2026-05-16 14:30
 **Ativada:** 2026-05-16 14:30
-**Concluída:** —
-**Commit final:** —
+**Concluída:** 2026-05-18
+**Commit final:** `7642216`
 **Keywords:** stores, admin, crud, sanitization, html, paginacao, upload-stub, isolamento-tenant
 **Features:** admin-stores-crud, stores-public-api, tenant-resolution
 **Branch:** feature/SQU-42-api-admin-crud-de-lojas
@@ -125,20 +125,20 @@ Invalidação de cache após mutação: chamar `invalidateStoresCache(tenantId)`
 
 ## Critério de aceite
 
-- [ ] Endpoint GET /api/admin/stores com paginação, filtros e isolamento ✓
-- [ ] Endpoint GET /api/admin/stores/:id com 404 cross-tenant ✓
-- [ ] Endpoint POST /api/admin/stores com validação, sanitização, slug auto-gerado ✓
-- [ ] Endpoint PUT /api/admin/stores/:id com atualização de categorias (transação) ✓
-- [ ] Endpoint DELETE /api/admin/stores/:id com cascade ✓
-- [ ] Validação categoria cross-tenant retorna 422 ✓
-- [ ] HTML perigoso (<script>) removido em description ✓
-- [ ] Slug com caracteres inválidos rejeitado, auto-gerado de name ✓
-- [ ] `lib/validators/store.ts` com Zod schemas ✓
-- [ ] `lib/sanitize.ts` com allowlist HTML ✓
-- [ ] `lib/storage/upload.ts` stub funcional ✓
-- [ ] Testes manuais: 6 casos (sem categorias, com 2 categorias, cross-tenant 422, HTML sanitizado, paginação, PUT com update de categorias) ✓
-- [ ] Cache Redis invalidado após mutação ✓
-- [ ] Isolamento testado (GET/PUT/DELETE de outro tenant = 404) ✓
-- [ ] **Features tocadas (admin-stores-crud, stores-public-api, tenant-resolution) atualizadas** com timestamp e referência a esta SPEC
-- [ ] `state.md` com entrada `[conclusão]`
-- [ ] `memory.md` com TL;DR final atualizado
+- [x] Endpoint GET /api/admin/stores com paginação, filtros e isolamento (commit `145f0cd`)
+- [x] Endpoint GET /api/admin/stores/:id com 404 cross-tenant (commit `145f0cd`)
+- [x] Endpoint POST /api/admin/stores com validação, sanitização, slug auto-gerado (commit `145f0cd`)
+- [x] Endpoint PUT /api/admin/stores/:id com atualização de categorias (transação) (commit `145f0cd`)
+- [x] Endpoint DELETE /api/admin/stores/:id com cascade (commit `145f0cd`)
+- [x] Validação categoria cross-tenant retorna 422 (commit `145f0cd`; validado pela suite test:isolation cenário 7 — SPEC-20260514-2012, verde no CI 2026-05-18)
+- [x] HTML perigoso (`<script>`) removido em description (commit `145f0cd`, `lib/sanitize.ts` com allowlist `sanitize-html`)
+- [x] Slug com caracteres inválidos rejeitado, auto-gerado de name (commit `145f0cd`, `lib/slug.ts` + Zod regex)
+- [x] `lib/validators.ts` com Zod schemas (commit `145f0cd`)
+- [x] `lib/sanitize.ts` com allowlist HTML (commit `145f0cd`)
+- [x] `lib/storage.ts` stub funcional — fake URL `/uploads/{tenantId}/stores/{slug}/{filename}`; **dívida técnica**: upload real para CDN fica na Fase 6 (commit `145f0cd`)
+- [x] Testes unitários em `store-admin.service.test.ts` cobrindo cenários principais (commit `145f0cd`, 4 testes Jest)
+- [x] Cache Redis invalidado após mutação (commit `145f0cd`, `invalidateListings()` em create/update/delete)
+- [x] Isolamento testado (GET/PUT/DELETE de outro tenant = 404) — validado pela suite test:isolation (SPEC-20260514-2012 cenários 2, 6, 7), verde no CI 2026-05-18 commit `7642216`
+- [x] **Features tocadas (admin-stores-crud, stores-public-api, tenant-resolution) atualizadas** com timestamp e referência a esta SPEC (2026-05-18 — arquivamento R.7)
+- [x] `state.md` com entrada `[conclusão]` (2026-05-18 — arquivamento R.7)
+- [x] `memory.md` com TL;DR final atualizado (2026-05-18 — arquivamento R.7)

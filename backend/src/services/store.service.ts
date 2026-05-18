@@ -351,12 +351,14 @@ export class StoreService {
     await invalidateByPattern(this.redis, `stores:list:${tenantId}:*`);
   }
 
-  private serializeAdminDetail(store: StoreDetailResponse & {
-    description: string | null;
-    externalUrl: string | null;
-    openingHours: Record<string, unknown> | null;
-    categories: Category[];
-  }): AdminStoreDetailResponse {
+  private serializeAdminDetail(
+    store: StoreDetailResponse & {
+      description: string | null;
+      externalUrl: string | null;
+      openingHours: Record<string, unknown> | null;
+      categories: Category[];
+    },
+  ): AdminStoreDetailResponse {
     return {
       ...buildStoreSummary(store),
       description: store.description,

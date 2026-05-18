@@ -142,7 +142,10 @@ function App() {
       return undefined as T;
     }
 
-    const body = (await response.json().catch(() => null)) as T | { error?: string; details?: unknown } | null;
+    const body = (await response.json().catch(() => null)) as
+      | T
+      | { error?: string; details?: unknown }
+      | null;
     if (!response.ok) {
       const errorMessage =
         body && typeof body === 'object' && 'error' in body && typeof body.error === 'string'
@@ -471,7 +474,8 @@ function App() {
           <p className="eyebrow">Tenant conectado</p>
           <h1>{session.tenantSlug}</h1>
           <p className="lede">
-            Host operacional: <strong>{session.tenantHost}</strong> · operador <strong>{session.email}</strong>
+            Host operacional: <strong>{session.tenantHost}</strong> · operador{' '}
+            <strong>{session.email}</strong>
           </p>
         </div>
         <div className="masthead-actions">
@@ -521,7 +525,9 @@ function App() {
                   setCategoryForm((current) => ({ ...current, sortOrder: event.target.value }))
                 }
               />
-              <button type="submit">{editingCategoryId ? 'Salvar categoria' : 'Criar categoria'}</button>
+              <button type="submit">
+                {editingCategoryId ? 'Salvar categoria' : 'Criar categoria'}
+              </button>
             </form>
           ) : (
             <form className="stacked-form" onSubmit={handleStoreSubmit}>
@@ -616,11 +622,19 @@ function App() {
               <div className="file-row">
                 <label>
                   Logo
-                  <input type="file" accept="image/*" onChange={(event) => setLogoFile(event.target.files?.[0] ?? null)} />
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(event) => setLogoFile(event.target.files?.[0] ?? null)}
+                  />
                 </label>
                 <label>
                   Capa
-                  <input type="file" accept="image/*" onChange={(event) => setCoverFile(event.target.files?.[0] ?? null)} />
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(event) => setCoverFile(event.target.files?.[0] ?? null)}
+                  />
                 </label>
               </div>
 
@@ -655,7 +669,11 @@ function App() {
 
               <div className="category-picker">
                 <strong>Categorias selecionadas</strong>
-                <p>{selectedCategoryNames.length > 0 ? selectedCategoryNames.join(', ') : 'Nenhuma categoria selecionada.'}</p>
+                <p>
+                  {selectedCategoryNames.length > 0
+                    ? selectedCategoryNames.join(', ')
+                    : 'Nenhuma categoria selecionada.'}
+                </p>
                 <div className="chip-grid">
                   {categories.map((category) => (
                     <label key={category.id} className="chip">
@@ -685,7 +703,9 @@ function App() {
         <section className="panel panel--list">
           <div className="panel-header">
             <h2>{tab === 'categories' ? 'Categorias' : 'Lojas cadastradas'}</h2>
-            <span>{tab === 'categories' ? `${categories.length} itens` : `${stores.length} itens`}</span>
+            <span>
+              {tab === 'categories' ? `${categories.length} itens` : `${stores.length} itens`}
+            </span>
           </div>
 
           {tab === 'categories' ? (
@@ -712,7 +732,12 @@ function App() {
                     >
                       Editar
                     </button>
-                    <button type="button" className="ghost" onClick={() => moveCategory(category.id, -1)} disabled={index === 0}>
+                    <button
+                      type="button"
+                      className="ghost"
+                      onClick={() => moveCategory(category.id, -1)}
+                      disabled={index === 0}
+                    >
                       Subir
                     </button>
                     <button
@@ -723,7 +748,11 @@ function App() {
                     >
                       Descer
                     </button>
-                    <button type="button" className="danger" onClick={() => void handleCategoryDelete(category.id)}>
+                    <button
+                      type="button"
+                      className="danger"
+                      onClick={() => void handleCategoryDelete(category.id)}
+                    >
                       Excluir
                     </button>
                   </div>
@@ -745,10 +774,18 @@ function App() {
                     </p>
                   </div>
                   <div className="card-actions">
-                    <button type="button" className="ghost" onClick={() => void loadStoreForEdit(store.id)}>
+                    <button
+                      type="button"
+                      className="ghost"
+                      onClick={() => void loadStoreForEdit(store.id)}
+                    >
                       Editar
                     </button>
-                    <button type="button" className="danger" onClick={() => void handleStoreDelete(store.id)}>
+                    <button
+                      type="button"
+                      className="danger"
+                      onClick={() => void handleStoreDelete(store.id)}
+                    >
                       Excluir
                     </button>
                   </div>

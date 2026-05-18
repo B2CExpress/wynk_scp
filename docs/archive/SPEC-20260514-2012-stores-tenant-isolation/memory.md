@@ -8,12 +8,12 @@
 
 ## TL;DR (sobrescrever ao fim de cada sessao)
 
-**Ultima atualizacao:** 2026-05-14 20:35 (sessao #1)
-**Onde to:** Backend minimo + harness Vitest + 8 cenarios + CI ja entregues. A unica pendencia real e executar a suite com Postgres/Redis disponiveis, porque esta maquina nao tem WSL, Docker nem servicos nas portas `5435`/`6382`.
-**Proximo passo:** validar `npm run test:isolation` em ambiente com infra ativa e corrigir qualquer falha funcional restante.
-**Ultima decisao:** manter o requisito de DB/Redis reais ate o fim; nao trocar para mocks so para "fechar verde" artificialmente.
-**Bloqueio atual:** sem Postgres/Redis locais; `ECONNREFUSED` em `5435`.
-**Se retomar, ler:** `state.md` entradas de 2026-05-14 20:22 em diante
+**Última atualização:** 2026-05-18 (sessão #2 — arquivamento)
+**Onde tô:** SPEC concluída e arquivada. Suite verde no CI do GitHub Actions (12/12 checks no commit `b38052c`); 8 cenários de isolamento passam contra Postgres + Redis reais via services do workflow `isolation`. Bloqueio da sessão #1 (sem infra local) foi superado usando a CI como ambiente de validação — alinhado com a postura da SPEC de "DB/Redis reais até o fim".
+**Próximo passo:** nenhum — SPEC em `archive/`. PRs #14 e #15 (stacked acima) ficam re-targetáveis pra `main` após o merge do #13.
+**Última decisão:** Aceitar CI como validação no lugar de "verde localmente" — registrado explicitamente no checkbox correspondente. Falha proposital ao remover `withTenant` fica como dívida manual (procedimento documentado em `fase-2-isolacao.md`, não executado).
+**Bloqueio atual:** —
+**Se retomar, ler:** entrada `[conclusão]` em `state.md` (2026-05-18) — lista os 5 commits da sessão #2 e cada bug resolvido em ordem.
 
 ---
 

@@ -15,7 +15,9 @@
 ### Concluidas
 | ID | Data | Commit | Titulo |
 |---|---|---|---|
-| _(nenhuma ainda)_ | — | — | — |
+| SPEC-20260506-1400 | 2026-05-12 | `8199c7e` | Endpoints públicos de lojas com cache Redis (+ schema mínimo) |
+| SPEC-20260514-2012 | 2026-05-18 | `b38052c` | Isolamento multitenant de stores com testes reais |
+| SPEC-20260516-1430 | 2026-05-18 | `7642216` | CRUD completo de lojas no admin |
 
 ### Planejadas (future/)
 | ID | Titulo | Motivo |
@@ -25,10 +27,7 @@
 ### Em execucao (so em branches - nao aparece em main)
 | ID | Titulo | Branch |
 |---|---|---|
-| SPEC-20260506-1400 | Endpoints publicos de lojas com cache Redis | feature/SQU-43-api-publica |
-| SPEC-20260514-2012 | Isolamento multitenant de stores com testes reais | feature/SQU-47-validacao-de-isolamento |
-| SPEC-20260516-1430 | CRUD completo de lojas no admin | feature/SQU-42-api-admin-crud-de-lojas |
-| SPEC-20260516-1730 | Catalogo de lojas - fase 2 publica e operacional | feature/store-catalog-phase-2 |
+| SPEC-20260516-1730 | Catalogo de lojas - fase 2 publica e operacional | feature/SQU-39-fase-2-modulo-de-lojas |
 
 ## Estado atual
 
@@ -38,7 +37,10 @@ A feature entregou primeiro o schema minimo e a listagem publica cacheada. Desde
 - busca full-text no Postgres
 - paginas `/lojas` e `/lojas/[slug]` no portal
 
-Decisoes ativas:
-- isolamento por tenant continua obrigatorio em toda query
-- cache Redis segue focado na listagem publica
-- full-text complementa a busca, mas o contrato HTTP continua simples via querystring
+## Decisões arquiteturais ativas
+
+- **Isolamento por tenant continua obrigatório em toda query** (origem: SPEC-20260503-1505 + SPEC-20260514-2012) — `withTenant(qb)` em listagem/detalhe; subscriber rejeita cross-tenant em runtime.
+- **Cache Redis focado na listagem pública** (origem: SPEC-20260506-1400, 2026-05-12) — TTL 300s, chave inclui `tenant_id` + filtros. Detalhe por slug ainda não tem cache (registrado como SPEC futura).
+- **Busca full-text Postgres com fallback ILIKE** (origem: SPEC-20260516-1730, 2026-05-16) — coluna gerada `store_search_vector` (`tsvector` com `name` peso A + `description` peso B) + GIN index. Query usa `websearch_to_tsquery('simple', :q)` OR `name ILIKE %q%` por robustez. Contrato HTTP continua simples (`?search=...`).
+- **Endpoint público sem auth** (origem: SPEC-20260506-1400) — `GET /api/v1/stores` e `/:slug` são públicos; resolução de tenant via `Host`/`X-Forwarded-Host` apenas.
+- **DTO de listagem é enxuto** (origem: SPEC-20260506-1400) — só campos necessários pra card (id, name, description, slug, logoUrl, coverImageUrl, floor, phone, isRestaurant, isFeatured, sortOrder). Detalhe traz o resto (`external_url`, `opening_hours`, `categories`).

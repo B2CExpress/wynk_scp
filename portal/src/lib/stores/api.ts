@@ -37,7 +37,11 @@ export interface PublicStoreDetail extends PublicStoreListItem {
   categories: PublicStoreCategory[];
 }
 
-async function fetchFromBackend<T>(host: string, pathname: string, query?: URLSearchParams): Promise<T> {
+async function fetchFromBackend<T>(
+  host: string,
+  pathname: string,
+  query?: URLSearchParams,
+): Promise<T> {
   const url = `${BACKEND_URL}${pathname}${query && query.toString() ? `?${query.toString()}` : ''}`;
   const response = await fetch(url, {
     headers: { 'X-Forwarded-Host': host },
@@ -54,10 +58,11 @@ async function fetchFromBackend<T>(host: string, pathname: string, query?: URLSe
   return (await response.json()) as T;
 }
 
-export async function fetchStoreCategories(
-  host: string,
-): Promise<PublicStoreCategory[]> {
-  const response = await fetchFromBackend<{ data: PublicStoreCategory[] }>(host, '/api/v1/store-categories');
+export async function fetchStoreCategories(host: string): Promise<PublicStoreCategory[]> {
+  const response = await fetchFromBackend<{ data: PublicStoreCategory[] }>(
+    host,
+    '/api/v1/store-categories',
+  );
   return response.data;
 }
 

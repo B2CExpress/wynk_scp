@@ -50,8 +50,8 @@ export default async function StoresPage({ searchParams }: StoresPageProps) {
           <p className={styles.kicker}>Catalogo do shopping</p>
           <h1>Lojas para descobrir no seu ritmo.</h1>
           <p className={styles.lead}>
-            Explore marcas, restaurantes e servicos do {theme.name} com busca textual,
-            filtros rapidos e paginas de detalhe preparadas para cada tenant.
+            Explore marcas, restaurantes e servicos do {theme.name} com busca textual, filtros
+            rapidos e paginas de detalhe preparadas para cada tenant.
           </p>
         </div>
         <div className={styles.heroPanel}>
@@ -79,7 +79,12 @@ export default async function StoresPage({ searchParams }: StoresPageProps) {
             ))}
           </select>
           <label className={styles.toggle}>
-            <input type="checkbox" name="featured" value="true" defaultChecked={featured === true} />
+            <input
+              type="checkbox"
+              name="featured"
+              value="true"
+              defaultChecked={featured === true}
+            />
             <span>So destaques</span>
           </label>
           <label className={styles.toggle}>
