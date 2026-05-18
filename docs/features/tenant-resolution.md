@@ -31,6 +31,7 @@
 | SPEC-20260512-1640 | 2026-05-12 | `4315bb7` | withTenantScope com validação UUID e docs operacionais |
 | SPEC-20260512-1900 | 2026-05-13 | `43424f3` | Validação ponta-a-ponta da Fase 1 Multitenant |
 | SPEC-20260514-2012 | 2026-05-18 | `b38052c` | Isolamento multitenant de stores com testes reais |
+| SPEC-20260516-1430 | 2026-05-18 | `7642216` | CRUD completo de lojas no admin |
 
 ### Planejadas (future/)
 | ID | Título | Motivo |
