@@ -26,6 +26,7 @@
 | ID | Data | Commit | Título |
 |---|---|---|---|
 | SPEC-20260503-1505 | 2026-05-11 | `968d389` | Base da plataforma multitenant |
+| SPEC-20260514-2012 | 2026-05-18 | `b38052c` | Isolamento multitenant de stores com testes reais |
 
 ### Planejadas (future/)
 | ID | Título | Motivo |
@@ -35,7 +36,7 @@
 ### Em execução (só em branches — não aparece em main)
 | ID | Título | Branch |
 |---|---|---|
-| SPEC-20260514-2012 | Isolamento multitenant de stores com testes reais | feature/SQU-47-validacao-de-isolamento |
+| _(nenhuma)_ | | |
 
 ## Estado atual
 
