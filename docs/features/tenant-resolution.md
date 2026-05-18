@@ -95,7 +95,7 @@ helmet -> cors -> json/urlencoded/cookie-parser -> morgan
 
 > Ultima atualizacao: 2026-05-12 16:01 (SPEC-20260512-1601)
 
-## Decisoes arquiteturais ativas
+## Decisões arquiteturais ativas
 
 - **Resolucao de tenant no backend (nao no Next)** (origem: SPEC-20260503-1505, 2026-05-08 14:31) - Portal SSR delega ao backend, que cacheia em Redis. Mantem uma fonte de verdade (DB+Redis), evita logica duplicada.
 - **Cache Redis de tenant e best-effort + TTL configuravel por env** (origem: SPEC-20260512-1601, 2026-05-12 16:01) - `tenant:resolve:{host}` continua sendo a chave canonica, mas Redis virou aceleracao opcional: `GET`, `SET` e `DEL` falham sem derrubar a request. TTL vem de `CACHE_TTL_TENANT_SECONDS` (default 600), e a conexao usa `REDIS_URL`.

@@ -10,6 +10,7 @@
 **Branch:** feature/validacao-ponta-a-ponta-fase-1  
 **Depende de:** —  
 **Origem:** usuário em 2026-05-12 19:00  
+**Resumo:** Validação ponta-a-ponta da Fase 1 da plataforma multitenant — garantir que múltiplos tenants de teste coexistam em uma mesma instalação com domínio, identidade visual, autenticação, cache e isolamento próprios, registrando o resultado em `docs/fase-1-validacao.md`.
 
 ---
 
@@ -117,7 +118,7 @@ Esse tenant usa o flavor `shopping-x`, porque a pasta `portal/public/flavors/sho
 - [ ] O tenant específico da SPEC aponta para um `flavor_slug` existente em `portal/public/flavors/`. (2026-05-12 19:00)
 - [ ] Os assets do flavor `shopping-x` existem em `portal/public/flavors/shopping-x/`. (2026-05-12 19:00)
 - [ ] A validação manual foi documentada em `docs/fase-1-validacao.md`. (2026-05-12 19:00)
-- [ ] As features tocadas `infra-base`, `tenant-resolution` e `theme-system` foram revisadas ou atualizadas com referência a esta SPEC. (2026-05-12 19:00)
+- [ ] Features tocadas (`infra-base`, `tenant-resolution`, `theme-system`) atualizadas com referência a esta SPEC e timestamp. (2026-05-12 19:00)
 - [ ] O `state.md` foi atualizado com o andamento real da validação. (2026-05-12 19:00)
 - [ ] O `memory.md` foi atualizado com o TL;DR final da sessão. (2026-05-12 19:00)
 - [ ] PR aberto na branch `feature/validacao-ponta-a-ponta-fase-1`. (2026-05-12 19:00)
