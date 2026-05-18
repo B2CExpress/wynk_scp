@@ -18,6 +18,7 @@
 | SPEC-20260506-1400 | 2026-05-12 | `8199c7e` | Endpoints públicos de lojas com cache Redis (+ schema mínimo) |
 | SPEC-20260514-2012 | 2026-05-18 | `b38052c` | Isolamento multitenant de stores com testes reais |
 | SPEC-20260516-1430 | 2026-05-18 | `7642216` | CRUD completo de lojas no admin |
+| SPEC-20260516-1730 | 2026-05-18 | `8aef2da` | Catálogo de lojas - fase 2 pública e operacional |
 
 ### Planejadas (future/)
 | ID | Titulo | Motivo |
@@ -27,7 +28,7 @@
 ### Em execucao (so em branches - nao aparece em main)
 | ID | Titulo | Branch |
 |---|---|---|
-| SPEC-20260516-1730 | Catalogo de lojas - fase 2 publica e operacional | feature/SQU-39-fase-2-modulo-de-lojas |
+| _(nenhuma)_ | | |
 
 ## Estado atual
 

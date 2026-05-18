@@ -18,6 +18,7 @@
 | ID | Data | Commit | Titulo |
 |---|---|---|---|
 | SPEC-20260516-1430 | 2026-05-18 | `7642216` | CRUD completo de lojas no admin |
+| SPEC-20260516-1730 | 2026-05-18 | `8aef2da` | Catalogo de lojas - fase 2 publica e operacional |
 
 ### Planejadas (future/)
 | ID | Titulo | Motivo |
@@ -28,7 +29,7 @@
 ### Em execucao (so em branches - nao aparece em main)
 | ID | Titulo | Branch |
 |---|---|---|
-| SPEC-20260516-1730 | Catalogo de lojas - fase 2 publica e operacional | feature/SQU-39-fase-2-modulo-de-lojas |
+| _(nenhuma)_ | | |
 
 ## Estado atual
 

@@ -1,13 +1,13 @@
 # SPEC-20260516-1730: Catálogo de lojas - fase 2 pública e operacional
 
-**Status:** active
+**Status:** done
 **Criada:** 2026-05-16 17:30
 **Ativada:** 2026-05-16 17:30
-**Concluída:** 2026-05-16 23:38
-**Commit final:** —
+**Concluída:** 2026-05-18 (arquivamento; código entregue em 2026-05-16 23:38, validado no CI em 2026-05-18)
+**Commit final:** `8aef2da`
 **Keywords:** stores, categories, full-text, portal, backoffice, tenant-isolation, upload-stub
 **Features:** admin-stores-crud, stores-public-api, tenant-resolution, portal-stores-pages
-**Branch:** feature/store-catalog-phase-2
+**Branch:** feature/SQU-39-fase-2-modulo-de-lojas
 **Depende de:** SPEC-20260506-1400, SPEC-20260514-2012, SPEC-20260516-1430
 **Origem:** usuário em 2026-05-16
 **Resumo:** Fechar a experiência operacional e pública do catálogo de lojas: CRUD admin de categorias com reordenação, upload stub por metadata no CRUD de lojas, detalhe público completo, busca textual full-text, e páginas `/lojas` e `/lojas/[slug]` no portal. Inclui um backoffice mínimo funcional para operar o módulo via browser.

@@ -12,12 +12,12 @@
 ### Concluídas
 | ID | Data | Commit | Título |
 |---|---|---|---|
-| _(nenhuma ainda)_ | — | — | — |
+| SPEC-20260516-1730 | 2026-05-18 | `8aef2da` | Catálogo de lojas - fase 2 pública e operacional |
 
 ### Em execução (só em branches - não aparece em main)
 | ID | Título | Branch |
 |---|---|---|
-| SPEC-20260516-1730 | Catálogo de lojas - fase 2 pública e operacional | feature/SQU-39-fase-2-modulo-de-lojas |
+| _(nenhuma)_ | | |
 
 ## Estado atual
 

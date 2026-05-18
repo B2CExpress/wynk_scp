@@ -8,12 +8,12 @@
 
 ## TL;DR (sobrescrever ao fim de cada sessão)
 
-**Última atualização:** 2026-05-16 23:38
-**Onde tô:** Fase concluída localmente
-**Próximo passo:** Abrir PR, revisar e arquivar a SPEC após merge
-**Última decisão:** Manter upload como stub por metadata nesta fase e concentrar o fechamento em integração ponta a ponta
-**Bloqueio atual:** nenhum
-**Se retomar, ler:** `state.md` desta SPEC
+**Última atualização:** 2026-05-18 (sessão #2 — arquivamento)
+**Onde tô:** SPEC concluída e arquivada. Código entregue em `53d2b28` (sessão #1, Leonardo) validado no CI em `8aef2da` (sessão #2, 12/12 checks verdes). Última de uma stack de 3 PRs (#13 → #14 → #15) que entregou o módulo completo de stores: testes de isolamento + admin CRUD básico → admin CRUD maduro com Zod/sanitize/RBAC → categorias CRUD + portal pages + fulltext + backoffice mínimo.
+**Próximo passo:** nenhum — SPEC em `archive/`. Stack inteira está em main.
+**Última decisão:** Stack mantida — Portal Next.js (SSR/SEO), Backoffice Vite (SPA), Backend Express. Confirmado em sessão #2 contra `package.json` de cada workspace.
+**Bloqueio atual:** —
+**Se retomar, ler:** entrada `[conclusão]` em `state.md` (2026-05-18) — caminho dos 2 commits da sessão #2 (merge + fix lint), decisões nos 4 conflitos resolvidos, e dívidas técnicas explicitadas (storage stub, opening_hours UI, dangerouslySetInnerHTML defense-in-depth).
 
 ---
 
