@@ -1,4 +1,4 @@
-import { In, type DataSource, type Repository } from 'typeorm';
+import type { DataSource, Repository } from 'typeorm';
 import { Category } from '../entities/Category';
 import { withTenant } from '../utils/with-tenant';
 
