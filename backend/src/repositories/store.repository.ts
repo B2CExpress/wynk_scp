@@ -110,6 +110,12 @@ export class StoreRepository {
       .getOne();
   }
 
+  async findBySlugForCurrentTenant(slug: string): Promise<Store | null> {
+    return withTenant(this.storeRepo.createQueryBuilder('store'))
+      .andWhere('store.store_slug = :slug', { slug })
+      .getOne();
+  }
+
   async countCategoriesForCurrentTenant(categoryIds: string[]): Promise<number> {
     const { tenantId } = requireTenantContext();
     const uniqueIds = [...new Set(categoryIds)];
@@ -128,10 +134,13 @@ export class StoreRepository {
   async createForCurrentTenant(input: {
     name: string;
     slug: string;
+    description?: string | null;
     logoUrl?: string | null;
     coverImageUrl?: string | null;
+    externalUrl?: string | null;
     floor?: string | null;
     phone?: string | null;
+    openingHours?: Record<string, any> | null;
     isRestaurant?: boolean;
     isFeatured?: boolean;
     status?: string;
@@ -149,10 +158,13 @@ export class StoreRepository {
         tenantId,
         name: input.name,
         slug: input.slug,
+        description: input.description ?? null,
         logoUrl: input.logoUrl ?? null,
         coverImageUrl: input.coverImageUrl ?? null,
+        externalUrl: input.externalUrl ?? null,
         floor: input.floor ?? null,
         phone: input.phone ?? null,
+        openingHours: input.openingHours ?? null,
         isRestaurant: input.isRestaurant ?? false,
         isFeatured: input.isFeatured ?? false,
         status: input.status ?? ACTIVE_STATUS,
@@ -181,10 +193,13 @@ export class StoreRepository {
     input: {
       name?: string;
       slug?: string;
+      description?: string | null;
       logoUrl?: string | null;
       coverImageUrl?: string | null;
+      externalUrl?: string | null;
       floor?: string | null;
       phone?: string | null;
+      openingHours?: Record<string, any> | null;
       isRestaurant?: boolean;
       isFeatured?: boolean;
       status?: string;
@@ -206,10 +221,13 @@ export class StoreRepository {
 
       if (input.name !== undefined) existing.name = input.name;
       if (input.slug !== undefined) existing.slug = input.slug;
+      if (input.description !== undefined) existing.description = input.description;
       if (input.logoUrl !== undefined) existing.logoUrl = input.logoUrl;
       if (input.coverImageUrl !== undefined) existing.coverImageUrl = input.coverImageUrl;
+      if (input.externalUrl !== undefined) existing.externalUrl = input.externalUrl;
       if (input.floor !== undefined) existing.floor = input.floor;
       if (input.phone !== undefined) existing.phone = input.phone;
+      if (input.openingHours !== undefined) existing.openingHours = input.openingHours;
       if (input.isRestaurant !== undefined) existing.isRestaurant = input.isRestaurant;
       if (input.isFeatured !== undefined) existing.isFeatured = input.isFeatured;
       if (input.status !== undefined) existing.status = input.status;
@@ -233,5 +251,129 @@ export class StoreRepository {
 
       return saved;
     });
+  }
+
+  async listAdminWithFilters(query: {
+    page: number;
+    limit: number;
+    status?: string;
+    featured?: boolean;
+    search?: string;
+  }): Promise<{ stores: Store[]; total: number; categoriesByStoreId: Map<string, Category[]> }> {
+    const offset = (query.page - 1) * query.limit;
+    const clamped = Math.min(query.limit, 100); // max 100 per page
+
+    let qb = withTenant(this.storeRepo.createQueryBuilder('store'));
+
+    if (query.status) {
+      qb = qb.andWhere('store.store_status = :status', { status: query.status });
+    }
+
+    if (query.featured !== undefined) {
+      qb = qb.andWhere('store.store_is_featured = :featured', { featured: query.featured });
+    }
+
+    if (query.search) {
+      // Escape inline de wildcards LIKE/ILIKE (`%`, `_`, `\`) no admin —
+      // a versão pública usa fulltext (tsvector); aqui mantemos ILIKE simples
+      // por agora pra preservar o comportamento do SPEC-1430.
+      const escaped = query.search.replace(/[\\%_]/g, '\\$&');
+      qb = qb.andWhere('store.store_name ILIKE :search', { search: `%${escaped}%` });
+    }
+
+    qb = qb
+      .orderBy('store.store_is_featured', 'DESC')
+      .addOrderBy('store.store_sort_order', 'ASC')
+      .addOrderBy('store.store_name', 'ASC')
+      .take(clamped)
+      .skip(offset);
+
+    const [stores, total] = await qb.getManyAndCount();
+    const categoriesByStoreId = await this.findCategoriesByStoreIdsForCurrentTenant(
+      stores.map((store) => store.id),
+    );
+    return { stores, total, categoriesByStoreId };
+  }
+
+  async findByIdWithCategoriesAdmin(
+    id: string,
+  ): Promise<(Store & { categories: Category[] }) | null> {
+    const store = await this.findByIdForCurrentTenant(id);
+    if (!store) {
+      return null;
+    }
+
+    const categoriesByStoreId = await this.findCategoriesByStoreIdsForCurrentTenant([id]);
+    const categories = categoriesByStoreId.get(id) ?? [];
+
+    return {
+      ...store,
+      categories,
+    };
+  }
+
+  async deleteByIdForCurrentTenant(id: string): Promise<boolean> {
+    const { tenantId } = requireTenantContext();
+    const existing = await this.findByIdForCurrentTenant(id);
+    if (!existing) {
+      return false;
+    }
+
+    return this.dataSource.transaction(async (manager) => {
+      const relationRepo = manager.getRepository(StoreCategory);
+      const storeRepo = manager.getRepository(Store);
+
+      // Delete relations first (foreign key constraint)
+      await relationRepo.delete({ storeId: id, tenantId });
+
+      // Then delete the store
+      await storeRepo.delete({ id, tenantId });
+
+      return true;
+    });
+  }
+
+  private async findCategoriesByStoreIdsForCurrentTenant(
+    storeIds: string[],
+  ): Promise<Map<string, Category[]>> {
+    const uniqueStoreIds = [...new Set(storeIds)];
+    const grouped = new Map<string, Category[]>();
+
+    uniqueStoreIds.forEach((storeId) => grouped.set(storeId, []));
+    if (uniqueStoreIds.length === 0) {
+      return grouped;
+    }
+
+    const { tenantId } = requireTenantContext();
+    const relations = await this.storeCategoryRepo.find({
+      where: {
+        storeId: In(uniqueStoreIds),
+        tenantId,
+      },
+    });
+
+    const uniqueCategoryIds = [...new Set(relations.map((relation) => relation.categoryId))];
+    if (uniqueCategoryIds.length === 0) {
+      return grouped;
+    }
+
+    const categories = await this.categoryRepo.find({
+      where: {
+        id: In(uniqueCategoryIds),
+        tenantId,
+      },
+    });
+    const categoriesById = new Map(categories.map((category) => [category.id, category]));
+
+    relations.forEach((relation) => {
+      const category = categoriesById.get(relation.categoryId);
+      if (!category) {
+        return;
+      }
+
+      grouped.get(relation.storeId)?.push(category);
+    });
+
+    return grouped;
   }
 }

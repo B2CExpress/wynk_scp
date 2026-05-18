@@ -20,6 +20,7 @@
 |---|---|---|---|
 | SPEC-20260506-1400 | 2026-05-12 | `8199c7e` | Endpoints públicos de lojas com cache Redis (+ schema mínimo) |
 | SPEC-20260514-2012 | 2026-05-18 | `b38052c` | Isolamento multitenant de stores com testes reais |
+| SPEC-20260516-1430 | 2026-05-18 | `7642216` | CRUD completo de lojas no admin |
 
 ### Planejadas (future/)
 | ID | Título | Motivo |
