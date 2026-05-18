@@ -1,18 +1,22 @@
 # Feature: infra-base
-
-**Keywords:** bootstrap, repositorio, ci, lint, format, stack, monorepo, npm-workspaces, docker
+**Keywords:** bootstrap, repositório, ci, lint, format, stack, monorepo, npm-workspaces, docker, onboarding, setup-local, readme
 **Arquivos principais:**
   - `package.json` (raiz, workspaces: backend/portal/backoffice)
   - `docker-compose.yml` (Postgres 15 + Redis 7, portas 5435/6379)
   - `.github/workflows/ci.yml` (matrix app x task + format:check + validate-flavors)
   - `.prettierrc.json`, `.prettierignore`, `.editorconfig`
+  - `README.md` (raiz — porta de entrada de onboarding; setup local Linux/WSL2 + troubleshooting de gotchas conhecidos)
+  - `setup.sh`, `setup.bat` (raiz — atalho idempotente de bootstrap; `setup.bat` é wrapper Windows que dispara `setup.sh` no WSL via `wslpath`)
+  - `run.sh`, `run.bat` (raiz — atalho pra subir dev servers; aceita `backend|portal|backoffice|all` + flag `--seed` opt-in)
+  - `seeds/tenants.json` (raiz — fonte canônica `tb_tenant` ↔ flavor folder; inclui `localhost` (slug `local-dev`) pra DX sem `/etc/hosts`)
   - `backend/package.json`, `backend/tsconfig.json`, `backend/jest.config.js`, `backend/eslint.config.js`
   - `backend/src/{server,app}.ts` (Express bootstrap + composition root)
   - `backend/src/config/{index,database,redis}.ts` (env tipada, AppDataSource, `REDIS_URL`, `CACHE_TTL_TENANT_SECONDS`, ioredis)
   - `backend/scripts/{ensure-schema,seed}.ts` (schema bootstrap + seed reproduzivel)
   - `portal/` (Next.js App Router scaffold, src-dir, eslint, --no-tailwind)
   - `backoffice/` (Vite + React TS scaffold)
-**Resumo:** Esqueleto do monorepo (npm workspaces, Node 22+), stack alinhada com `wynk_ecommerce` (Express 4 + TypeORM 0.3 no backend; Next.js App Router no portal; Vite+React no backoffice), pipeline de CI com matriz `[backend, portal, backoffice] x [lint, typecheck, test]` + jobs auxiliares (`format:check`, `validate-flavors`), Postgres+Redis locais via Docker, schema dedicado `scp`. Redis no backend agora e configurado prioritariamente por `REDIS_URL`, com TTLs operacionais sensiveis expostos por env.
+
+**Resumo:** Esqueleto do monorepo (npm workspaces, Node 22+), stack alinhada com `wynk_ecommerce` (Express 4 + TypeORM 0.3 no backend; Next.js App Router no portal; Vite+React no backoffice), pipeline de CI com matriz `[backend, portal, backoffice] × [lint, typecheck, test]` + jobs auxiliares (`format:check`, `validate-flavors`), Postgres+Redis locais via Docker, schema dedicado `scp`. Onboarding documentado em `README.md` raiz + scripts de atalho (`setup.sh`/`setup.bat` configuram; `run.sh`/`run.bat` rodam dev servers).
 
 ## Specs desta feature
 
@@ -20,6 +24,7 @@
 | ID | Data | Commit | Titulo |
 |---|---|---|---|
 | SPEC-20260503-1505 | 2026-05-11 | `968d389` | Base da plataforma multitenant |
+| SPEC-20260513-0910 | 2026-05-13 | `1d9ea39` | README de setup local (Linux + Windows via WSL2) + scripts `setup.sh`/`run.sh` |
 
 ### Planejadas (future/)
 | ID | Titulo | Motivo |
@@ -42,8 +47,18 @@ Configuracao de Redis no backend:
 - `REDIS_HOST`/`REDIS_PORT` continuam aceitos como fallback de compatibilidade
 - `CACHE_TTL_TENANT_SECONDS` controla o TTL do cache de resolucao de tenant sem exigir deploy de codigo
 - `backend/src/config/redis.ts` usa singleton de `ioredis` e registra falhas de conexao no logger estruturado
+=======
+### Onboarding e atalhos de dev (SPEC-20260513-0910)
 
-> Ultima atualizacao: 2026-05-12 16:01 (SPEC-20260512-1601)
+Onboarding tem porta de entrada única no `README.md` raiz: passo-a-passo de pré-requisitos (Node 22+, npm 10+, Git, Docker engine + Compose v2 OU v1, WSL2 no Windows), setup Linux/WSL2, comandos do dia-a-dia, estrutura do monorepo e troubleshooting com 10 gotchas conhecidos (formato *Sintoma → Causa → Fix*).
+
+Quatro scripts de atalho na raiz, idempotentes, sem instalar pré-requisitos (apenas verificam):
+- **`setup.sh`**: bash que executa `npm install` → copia `.env.example` → `.env` (se faltar) → `docker compose up -d` (detecta v2 plugin OU v1 legacy via cascata) → espera healthy via `docker inspect` → `npm run db:setup -w backend` → opcional `--seed`. Mensagem final aponta `./run.sh`.
+- **`setup.bat`**: wrapper Windows que verifica WSL2 + Docker Desktop e dispara `setup.sh` dentro do WSL via `wslpath`. Avisa se `cwd` está em `C:\` (gotcha de I/O).
+- **`run.sh`**: parser de args em loop (ordem livre); aceita `backend` (default), `portal`, `backoffice`, `all` (3 em paralelo com `sed -u` prefixando logs e `trap SIGINT/SIGTERM` matando todos os PIDs filhos). Flag `--seed` opt-in roda `npm run seed -w backend` ANTES de subir, mas só pra targets `backend`/`all` (rejeita pra `portal`/`backoffice`).
+- **`run.bat`**: wrapper Windows análogo a `setup.bat`, dispara `run.sh` no WSL.
+
+Tenants no `seeds/tenants.json`: `shopping-x` (host `shopping-x.local`, exige `/etc/hosts`) + `local-dev` (host `localhost`, DX local sem mexer em hosts).
 
 ## Decisoes arquiteturais ativas
 
@@ -62,13 +77,14 @@ Configuracao de Redis no backend:
 
 ## Gotchas
 
-- **`@types/express 5.x` invadindo via transitive de `@types/cookie-parser`** (2026-05-08 17:04) - `npm ls @types/express` revela conflito. Fix: `overrides` no `package.json` raiz forcando `@types/express ^4.17.21` + `@types/express-serve-static-core ^4.19.0`. Apagar `node_modules` + `package-lock.json` e necessario para o override pegar.
-- **`safer-buffer` ausente apos overrides** (2026-05-08 17:04) - npm dedup agressiva tira `safer-buffer` (transitive `iconv-lite` <- `body-parser` <- `express`). Jest nao sobe arvore para encontrar. Fix: adicionar `safer-buffer ^2.1.2` como dep direta do backend.
-- **Jest + npm workspaces hoisting** (2026-05-08 17:04) - Jest nao usa Node module resolution completo (nao sobe arvore). Fix: `moduleDirectories: ['node_modules', '<rootDir>/../node_modules']` no `jest.config.js`.
-- **TypeORM CLI tenta criar `migrations` table no schema antes de qualquer migration rodar** (2026-05-08 17:42) - Trava se schema `scp` nao existe. Fix: `scripts/ensure-schema.ts` (cliente `pg` cru, sem TypeORM) executa `CREATE SCHEMA IF NOT EXISTS` no `npm run prepare:schema`, encadeado em `db:setup`.
-- **ts-node precisa estar na raiz (nao so no backend)** (2026-05-08 17:42) - Binario `typeorm-ts-node-commonjs` esta em `node_modules/typeorm/` (hoisted para a raiz) e busca `ts-node` a partir dali, sem subir/descer para workspaces. Solucao: `ts-node` e devDep da raiz.
-- **`baseUrl` deprecated em TS recente; paths exigem prefixo `./`** (2026-05-08 17:04) - Sem `baseUrl`, paths nao-relativos no `tsconfig` falham. Fix: usar `./` prefixo em tudo.
-- **Host sem Docker impede smoke operacional mesmo com docs e testes em dia** (2026-05-12 16:01, SPEC-20260512-1601) - Nesta sessao o binario `docker` nao estava disponivel no PATH. Validacao de containers fica pendente para outro host ou CI.
+- **`@types/express 5.x` invadindo via transitive de `@types/cookie-parser`** (2026-05-08 17:04) — `npm ls @types/express` revela conflito. Fix: `overrides` no `package.json` raiz forçando `@types/express ^4.17.21` + `@types/express-serve-static-core ^4.19.0`. Apagar `node_modules` + `package-lock.json` é necessário pro override pegar.
+- **`safer-buffer` ausente após overrides** (2026-05-08 17:04) — npm dedup agressiva tira `safer-buffer` (transitive `iconv-lite` ← `body-parser` ← `express`). Jest não sobe árvore pra encontrar. Fix: adicionar `safer-buffer ^2.1.2` como dep direta do backend.
+- **Jest + npm workspaces hoisting** (2026-05-08 17:04) — Jest não usa Node module resolution completo (não sobe árvore). Fix: `moduleDirectories: ['node_modules', '<rootDir>/../node_modules']` no `jest.config.js`.
+- **TypeORM CLI tenta criar `migrations` table no schema antes de qualquer migration rodar** (2026-05-08 17:42) — Trava se schema `scp` não existe. Fix: `scripts/ensure-schema.ts` (cliente `pg` cru, sem TypeORM) executa `CREATE SCHEMA IF NOT EXISTS` no `npm run prepare:schema`, encadeado em `db:setup`.
+- **ts-node precisa estar na raiz (não só no backend)** (2026-05-08 17:42) — Binário `typeorm-ts-node-commonjs` está em `node_modules/typeorm/` (hoisted pra raiz) e busca `ts-node` a partir dali, sem subir/descer pra workspaces. Solução: `ts-node` é devDep da raiz.
+- **`baseUrl` deprecated em TS recente; paths exigem prefixo `./`** (2026-05-08 17:04) — Sem `baseUrl`, paths não-relativos no `tsconfig` falham. Fix: usar `./` prefixo em tudo.
+- **`docker.io` do Ubuntu universe não vem com plugin Compose v2** (2026-05-13 10:00, [[SPEC-20260513-0910]]) — Pacote `docker.io` do `jammy-updates`/`jammy-security` instala Docker Engine sem `docker compose` (v2). Em Jammy, `apt install docker-compose-plugin` falha com "Unable to locate package" (plugin só está em `download.docker.com`). Fix recomendado: baixar binário direto pra `~/.docker/cli-plugins/docker-compose`; fix fallback: `apt install docker-compose` v1 (EOL jul/2023, mas funcional). `setup.sh` detecta v1/v2 e usa o que tiver via variável `${COMPOSE}` (com warn quando cai no v1).
+- **Editar `seeds/tenants.json` não dispara seed automaticamente** (2026-05-13 19:00, [[SPEC-20260513-0910]]) — `./run.sh` é opt-in: rodar seed depois requer `npm run seed -w backend` direto OU `./run.sh --seed backend` (que faz seed antes de subir). Caso típico: dev edita JSON, sobe `./run.sh backend`, backend continua respondendo 404 pro tenant novo (porque o banco não foi atualizado). Documentado em README troubleshooting #9.
 
 ## Estado congelado (se houver)
 
