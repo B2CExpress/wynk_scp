@@ -1,10 +1,7 @@
 import type { Request, Response, NextFunction } from 'express';
 import type { StoreService } from '../services/store.service';
 import { parseStoreListQuery } from '../dtos/store-list.dto';
-import {
-  InvalidStoreCategoriesError,
-  StoreNotFoundError,
-} from '../services/store.service';
+import { InvalidStoreCategoriesError, StoreNotFoundError } from '../services/store.service';
 
 const CACHE_CONTROL_HEADER = 'public, max-age=300, s-maxage=300';
 // trust proxy = true → req.hostname vem de X-Forwarded-Host quando atrás de proxy.
@@ -88,12 +85,10 @@ export class StoreController {
       name: typeof body.name === 'string' ? body.name : undefined,
       slug: typeof body.slug === 'string' ? body.slug : undefined,
       logoUrl: typeof body.logo_url === 'string' ? body.logo_url : undefined,
-      coverImageUrl:
-        typeof body.cover_image_url === 'string' ? body.cover_image_url : undefined,
+      coverImageUrl: typeof body.cover_image_url === 'string' ? body.cover_image_url : undefined,
       floor: typeof body.floor === 'string' ? body.floor : undefined,
       phone: typeof body.phone === 'string' ? body.phone : undefined,
-      isRestaurant:
-        typeof body.is_restaurant === 'boolean' ? body.is_restaurant : undefined,
+      isRestaurant: typeof body.is_restaurant === 'boolean' ? body.is_restaurant : undefined,
       isFeatured: typeof body.is_featured === 'boolean' ? body.is_featured : undefined,
       status: typeof body.status === 'string' ? body.status : undefined,
       sortOrder: typeof body.sort_order === 'number' ? body.sort_order : undefined,

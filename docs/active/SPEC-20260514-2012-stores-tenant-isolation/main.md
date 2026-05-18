@@ -39,7 +39,7 @@ Entregar uma suite de isolamento com banco e Redis reais cobrindo os fluxos mais
 - Refactor amplo do modulo de auth alem do necessario para login helper e protecao das rotas admin.
 - Testcontainers ou stack Docker dedicada so para testes; esta SPEC reutiliza o Postgres/Redis local ja previstos no projeto.
 
-## Implementacao
+## Implementação
 
 Estado real antes desta SPEC:
 - existe apenas `GET /api/v1/stores`;
@@ -81,7 +81,7 @@ Implementacao planejada:
 - Atualizar `.github/workflows/ci.yml` para rodar essa suite em PR.
 - Documentar a validacao em `docs/fase-2-isolacao.md`.
 
-## Criterio de aceite
+## Critério de aceite
 
 - [ ] `tests/isolation/stores.test.ts` cobre os 8 cenarios obrigatorios
 - [ ] Suite usa banco e Redis reais, sem stubs de repositorio

@@ -158,7 +158,7 @@ export async function createIsolationContext(): Promise<IsolationContext> {
 
   const redis = new Redis({
     host: process.env.REDIS_HOST ?? 'localhost',
-    port: Number(process.env.REDIS_PORT ?? '6382'),
+    port: Number(process.env.REDIS_PORT ?? '6379'),
     db: TEST_REDIS_DB,
     maxRetriesPerRequest: 1,
     lazyConnect: false,
@@ -357,7 +357,8 @@ export async function createCategoryFixture(input: {
 }): Promise<CategoryFixture> {
   const context = await createIsolationContext();
   const { AppDataSource } = context.databaseModule;
-  const { Category } = (await import('../../backend/src/entities/Category')) as CategoryEntityModule;
+  const { Category } =
+    (await import('../../backend/src/entities/Category')) as CategoryEntityModule;
   const repo = AppDataSource.getRepository(Category);
   const created = await repo.save(
     repo.create({
