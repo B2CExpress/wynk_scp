@@ -4,6 +4,7 @@ import type { TenantContext } from '../../src/middleware/tenant-context';
 import type { AuthController } from '../../src/controllers/auth.controller';
 import type { StoreController } from '../../src/controllers/store.controller';
 import type { EventController } from '../../src/controllers/event.controller';
+import type { PublicEventController } from '../../src/controllers/public-event.controller';
 import type { TheaterController } from '../../src/controllers/theater.controller';
 import type { PromotionController } from '../../src/controllers/promotion.controller';
 import type { AppDeps } from '../../src/app';
@@ -109,12 +110,27 @@ export function makeStubPromotionController(): PromotionController {
   } as unknown as PromotionController;
 }
 
+/**
+ * Stub do `PublicEventController` que responde 501. Usado por testes que não
+ * exercitam public events.
+ */
+export function makeStubPublicEventController(): PublicEventController {
+  const notImplemented = async (_req: Request, res: Response): Promise<void> => {
+    res.status(501).json({ error: 'not_implemented_in_test' });
+  };
+  return {
+    listPublished: notImplemented,
+    getBySlugPublished: notImplemented,
+  } as unknown as PublicEventController;
+}
+
 export function makeAppDeps(overrides: Partial<AppDeps> = {}): AppDeps {
   return {
     tenantResolver: makeFakeTenantResolver(),
     authController: makeStubAuthController(),
     storeController: makeStubStoreController(),
     eventController: makeStubEventController(),
+    publicEventController: makeStubPublicEventController(),
     theaterController: makeStubTheaterController(),
     promotionController: makeStubPromotionController(),
     ...overrides,

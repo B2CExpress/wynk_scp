@@ -58,6 +58,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link rel="stylesheet" href={fontHref} />
+        <link rel="alternate" type="application/rss+xml" href="/rss/news.xml" />
       </head>
       <body>{children}</body>
     </html>

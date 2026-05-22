@@ -21,6 +21,7 @@ import { PromotionService } from './services/promotion.service';
 import { AuthController } from './controllers/auth.controller';
 import { StoreController } from './controllers/store.controller';
 import { EventController } from './controllers/event.controller';
+import { PublicEventController } from './controllers/public-event.controller';
 import { TheaterController } from './controllers/theater.controller';
 import { PromotionController } from './controllers/promotion.controller';
 
@@ -61,6 +62,7 @@ async function main(): Promise<void> {
   const authController = new AuthController(authService, userRepo);
   const storeController = new StoreController(storeService);
   const eventController = new EventController(eventService);
+  const publicEventController = new PublicEventController(eventService);
   const theaterController = new TheaterController(theaterService);
   const promotionController = new PromotionController(promotionService);
 
@@ -69,6 +71,7 @@ async function main(): Promise<void> {
     authController,
     storeController,
     eventController,
+    publicEventController,
     theaterController,
     promotionController,
   });
