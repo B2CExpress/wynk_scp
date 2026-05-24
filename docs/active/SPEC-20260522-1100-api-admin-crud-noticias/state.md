@@ -8,12 +8,12 @@
 
 ## TL;DR (sobrescrever ao fim de cada sessão)
 
-**Última atualização:** 2026-05-22 11:00
-**Onde tô:** Ativação — lendo docs e padrões da SPEC anterior (eventos)
-**Próximo passo:** Implementar entidade News + schemas Zod
-**Última decisão:** Reutilizar padrão de events/theater-shows para news (mesma structure de isolamento, cache, validação)
+**Última atualização:** 2026-05-23 21:15
+**Onde tô:** Implementação completa — todos os endpoints, rotas, services, repositories e cron job finalizados
+**Próximo passo:** Testes de integração e documentação das features relacionadas
+**Última decisão:** Usar padrão de Event como template (confirmado bem-sucedido)
 **Bloqueio atual:** nenhum
-**Se retomar, ler:** Entradas de 2026-05-22 11:00 em diante; SPEC-20260518-1625 como referência de padrão
+**Se retomar, ler:** Memory.md completo + SPEC-20260518-1625 para referência de padrão
 
 ---
 
@@ -23,23 +23,19 @@
 
 | # | Descrição | Status | Atualizado | Commit |
 |---|-----------|--------|-----------|--------|
-| 1 | Setup: entidade News, schema Zod, state machine | pendente | 2026-05-22 11:00 | — |
-| 2 | Endpoints CRUD: GET/POST/PUT/DELETE | pendente | 2026-05-22 11:00 | — |
-| 3 | Endpoints especiais: /publish, /archive | pendente | 2026-05-22 11:00 | — |
-| 4 | Cron endpoint + validação header secret | pendente | 2026-05-22 11:00 | — |
-| 5 | Cache Redis + invalidação | pendente | 2026-05-22 11:00 | — |
-| 6 | Testes manuais + ajustes | pendente | 2026-05-22 11:00 | — |
+| 1 | Setup: entidade News, schema Zod, state machine | completo | 2026-05-23 21:15 | 76c5b19 |
+| 2 | Endpoints CRUD: GET/POST/PUT/DELETE | completo | 2026-05-23 21:15 | 76c5b19 |
+| 3 | Endpoints especiais: /publish, /archive | completo | 2026-05-23 21:15 | 76c5b19 |
+| 4 | Cron endpoint + validação header secret | completo | 2026-05-23 21:15 | 76c5b19 |
+| 5 | Cache Redis + invalidação | completo | 2026-05-23 21:15 | 76c5b19 |
+| 6 | Testes manuais + ajustes | pendente | 2026-05-23 21:15 | — |
 
 ### Próximos passos
 
-- [ ] Ler SPEC-20260518-1625 e feature editorial-content completo
-- [ ] Examinar implementação de Event + EventService como referência
-- [ ] Criar migration para News
-- [ ] Implementar News entity
-- [ ] Implementar schemas Zod
-- [ ] Implementar state machine
-- [ ] Implementar repositories + services
-- [ ] Implementar controllers + rotas
+- [ ] Executar testes de integração (listagem, criação, publicação, agendamento, cron)
+- [ ] Validar isolamento multitenant
+- [ ] Testar cron endpoint com X-Cron-Secret
+- [ ] Arquivar SPEC e atualizar features relacionadas (editorial-content, tenant-resolution, auth, infra-base)
 
 ### Bloqueios ativos
 
