@@ -73,7 +73,6 @@ async function main(): Promise<void> {
     storeController,
     eventController,
     theaterController,
- ,
     storeCategoryController,
   });
 

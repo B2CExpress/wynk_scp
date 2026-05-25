@@ -1,10 +1,8 @@
 import type Redis from 'ioredis';
 import type { EventRepository } from '../repositories/event.repository';
 import { requireTenantContext } from '../middleware/tenant-context';
-import { cached, invalidateByPattern } from '../utils/cache';
+import { invalidateByPattern } from '../utils/cache';
 import type { CreateEventInput, UpdateEventInput } from '../dtos/event.dto';
-
-const CACHE_TTL_SECONDS = 300;
 
 export interface EventDetailResponse {
   id: string;
@@ -29,10 +27,6 @@ export class EventNotFoundError extends Error {
 
 function serializeEvent(event: EventDetailResponse): EventDetailResponse {
   return event;
-}
-
-function buildCacheKey(tenantId: string, id: string): string {
-  return `events:detail:${tenantId}:${id}`;
 }
 
 export class EventService {
