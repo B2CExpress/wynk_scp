@@ -5,6 +5,7 @@ import type { AuthController } from '../../src/controllers/auth.controller';
 import type { StoreController } from '../../src/controllers/store.controller';
 import type { EventController } from '../../src/controllers/event.controller';
 import type { TheaterController } from '../../src/controllers/theater.controller';
+import type { PromotionController } from '../../src/controllers/promotion.controller';
 import type { StoreCategoryController } from '../../src/controllers/store-category.controller';
 import type { AppDeps } from '../../src/app';
 
@@ -94,6 +95,21 @@ export function makeStubTheaterController(): TheaterController {
   } as unknown as TheaterController;
 }
 
+export function makeStubPromotionController(): PromotionController {
+  const notImplemented = async (_req: Request, res: Response): Promise<void> => {
+    res.status(501).json({ error: 'not_implemented_in_test' });
+  };
+  return {
+    list: notImplemented,
+    getById: notImplemented,
+    create: notImplemented,
+    update: notImplemented,
+    delete: notImplemented,
+    publish: notImplemented,
+    archive: notImplemented,
+  } as unknown as PromotionController;
+}
+
 export function makeAppDeps(overrides: Partial<AppDeps> = {}): AppDeps {
   return {
     tenantResolver: makeFakeTenantResolver(),
@@ -101,6 +117,7 @@ export function makeAppDeps(overrides: Partial<AppDeps> = {}): AppDeps {
     storeController: makeStubStoreController(),
     eventController: makeStubEventController(),
     theaterController: makeStubTheaterController(),
+    promotionController: makeStubPromotionController(),
     storeCategoryController: undefined as StoreCategoryController | undefined,
     ...overrides,
   };

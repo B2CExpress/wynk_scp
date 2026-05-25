@@ -19,6 +19,7 @@
 |---|---|---|---|
 | SPEC-20260516-1430 | 2026-05-18 | `7642216` | CRUD completo de lojas no admin |
 | SPEC-20260516-1730 | 2026-05-18 | `8aef2da` | Catalogo de lojas - fase 2 publica e operacional |
+| SPEC-20260519-2010 | 2026-05-25 | _(commit pendente)_ | API Admin CRUD de Promocoes (introduz tb_promotion com FK pra tb_store; mutacao de promocao invalida stores:detail/stores:list por tenant. Detalhes em [[promotions-admin]]) |
 
 ### Planejadas (future/)
 | ID | Titulo | Motivo |
