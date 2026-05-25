@@ -126,10 +126,10 @@ export class EventService {
       title: input.title,
       slug: input.title
         ? input.title
-          .toLowerCase()
-          .replace(/[^\w\s-]/g, '')
-          .replace(/\s+/g, '-')
-          .substring(0, 250)
+            .toLowerCase()
+            .replace(/[^\w\s-]/g, '')
+            .replace(/\s+/g, '-')
+            .substring(0, 250)
         : undefined,
       summary: input.summary,
       body: input.body,

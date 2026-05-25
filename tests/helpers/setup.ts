@@ -195,10 +195,39 @@ export async function createIsolationContext(): Promise<IsolationContext> {
   const authController = new modules.authControllerModule.AuthController(authService, userRepo);
   const storeController = new modules.storeControllerModule.StoreController(storeService);
 
+  // Testes de isolation só exercitam stores. Event/Theater controllers ficam
+  // como stubs 501 pra satisfazer o contrato de AppDeps sem montar repos/
+  // services/redis dedicados (que essa suite não usa).
+  const notImplemented = async (
+    _req: unknown,
+    res: { status: (n: number) => { json: (b: unknown) => void } },
+  ): Promise<void> => {
+    res.status(501).json({ error: 'not_implemented_in_isolation_test' });
+  };
+  const eventControllerStub = {
+    getById: notImplemented,
+    create: notImplemented,
+    update: notImplemented,
+    delete: notImplemented,
+    publish: notImplemented,
+  } as unknown as Parameters<typeof modules.appModule.createApp>[0]['eventController'];
+  const theaterControllerStub = {
+    getShowById: notImplemented,
+    createShow: notImplemented,
+    updateShow: notImplemented,
+    deleteShow: notImplemented,
+    publishShow: notImplemented,
+    addSession: notImplemented,
+    updateSession: notImplemented,
+    deleteSession: notImplemented,
+  } as unknown as Parameters<typeof modules.appModule.createApp>[0]['theaterController'];
+
   const app = modules.appModule.createApp({
     tenantResolver,
     authController,
     storeController,
+    eventController: eventControllerStub,
+    theaterController: theaterControllerStub,
   });
 
   const server = app.listen(0);

@@ -149,7 +149,10 @@ export class TheaterController {
         return;
       }
       if (err instanceof SessionConflictError) {
-        res.status(409).json({ error: 'session_conflict', message: 'Session conflicts with existing session (< 90 min apart)' });
+        res.status(409).json({
+          error: 'session_conflict',
+          message: 'Session conflicts with existing session (< 90 min apart)',
+        });
         return;
       }
       if (err instanceof Error && err.message === 'invalid_request') {

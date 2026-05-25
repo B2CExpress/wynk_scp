@@ -66,11 +66,10 @@ async function main(): Promise<void> {
   const storeCategoryController = new StoreCategoryController(storeCategoryService);
 
   const app = createApp({
-   
     tenantResolver,
-   
+
     authController,
-   
+
     storeController,
     eventController,
     theaterController,

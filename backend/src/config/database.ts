@@ -45,7 +45,17 @@ export const AppDataSource = new DataSource({
   schema: config.database.schema,
   synchronize: false,
   logging: process.env.TYPEORM_LOGGING === 'true',
-  entities: [Tenant, User, RefreshToken, Store, Category, StoreCategory, Event, TheaterShow, TheaterSession],
+  entities: [
+    Tenant,
+    User,
+    RefreshToken,
+    Store,
+    Category,
+    StoreCategory,
+    Event,
+    TheaterShow,
+    TheaterSession,
+  ],
   migrations: [MIGRATIONS_GLOB],
   subscribers: [SUBSCRIBERS_GLOB],
 });
