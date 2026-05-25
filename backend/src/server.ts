@@ -12,6 +12,7 @@ import { EventRepository } from './repositories/event.repository';
 import { TheaterShowRepository } from './repositories/theater-show.repository';
 import { TheaterSessionRepository } from './repositories/theater-session.repository';
 import { PromotionRepository } from './repositories/promotion.repository';
+import { NewsRepository } from './repositories/news.repository';
 import { StoreCategoryRepository } from './repositories/store-category.repository';
 import { TenantResolverService } from './services/tenant-resolver.service';
 import { AuthService } from './services/auth.service';
@@ -19,12 +20,15 @@ import { StoreService } from './services/store.service';
 import { EventService } from './services/event.service';
 import { TheaterService } from './services/theater.service';
 import { PromotionService } from './services/promotion.service';
+import { NewsService } from './services/news.service';
 import { AuthController } from './controllers/auth.controller';
 import { StoreController } from './controllers/store.controller';
 import { EventController } from './controllers/event.controller';
 import { PublicEventController } from './controllers/public-event.controller';
 import { TheaterController } from './controllers/theater.controller';
 import { PromotionController } from './controllers/promotion.controller';
+import { NewsController } from './controllers/news.controller';
+import { CronController } from './controllers/cron.controller';
 import { PublicPromotionController } from './controllers/public-promotion.controller';
 import { StoreCategoryService } from './services/store-category.service';
 import { StoreCategoryController } from './controllers/store-category.controller';
@@ -57,6 +61,7 @@ async function main(): Promise<void> {
   const theaterShowRepo = new TheaterShowRepository(AppDataSource);
   const theaterSessionRepo = new TheaterSessionRepository(AppDataSource);
   const promotionRepo = new PromotionRepository(AppDataSource);
+  const newsRepo = new NewsRepository(AppDataSource);
   const storeCategoryRepo = new StoreCategoryRepository(AppDataSource);
 
   const tenantResolver = new TenantResolverService(tenantRepo, redis);
@@ -65,6 +70,7 @@ async function main(): Promise<void> {
   const eventService = new EventService(eventRepo, redis);
   const theaterService = new TheaterService(theaterShowRepo, theaterSessionRepo, redis);
   const promotionService = new PromotionService(promotionRepo, redis);
+  const newsService = new NewsService(newsRepo, redis);
   const storeCategoryService = new StoreCategoryService(storeCategoryRepo);
   const authController = new AuthController(authService, userRepo);
   const storeController = new StoreController(storeService);
@@ -72,6 +78,8 @@ async function main(): Promise<void> {
   const publicEventController = new PublicEventController(eventService);
   const theaterController = new TheaterController(theaterService);
   const promotionController = new PromotionController(promotionService);
+  const newsController = new NewsController(newsService);
+  const cronController = new CronController(newsService);
   const publicPromotionController = new PublicPromotionController(promotionService);
   const storeCategoryController = new StoreCategoryController(storeCategoryService);
 
@@ -85,6 +93,8 @@ async function main(): Promise<void> {
     publicEventController,
     theaterController,
     promotionController,
+    newsController,
+    cronController,
     publicPromotionController,
     storeCategoryController,
   });

@@ -12,6 +12,8 @@ import type { EventController } from './controllers/event.controller';
 import type { PublicEventController } from './controllers/public-event.controller';
 import type { TheaterController } from './controllers/theater.controller';
 import type { PromotionController } from './controllers/promotion.controller';
+import type { NewsController } from './controllers/news.controller';
+import type { CronController } from './controllers/cron.controller';
 import type { PublicPromotionController } from './controllers/public-promotion.controller';
 import type { StoreCategoryController } from './controllers/store-category.controller';
 import { createResolveTenantByHostMiddleware } from './middleware/resolve-tenant-by-host';
@@ -22,6 +24,8 @@ import { createStoreRoutes } from './routes/store.routes';
 import { createEventRoutes } from './routes/event.routes';
 import { createTheaterRoutes } from './routes/theater.routes';
 import { createPromotionRoutes } from './routes/promotion.routes';
+import { createNewsRoutes } from './routes/news.routes';
+import { createCronRoutes } from './routes/cron.routes';
 import { createStoreCategoryRoutes } from './routes/store-category.routes';
 
 export interface AppDeps {
@@ -32,6 +36,8 @@ export interface AppDeps {
   publicEventController: PublicEventController;
   theaterController: TheaterController;
   promotionController: PromotionController;
+  newsController: NewsController;
+  cronController: CronController;
   publicPromotionController: PublicPromotionController;
   storeCategoryController?: StoreCategoryController;
 }
@@ -97,6 +103,8 @@ export function createApp(deps: AppDeps): Express {
   app.use(createTheaterRoutes(deps.theaterController));
   app.use(createPromotionRoutes(deps.promotionController, deps.publicPromotionController));
   app.use(createStoreCategoryRoutes(deps.storeCategoryController));
+  app.use(createNewsRoutes(deps.newsController));
+  app.use(createCronRoutes(deps.cronController));
 
   // 404
   app.use((_req: Request, res: Response) => {

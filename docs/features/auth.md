@@ -29,6 +29,7 @@
 | SPEC-20260514-2012 | 2026-05-18 | `b38052c` | Isolamento multitenant de stores com testes reais |
 | SPEC-20260518-1625 | 2026-05-25 | `42197eb` | API Admin CRUD de Eventos e Apresentações Teatrais (consome `requireAuth` nas rotas `/api/admin/events`, `/api/admin/theater-shows`, `/api/admin/theater-sessions`; sem mudanças na feature) |
 | SPEC-20260519-2010 | 2026-05-25 | _(commit pendente)_ | API Admin CRUD de Promoções (consome `requireAuth` nas rotas `/api/admin/promotions/*`; sem mudanças na feature) |
+| SPEC-20260522-1100 | 2026-05-25 | _(commit pendente)_ | API Admin CRUD de Notícias (consome `requireAuth` nas rotas `/api/admin/news/*`; endpoint cron `/api/cron/publish-scheduled` usa autenticação própria por `X-Cron-Secret` em vez de JWT; sem mudanças na feature) |
 
 ### Planejadas (future/)
 | ID | Título | Motivo |
