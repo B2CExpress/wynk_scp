@@ -1,4 +1,4 @@
-import type { DataSource, Repository, FindOptionsWhere } from 'typeorm';
+import type { DataSource, Repository } from 'typeorm';
 import { News } from '../entities/News';
 import { withTenant } from '../utils/with-tenant';
 import { requireTenantContext } from '../middleware/tenant-context';
@@ -107,7 +107,6 @@ export class NewsRepository {
   }
 
   async findScheduledForPublish(): Promise<News[]> {
-    const now = new Date();
     return this.newsRepo.find({
       where: {
         status: 'scheduled',
@@ -141,10 +140,9 @@ export class NewsRepository {
     }
 
     if (search) {
-      query = query.andWhere(
-        '(news.news_title ILIKE :search OR news.news_summary ILIKE :search)',
-        { search: `%${search}%` },
-      );
+      query = query.andWhere('(news.news_title ILIKE :search OR news.news_summary ILIKE :search)', {
+        search: `%${search}%`,
+      });
     }
 
     const total = await query.getCount();

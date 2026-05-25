@@ -35,6 +35,7 @@
 | SPEC-20260516-1730 | 2026-05-18 | `8aef2da` | Catálogo de lojas - fase 2 pública e operacional |
 | SPEC-20260518-1625 | 2026-05-25 | `42197eb` | API Admin CRUD de Eventos e Apresentações Teatrais (consome `withTenant`/`requireTenantContext` nos repositories/services de Event/TheaterShow/TheaterSession; sem mudanças na feature) |
 | SPEC-20260519-2010 | 2026-05-25 | _(commit pendente)_ | API Admin CRUD de Promoções (consome `withTenant` em `PromotionRepository` e `TenantSubscriber` global; adiciona padrão de validação cross-tenant de FK via `storeExistsForCurrentTenant` retornando 422 — documentado em [[promotions-admin]]; sem mudanças na feature) |
+| SPEC-20260522-1100 | 2026-05-25 | _(commit pendente)_ | API Admin CRUD de Notícias (consome `withTenant` em `NewsRepository`; cron interno em `jobs/publish-scheduled.ts` roda cross-tenant via `UPDATE tb_news ... RETURNING tenant_id` + invalidação por tenant afetado, mesmo padrão dos events/shows; sem mudanças na feature) |
 
 ### Planejadas (future/)
 | ID | Título | Motivo |

@@ -237,6 +237,18 @@ export async function createIsolationContext(): Promise<IsolationContext> {
   const publicPromotionControllerStub = {
     listPublished: notImplemented,
   } as unknown as Parameters<typeof modules.appModule.createApp>[0]['publicPromotionController'];
+  const newsControllerStub = {
+    listNews: notImplemented,
+    getNews: notImplemented,
+    createNews: notImplemented,
+    updateNews: notImplemented,
+    publishNews: notImplemented,
+    archiveNews: notImplemented,
+    deleteNews: notImplemented,
+  } as unknown as Parameters<typeof modules.appModule.createApp>[0]['newsController'];
+  const cronControllerStub = {
+    publishScheduledNews: notImplemented,
+  } as unknown as Parameters<typeof modules.appModule.createApp>[0]['cronController'];
 
   const app = modules.appModule.createApp({
     tenantResolver,
@@ -247,6 +259,8 @@ export async function createIsolationContext(): Promise<IsolationContext> {
     promotionController: promotionControllerStub,
     publicEventController: publicEventControllerStub,
     publicPromotionController: publicPromotionControllerStub,
+    newsController: newsControllerStub,
+    cronController: cronControllerStub,
   });
 
   const server = app.listen(0);

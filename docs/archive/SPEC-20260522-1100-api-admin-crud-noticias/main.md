@@ -1,10 +1,10 @@
 # SPEC-20260522-1100: API Admin CRUD de Notícias com Fluxo de Publicação
 
-**Status:** active
+**Status:** done
 **Criada:** 2026-05-22 11:00
 **Ativada:** 2026-05-22 11:00
-**Concluida:** —
-**Commit final:** —
+**Concluida:** 2026-05-25 15:30
+**Commit final:** _(commit pendente)_
 **Keywords:** noticias, news, admin-api, crud, scheduler, publicacao-automatica, draft-publish-archive
 **Features:** editorial-content, tenant-resolution, auth, infra-base
 **Branch:** feature/SQU-50-api-admin-crud-de-noticias
@@ -133,23 +133,24 @@ Permitir editores criarem notícias com data de publicação futura (ou imediata
 
 ## Critério de aceite
 
-- [ ] Entidade `News` criada com índices corretos (2026-05-22 HH:MM, commit `xxx`)
-- [ ] Schema Zod em `lib/validators/news.ts` (2026-05-22 HH:MM, commit `xxx`)
-- [ ] Helper state machine em `lib/news/state.ts` (2026-05-22 HH:MM, commit `xxx`)
-- [ ] GET `/api/admin/news` lista paginada com filtros status e busca (2026-05-22 HH:MM, commit `xxx`)
-- [ ] POST `/api/admin/news` cria notícia com status=draft (2026-05-22 HH:MM, commit `xxx`)
-- [ ] PUT `/api/admin/news/:id` atualiza campos sem mudar status (2026-05-22 HH:MM, commit `xxx`)
-- [ ] POST `/api/admin/news/:id/publish` publica imediato ou agenda (2026-05-22 HH:MM, commit `xxx`)
-- [ ] POST `/api/admin/news/:id/archive` arquiva (qualquer status) (2026-05-22 HH:MM, commit `xxx`)
-- [ ] DELETE `/api/admin/news/:id` remove (só draft/archived, senão 409) (2026-05-22 HH:MM, commit `xxx`)
-- [ ] POST `/api/cron/publish-scheduled` com X-Cron-Secret promove scheduled → published (2026-05-22 HH:MM, commit `xxx`)
-- [ ] Cron sem header retorna 401 (2026-05-22 HH:MM, commit `xxx`)
-- [ ] Validação: publish_at não > 1h no passado = 400 (2026-05-22 HH:MM, commit `xxx`)
-- [ ] Validação: slug único por tenant (2026-05-22 HH:MM, commit `xxx`)
-- [ ] Validação: body max 50k chars, sanitizado (2026-05-22 HH:MM, commit `xxx`)
-- [ ] Isolamento multitenant: tenant_id ignorado em payload, cross-tenant = 404 (2026-05-22 HH:MM, commit `xxx`)
-- [ ] Cache Redis invalidado em CREATE/UPDATE/DELETE (2026-05-22 HH:MM, commit `xxx`)
-- [ ] Transições de status validadas (draft→{scheduled,published}, scheduled→published, qualquer→archived) (2026-05-22 HH:MM, commit `xxx`)
-- [ ] **Features tocadas (editorial-content, tenant-resolution, auth, infra-base) atualizadas** com timestamp e referência a esta SPEC
-- [ ] `state.md` com entrada `[conclusão]`
-- [ ] `memory.md` com TL;DR final atualizado
+- [x] Entidade `News` criada com índices `uq_tb_news_tenant_slug (tenant_id, slug)`, `(tenant_id, status)`, `(tenant_id, published_at)`, `(status, published_at)` (2026-05-22 11:00, commit `76c5b19`)
+- [x] Validação manual em `dtos/news.dto.ts` (parser + validator) (2026-05-22 11:00, commit `76c5b19`) — `lib/validators/news.ts` com Zod **não foi criado**; SPEC alinha com decisão da SPEC-20260518-1625 (parser manual sem Zod). Funcionalmente equivalente.
+- [x] Helper state machine em `lib/news/state.ts` (`canTransition`, `canDelete`) (2026-05-22 11:00, commit `76c5b19`)
+- [x] GET `/api/admin/news` lista paginada com filtros status e busca (2026-05-22 11:00, commit `76c5b19`)
+- [x] POST `/api/admin/news` cria notícia com status=draft (2026-05-22 11:00, commit `76c5b19`)
+- [x] PUT `/api/admin/news/:id` atualiza campos sem mudar status (2026-05-22 11:00, commit `76c5b19`)
+- [x] POST `/api/admin/news/:id/publish` publica imediato ou agenda (2026-05-22 11:00, commit `76c5b19`)
+- [x] POST `/api/admin/news/:id/archive` arquiva (qualquer status) (2026-05-22 11:00, commit `76c5b19`)
+- [x] DELETE `/api/admin/news/:id` remove (só draft/archived, senão 409) (2026-05-22 11:00, commit `76c5b19`)
+- [x] POST `/api/cron/publish-scheduled` com X-Cron-Secret promove scheduled → published (2026-05-22 11:00, commit `76c5b19`)
+- [x] Cron sem header retorna 401; sem `CRON_SECRET` configurado retorna 500 (2026-05-22 11:00, commit `76c5b19`)
+- [x] Validação: publish_at não > 1h no passado lança `NewsPublishDateInPastError` (2026-05-22 11:00, commit `76c5b19`)
+- [x] Validação: slug único por tenant via constraint `uq_tb_news_tenant_slug` + check no service (2026-05-22 11:00, commit `76c5b19`)
+- [x] Validação: body max 50k chars + **sanitização HTML real** via `sanitizeRichTextHtml` (2026-05-25 15:00, commit pendente) — antes era só `trim()`/length cap; alinhado com decisão da SPEC-20260518-1625
+- [x] Isolamento multitenant: `tenant_id` ignorado em payload, cross-tenant retorna 404 via `withTenant` + `TenantSubscriber` (2026-05-22 11:00, commit `76c5b19`)
+- [x] Cache Redis invalidado em CREATE/UPDATE/DELETE/publish/archive (`news:detail:{tid}:{id}` + `news:list:{tid}:*`) (2026-05-22 11:00, commit `76c5b19`)
+- [x] Transições de status validadas via `canTransition` (2026-05-22 11:00, commit `76c5b19`)
+- [x] **Cron interno (setInterval 60s) cobre news também** — `jobs/publish-scheduled.ts` agora atualiza `tb_news` além de `tb_event` e `tb_theater_show` (2026-05-25 15:00, commit pendente). Coexiste com endpoint POST (defesa em profundidade).
+- [x] **Features tocadas (editorial-content, tenant-resolution, auth, infra-base) atualizadas** com timestamp e referência a esta SPEC (2026-05-25 15:30, commit pendente)
+- [x] `state.md` com entrada `[conclusão]` (2026-05-25 15:30, commit pendente)
+- [x] `memory.md` com TL;DR final atualizado (2026-05-25 15:30, commit pendente)

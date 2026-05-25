@@ -47,11 +47,19 @@ export const AppDataSource = new DataSource({
   schema: config.database.schema,
   synchronize: false,
   logging: process.env.TYPEORM_LOGGING === 'true',
-  entities: [Tenant, User, RefreshToken, Store, Category, StoreCategory, Event, TheaterShow, TheaterSession, Promotion],
-  migrations: [
-    config.nodeEnv === 'production' ? 'dist/migrations/**/*.js' : 'src/migrations/**/*.{ts,js}',
+  entities: [
+    Tenant,
+    User,
+    RefreshToken,
+    Store,
+    Category,
+    StoreCategory,
+    Event,
+    TheaterShow,
+    TheaterSession,
+    Promotion,
+    News,
   ],
-  subscribers: [
-    config.nodeEnv === 'production' ? 'dist/subscribers/**/*.js' : 'src/subscribers/**/*.{ts,js}',
-  ],
+  migrations: [MIGRATIONS_GLOB],
+  subscribers: [SUBSCRIBERS_GLOB],
 });
