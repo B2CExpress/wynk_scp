@@ -24,7 +24,7 @@ const ALLOWED_ATTR_MAP: Record<string, string[]> = {
 
 const ALLOWED_SCHEMES = ['http', 'https', 'mailto'];
 
-export function sanitizeStoreDescription(html: string): string {
+export function sanitizeRichTextHtml(html: string): string {
   return sanitizeHtml(html, {
     allowedTags: ALLOWED_TAGS,
     allowedAttributes: ALLOWED_ATTR_MAP,
@@ -35,3 +35,5 @@ export function sanitizeStoreDescription(html: string): string {
     disallowedTagsMode: 'discard',
   });
 }
+
+export const sanitizeStoreDescription = sanitizeRichTextHtml;

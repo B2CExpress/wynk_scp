@@ -8,6 +8,9 @@ import { RefreshToken } from '../entities/RefreshToken';
 import { Store } from '../entities/Store';
 import { Category } from '../entities/Category';
 import { StoreCategory } from '../entities/StoreCategory';
+import { Event } from '../entities/Event';
+import { TheaterShow } from '../entities/TheaterShow';
+import { TheaterSession } from '../entities/TheaterSession';
 
 // Resolve globs de migrations/subscribers absolutos ao próprio módulo, não ao
 // CWD. Necessário pra Vitest da raiz (`npm run test:isolation`) achar os mesmos
@@ -42,7 +45,17 @@ export const AppDataSource = new DataSource({
   schema: config.database.schema,
   synchronize: false,
   logging: process.env.TYPEORM_LOGGING === 'true',
-  entities: [Tenant, User, RefreshToken, Store, Category, StoreCategory],
+  entities: [
+    Tenant,
+    User,
+    RefreshToken,
+    Store,
+    Category,
+    StoreCategory,
+    Event,
+    TheaterShow,
+    TheaterSession,
+  ],
   migrations: [MIGRATIONS_GLOB],
   subscribers: [SUBSCRIBERS_GLOB],
 });
