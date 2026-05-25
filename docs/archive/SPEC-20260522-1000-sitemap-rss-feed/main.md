@@ -1,10 +1,10 @@
 # SPEC-20260522-1000: Sitemap XML + RSS feed + robots.txt
 
-**Status:** active
+**Status:** done
 **Criada:** 2026-05-22 10:00
 **Ativada:** 2026-05-22 10:00
-**Concluída:** —
-**Commit final:** —
+**Concluída:** 2026-05-25 14:30
+**Commit final:** _(commit pendente)_
 **Keywords:** SEO, XML, sitemap, RSS, robots, cache, tenant-isolation
 **Features:** seo-sitemaps-rss
 **Branch:** feature/SQU-55-sitemap-dinamico-e-rss
@@ -36,6 +36,9 @@ Melhorar SEO de cada tenant: Google indexa todas URLs públicas via sitemap, usu
 - Validação externa em serviços third-party (manual apenas)
 - Notificação de novas entradas no RSS (apenas feed passivo)
 - Video sitemap, image sitemap (apenas URLs de páginas)
+- **Theater shows no sitemap** (descoberto durante implementação): `TheaterShow` entity não tem coluna `slug`, sem ela não há URL pública canônica. Fica pra SPEC follow-up adicionar `show_slug` + migration.
+- **Services no sitemap**: entity `Service` ainda não existe no domínio; sitemap-completo de serviços pressupõe SPEC nova que crie a entity.
+- **Invalidação ativa em publish/archive**: implementada apenas por TTL natural (1h). Webhook backend→portal para invalidação imediata fica em SPEC follow-up se virar requisito.
 
 ## Implementação
 
@@ -137,21 +140,21 @@ export function toRfc822(date: Date): string {
 
 ## Critério de aceite
 
-- [ ] Endpoint GET /sitemap.xml retorna XML válido (application/xml)
-- [ ] Sitemap inclui todas URLs públicas (estáticas + dinâmicas)
-- [ ] Sitemap valida em https://www.xml-sitemaps.com/validate-xml-sitemap.html
-- [ ] Endpoint GET /rss/news.xml retorna RSS 2.0 válido (application/rss+xml)
-- [ ] RSS inclui últimas 50 notícias com pub-date em RFC 822
-- [ ] RSS valida em https://validator.w3.org/feed/
-- [ ] Endpoint GET /robots.txt retorna texto com User-agent, Allow, Disallow, Sitemap
-- [ ] robots.txt aponta para sitemap correto do tenant (https://{tenant.host}/sitemap.xml)
-- [ ] Escapamento XML correto: entidade com & e < no título não quebra parser
-- [ ] Cache Redis funciona: segunda requisição em <1h retorna cached
-- [ ] Isolamento por tenant: sitemap de tenant1 não inclui URLs de tenant2
-- [ ] Content-Type correto em todas respostas
-- [ ] Cache invalidado em publish/archive de notícia, evento, teatro, promoção, serviço, loja
-- [ ] Link RSS adicionado ao <head> do layout (rel='alternate' type='application/rss+xml')
-- [ ] Features tocadas (seo-sitemaps-rss) atualizadas com timestamp e referência a esta SPEC
-- [ ] state.md com entrada [conclusão]
-- [ ] memory.md com TL;DR final atualizado
+- [x] Endpoint GET /sitemap.xml retorna XML válido (application/xml) (2026-05-22 10:30, commit `6f66a1c`)
+- [x] Sitemap inclui URLs públicas: 7 estáticas + dinâmicas de stores, events, promotions (2026-05-25 14:00, commit pendente) — theater/services ficaram FORA conforme escopo ajustado
+- [ ] Sitemap valida em https://www.xml-sitemaps.com/validate-xml-sitemap.html — validação externa manual ainda não feita
+- [x] Endpoint GET /rss/news.xml retorna RSS 2.0 válido (application/rss+xml) (2026-05-22 10:45, commit `6f66a1c`)
+- [x] RSS inclui últimas 50 notícias com pub-date em RFC 822 (2026-05-22 10:45, commit `6f66a1c`) — events usados como "notícias" (sem entity News separada, decisão registrada)
+- [ ] RSS valida em https://validator.w3.org/feed/ — validação externa manual ainda não feita
+- [x] Endpoint GET /robots.txt retorna texto com User-agent, Allow, Disallow, Sitemap (2026-05-22 10:45, commit `6f66a1c`)
+- [x] robots.txt aponta para sitemap correto do tenant (`https://{host}/sitemap.xml`) (2026-05-22 10:45, commit `6f66a1c`)
+- [x] Escapamento XML correto via `lib/xml.ts:escapeXml` (ordem `&` antes de `<` etc.) (2026-05-22 10:30, commit `6f66a1c`)
+- [x] **Cache server-side via `unstable_cache` do Next.js** (revalidate 3600s, tags `sitemap:{tenant_id}`, `rss:news:{tenant_id}`, `robots:{tenant_id}`) (2026-05-25 14:00, commit pendente) — substituiu Redis literal (decisão registrada em seo-sitemaps-rss.md)
+- [x] Isolamento por tenant: 404 se host não resolve em `resolveTenantByHost`; queries ao backend passam `X-Forwarded-Host` (2026-05-22 10:30, commit `6f66a1c`)
+- [x] Content-Type correto: application/xml, application/rss+xml, text/plain (2026-05-22 10:30, commit `6f66a1c`)
+- [ ] ~~Cache invalidado em publish/archive~~ — **NÃO IMPLEMENTADO** nesta entrega; coberto por TTL natural de 1h. Tags do `unstable_cache` deixam abertura pra `revalidateTag` via webhook se virar requisito (SPEC follow-up).
+- [x] Link RSS adicionado ao `<head>` do layout (`rel='alternate' type='application/rss+xml'`) (2026-05-22 10:30, commit `6f66a1c`)
+- [x] **Features tocadas (seo-sitemaps-rss) atualizadas** com timestamp e referência a esta SPEC (2026-05-25 14:30, commit pendente)
+- [x] `state.md` com entrada `[conclusão]` (2026-05-25 14:30, commit pendente)
+- [x] `memory.md` com TL;DR final atualizado (2026-05-25 14:30, commit pendente)
 

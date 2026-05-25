@@ -12,6 +12,7 @@ import type { EventController } from './controllers/event.controller';
 import type { PublicEventController } from './controllers/public-event.controller';
 import type { TheaterController } from './controllers/theater.controller';
 import type { PromotionController } from './controllers/promotion.controller';
+import type { PublicPromotionController } from './controllers/public-promotion.controller';
 import type { StoreCategoryController } from './controllers/store-category.controller';
 import { createResolveTenantByHostMiddleware } from './middleware/resolve-tenant-by-host';
 import { tenantContextMiddleware } from './middleware/tenant-context';
@@ -31,6 +32,7 @@ export interface AppDeps {
   publicEventController: PublicEventController;
   theaterController: TheaterController;
   promotionController: PromotionController;
+  publicPromotionController: PublicPromotionController;
   storeCategoryController?: StoreCategoryController;
 }
 
@@ -93,7 +95,7 @@ export function createApp(deps: AppDeps): Express {
   app.use(createStoreRoutes(deps.storeController));
   app.use(createEventRoutes(deps.eventController, deps.publicEventController));
   app.use(createTheaterRoutes(deps.theaterController));
-  app.use(createPromotionRoutes(deps.promotionController));
+  app.use(createPromotionRoutes(deps.promotionController, deps.publicPromotionController));
   app.use(createStoreCategoryRoutes(deps.storeCategoryController));
 
   // 404

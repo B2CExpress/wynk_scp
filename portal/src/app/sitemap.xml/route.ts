@@ -1,10 +1,12 @@
 'use server';
 
 import { headers } from 'next/headers';
+import { unstable_cache } from 'next/cache';
 import { resolveTenantByHost } from '@/lib/tenant/resolve';
 import { escapeXml, toIso8601Date } from '@/lib/xml';
 
 const BACKEND_URL = process.env.BACKEND_URL ?? 'http://localhost:3001';
+const CACHE_TTL_SECONDS = 3600;
 
 interface PublicEntity {
   id: string;
@@ -40,6 +42,20 @@ async function fetchPublicEvents(host: string): Promise<PublicEntity[]> {
   }
 }
 
+async function fetchPublicPromotions(host: string): Promise<PublicEntity[]> {
+  try {
+    const res = await fetch(`${BACKEND_URL}/api/v1/promotions`, {
+      headers: { 'X-Forwarded-Host': host },
+      cache: 'no-store',
+    });
+    if (!res.ok) return [];
+    const data = await res.json();
+    return Array.isArray(data) ? data : [];
+  } catch {
+    return [];
+  }
+}
+
 function buildSitemapXml(baseUrl: string, entities: Record<string, PublicEntity[]>): string {
   const staticRoutes = ['', 'lojas', 'noticias', 'eventos', 'teatro', 'promocoes', 'servicos'];
 
@@ -56,10 +72,13 @@ function buildSitemapXml(baseUrl: string, entities: Record<string, PublicEntity[
     xml += '  </url>\n';
   }
 
-  // Dynamic routes
+  // Dynamic routes. Theater shows e services ficam de fora desta versão:
+  // TheaterShow não tem coluna `slug` (SPEC follow-up registrada) e o domínio
+  // Services nem entity tem ainda.
   const categories = [
     { key: 'stores', path: 'lojas', priority: '0.7' },
     { key: 'events', path: 'eventos', priority: '0.7' },
+    { key: 'promotions', path: 'promocoes', priority: '0.6' },
   ];
 
   for (const category of categories) {
@@ -79,6 +98,30 @@ function buildSitemapXml(baseUrl: string, entities: Record<string, PublicEntity[
   return xml;
 }
 
+/**
+ * Wrapper cacheado por tenant (`tenant:resolve:{host}` → tenant_id). Tag
+ * `sitemap:{tenant_id}` permite invalidação manual via `revalidateTag` se
+ * algum publish/archive precisar.
+ */
+async function getCachedSitemap(host: string, tenantId: string): Promise<string> {
+  return unstable_cache(
+    async () => {
+      const baseUrl = `https://${host}`;
+      const [stores, events, promotions] = await Promise.all([
+        fetchPublicStores(host),
+        fetchPublicEvents(host),
+        fetchPublicPromotions(host),
+      ]);
+      return buildSitemapXml(baseUrl, { stores, events, promotions });
+    },
+    [`sitemap-xml-${tenantId}`],
+    {
+      revalidate: CACHE_TTL_SECONDS,
+      tags: [`sitemap:${tenantId}`],
+    },
+  )();
+}
+
 export async function GET() {
   try {
     const host = (await headers()).get('host') ?? '';
@@ -88,22 +131,13 @@ export async function GET() {
       return new Response('Not Found', { status: 404 });
     }
 
-    const baseUrl = `https://${host}`;
-    const stores = await fetchPublicStores(host);
-    const events = await fetchPublicEvents(host);
-
-    const entities = {
-      stores,
-      events,
-    };
-
-    const xml = buildSitemapXml(baseUrl, entities);
+    const xml = await getCachedSitemap(host, tenant.id);
 
     return new Response(xml, {
       status: 200,
       headers: {
         'Content-Type': 'application/xml',
-        'Cache-Control': 'public, max-age=3600',
+        'Cache-Control': `public, max-age=${CACHE_TTL_SECONDS}`,
       },
     });
   } catch (error) {
