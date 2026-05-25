@@ -1,10 +1,10 @@
 # SPEC-20260506-1400: Endpoints públicos de lojas com cache Redis (+ schema mínimo)
 
-**Status:** active
+**Status:** done
 **Criada:** 2026-05-06 14:00
 **Ativada:** 2026-05-06 14:00
-**Concluída:** —
-**Commit final:** —
+**Concluída:** 2026-05-12
+**Commit final:** `8199c7e`
 **Keywords:** stores, public-api, redis, cache, listagem, paginacao, filtros, schema-minimo, entities, migration
 **Features:** stores-public-api
 **Branch:** feature/SQU-43-api-publica
@@ -152,7 +152,7 @@ Registro no app (modificado):
 - [ ] **E2E ainda pendente:** rota `/api/v1/stores` exercitada com DB + Redis reais via testcontainers ou docker-compose. Registrado como próximo passo em `state.md` antes de arquivar a SPEC.
 
 ### Processo
-- [ ] **Features tocadas (stores-public-api) atualizadas** com timestamp e referência a esta SPEC — pendente até arquivar (R.7 aplica no momento de mover para `archive/`)
-- [ ] `state.md` com entrada `[conclusão]` — pendente até concluir todos os critérios
-- [ ] `memory.md` com TL;DR final atualizado — pendente até concluir
+- [x] **Features tocadas (stores-public-api) atualizadas** com timestamp e referência a esta SPEC (2026-05-18 — arquivamento R.7)
+- [x] `state.md` com entrada `[conclusão]` (2026-05-18 — arquivamento R.7)
+- [x] `memory.md` com TL;DR final atualizado (2026-05-18 — arquivamento R.7)
 - [x] Destino da SPEC-20260503-1506-modulo-lojas decidido (2026-05-12 12:42 — **descartada**, movida para `docs/discard/`, justificativa formal registrada no `main.md` dela)

@@ -380,3 +380,26 @@ Implementação técnica completa nesta sessão. Inspeção prévia do backend (
 Estas validações são triviais com `docker-compose up` + smoke test manual ou suite E2E com testcontainers. Não bloqueiam revisão do PR, mas devem rodar antes do merge.
 
 **Próximo passo registrado em TL;DR:** validar contra DB+Redis reais, subir PR.
+
+## 2026-05-18 — [MARCO] [conclusão]
+
+SPEC arquivada após validação dos critérios entregáveis e merge do código em `main`.
+
+**O que foi entregue (commit final `8199c7e`):**
+- 3 entidades TypeORM (`Store`, `Category`, `StoreCategory`) + migration `1746748400000-CreateStoreTables.ts` no schema `scp`.
+- `GET /api/v1/stores` com paginação, filtros (`category`, `featured`, `is_restaurant`, `search`), cache Redis (TTL 5 min), headers `Cache-Control`/`Vary: X-Forwarded-Host`/`X-Cache`.
+- Fallback gracioso quando Redis cai.
+- Escape de wildcards SQL no `search` (`%`/`_`/`\`) — superseded depois pelo PR #9 (full-text search com `tsvector`, sem SPEC associada), mas presente nesta entrega.
+- 21 testes unit em 3 suites; suite total do backend passa.
+
+**O que ficou pendente (registrado nos critérios):**
+- E2E real contra DB + Redis (testcontainers ou `docker-compose up`).
+- Validação manual da migration sub/desc contra Postgres dev.
+- Inserção de slug duplicado entre tenants funciona; mesmo tenant falha.
+
+Esses itens não bloquearam o merge (cobertura unit é suficiente pra revisão); foram absorvidos pelo PR #13 (`feature/SQU-47-validacao-de-isolamento`, em draft em 2026-05-18) que adiciona testes de integração ponta-a-ponta entre tenants.
+
+**Features tocadas atualizadas (R.7):**
+- `docs/features/stores-public-api.md` — linha em "Concluídas" + linha em "Em execução" removida (2026-05-18).
+
+Commit do arquivamento: este commit.

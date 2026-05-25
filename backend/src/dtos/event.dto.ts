@@ -1,3 +1,5 @@
+import { sanitizeRichTextHtml } from '../lib/sanitize';
+
 export interface CreateEventInput {
   title?: string;
   summary?: string;
@@ -25,8 +27,7 @@ export interface EventValidationError {
 
 function isValidISO8601WithTimezone(value: string): boolean {
   // ISO 8601 with timezone: 2026-06-15T19:00:00-03:00 or with Z
-  const iso8601Regex =
-    /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}([+-]\d{2}:\d{2}|Z)$/;
+  const iso8601Regex = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}([+-]\d{2}:\d{2}|Z)$/;
   return iso8601Regex.test(value);
 }
 
@@ -48,7 +49,9 @@ function sanitizeText(text: string, maxLength?: number): string {
   return sanitized;
 }
 
-export function validateEventInput(input: CreateEventInput | UpdateEventInput): EventValidationError[] {
+export function validateEventInput(
+  input: CreateEventInput | UpdateEventInput,
+): EventValidationError[] {
   const errors: EventValidationError[] = [];
 
   // Title validation (if provided)
@@ -79,17 +82,26 @@ export function validateEventInput(input: CreateEventInput | UpdateEventInput): 
   // starts_at validation (if provided)
   if (input.starts_at !== undefined) {
     if (typeof input.starts_at !== 'string') {
-      errors.push({ field: 'starts_at', message: 'starts_at must be a valid ISO 8601 timestamp with timezone' });
+      errors.push({
+        field: 'starts_at',
+        message: 'starts_at must be a valid ISO 8601 timestamp with timezone',
+      });
     } else {
       const startsAt = parseISO8601(input.starts_at);
       if (!startsAt) {
-        errors.push({ field: 'starts_at', message: 'starts_at must be a valid ISO 8601 timestamp with timezone' });
+        errors.push({
+          field: 'starts_at',
+          message: 'starts_at must be a valid ISO 8601 timestamp with timezone',
+        });
       } else {
         // Check if within 5 years in future
         const now = new Date();
         const fiveYearsFromNow = new Date(now.getTime() + 5 * 365 * 24 * 60 * 60 * 1000);
         if (startsAt < now || startsAt > fiveYearsFromNow) {
-          errors.push({ field: 'starts_at', message: 'starts_at must be between now and 5 years in the future' });
+          errors.push({
+            field: 'starts_at',
+            message: 'starts_at must be between now and 5 years in the future',
+          });
         }
       }
     }
@@ -98,11 +110,17 @@ export function validateEventInput(input: CreateEventInput | UpdateEventInput): 
   // ends_at validation (if provided)
   if (input.ends_at !== undefined) {
     if (typeof input.ends_at !== 'string') {
-      errors.push({ field: 'ends_at', message: 'ends_at must be a valid ISO 8601 timestamp with timezone' });
+      errors.push({
+        field: 'ends_at',
+        message: 'ends_at must be a valid ISO 8601 timestamp with timezone',
+      });
     } else {
       const endsAt = parseISO8601(input.ends_at);
       if (!endsAt) {
-        errors.push({ field: 'ends_at', message: 'ends_at must be a valid ISO 8601 timestamp with timezone' });
+        errors.push({
+          field: 'ends_at',
+          message: 'ends_at must be a valid ISO 8601 timestamp with timezone',
+        });
       }
     }
   }
@@ -112,7 +130,10 @@ export function validateEventInput(input: CreateEventInput | UpdateEventInput): 
     const startsAt = parseISO8601(input.starts_at);
     const endsAt = parseISO8601(input.ends_at);
     if (startsAt && endsAt && endsAt < startsAt) {
-      errors.push({ field: 'ends_at', message: 'ends_at must be greater than or equal to starts_at' });
+      errors.push({
+        field: 'ends_at',
+        message: 'ends_at must be greater than or equal to starts_at',
+      });
     }
   }
 
@@ -128,7 +149,10 @@ export function validateEventInput(input: CreateEventInput | UpdateEventInput): 
   // ticket_info validation (if provided)
   if (input.ticket_info !== undefined && input.ticket_info !== null) {
     if (typeof input.ticket_info !== 'string' || input.ticket_info.trim().length === 0) {
-      errors.push({ field: 'ticket_info', message: 'ticket_info must be a non-empty string or null' });
+      errors.push({
+        field: 'ticket_info',
+        message: 'ticket_info must be a non-empty string or null',
+      });
     }
   }
 
@@ -139,11 +163,16 @@ export function parseEventInput(input: Record<string, unknown>): CreateEventInpu
   return {
     title: typeof input.title === 'string' ? sanitizeText(input.title) : undefined,
     summary: typeof input.summary === 'string' ? sanitizeText(input.summary) : undefined,
-    body: typeof input.body === 'string' ? sanitizeText(input.body) : undefined,
+    // body é rich text HTML — sanitiza tags/atributos perigosos (XSS) antes de gravar.
+    body: typeof input.body === 'string' ? sanitizeRichTextHtml(input.body.trim()) : undefined,
     starts_at: typeof input.starts_at === 'string' ? input.starts_at : undefined,
     ends_at: typeof input.ends_at === 'string' ? input.ends_at : undefined,
     location:
-      typeof input.location === 'string' ? sanitizeText(input.location) : input.location === null ? null : undefined,
+      typeof input.location === 'string'
+        ? sanitizeText(input.location)
+        : input.location === null
+          ? null
+          : undefined,
     ticket_info:
       typeof input.ticket_info === 'string'
         ? sanitizeText(input.ticket_info)
