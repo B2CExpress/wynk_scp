@@ -1,3 +1,5 @@
+import { sanitizeRichTextHtml } from '../lib/sanitize';
+
 export interface CreateEventInput {
   title?: string;
   summary?: string;
@@ -139,7 +141,8 @@ export function parseEventInput(input: Record<string, unknown>): CreateEventInpu
   return {
     title: typeof input.title === 'string' ? sanitizeText(input.title) : undefined,
     summary: typeof input.summary === 'string' ? sanitizeText(input.summary) : undefined,
-    body: typeof input.body === 'string' ? sanitizeText(input.body) : undefined,
+    // body é rich text HTML — sanitiza tags/atributos perigosos (XSS) antes de gravar.
+    body: typeof input.body === 'string' ? sanitizeRichTextHtml(input.body.trim()) : undefined,
     starts_at: typeof input.starts_at === 'string' ? input.starts_at : undefined,
     ends_at: typeof input.ends_at === 'string' ? input.ends_at : undefined,
     location:

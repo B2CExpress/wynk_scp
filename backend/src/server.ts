@@ -23,6 +23,7 @@ import { EventController } from './controllers/event.controller';
 import { TheaterController } from './controllers/theater.controller';
 import { StoreCategoryService } from './services/store-category.service';
 import { StoreCategoryController } from './controllers/store-category.controller';
+import { startPublishScheduledLoop } from './jobs/publish-scheduled';
 
 async function main(): Promise<void> {
   // Inicialização do banco e Redis fica opt-in pra ambiente: em dev/prod conectamos,
@@ -75,6 +76,11 @@ async function main(): Promise<void> {
     theaterController,
     storeCategoryController,
   });
+
+  if (config.nodeEnv !== 'test') {
+    startPublishScheduledLoop(AppDataSource, redis);
+    logger.info('publish-scheduled loop started', { intervalMs: 60_000 });
+  }
 
   app.listen(config.port, () => {
     logger.info('server listening', { port: config.port, env: config.nodeEnv });

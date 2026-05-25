@@ -1,3 +1,5 @@
+import { sanitizeRichTextHtml } from '../lib/sanitize';
+
 export interface CreateTheaterShowInput {
   title?: string;
   synopsis?: string;
@@ -168,7 +170,8 @@ export function validateTheaterSessionUpdate(input: UpdateTheaterSessionInput): 
 export function parseTheaterShowInput(input: Record<string, unknown>): CreateTheaterShowInput {
   return {
     title: typeof input.title === 'string' ? sanitizeText(input.title) : undefined,
-    synopsis: typeof input.synopsis === 'string' ? sanitizeText(input.synopsis) : undefined,
+    // synopsis é rich text HTML — sanitiza tags/atributos perigosos (XSS) antes de gravar.
+    synopsis: typeof input.synopsis === 'string' ? sanitizeRichTextHtml(input.synopsis.trim()) : undefined,
     duration_minutes:
       input.duration_minutes !== undefined && input.duration_minutes !== null
         ? (input.duration_minutes as number | string)
