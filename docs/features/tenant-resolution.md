@@ -33,6 +33,7 @@
 | SPEC-20260514-2012 | 2026-05-18 | `b38052c` | Isolamento multitenant de stores com testes reais |
 | SPEC-20260516-1430 | 2026-05-18 | `7642216` | CRUD completo de lojas no admin |
 | SPEC-20260516-1730 | 2026-05-18 | `8aef2da` | Catálogo de lojas - fase 2 pública e operacional |
+| SPEC-20260518-1625 | 2026-05-25 | `42197eb` | API Admin CRUD de Eventos e Apresentações Teatrais (consome `withTenant`/`requireTenantContext` nos repositories/services de Event/TheaterShow/TheaterSession; sem mudanças na feature) |
 
 ### Planejadas (future/)
 | ID | Título | Motivo |
