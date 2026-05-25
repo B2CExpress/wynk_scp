@@ -1,4 +1,4 @@
-import type { DataSource, Repository, SelectQueryBuilder } from 'typeorm';
+import type { DataSource, Repository } from 'typeorm';
 import { Promotion } from '../entities/Promotion';
 import { Store } from '../entities/Store';
 import { withTenant } from '../utils/with-tenant';
@@ -155,7 +155,11 @@ export class PromotionRepository {
     const skip = (page - 1) * limit;
 
     let qb = withTenant(this.promotionRepo.createQueryBuilder('promotion'))
-      .leftJoin(Store, 'store', 'store.store_id = promotion.store_id AND store.tenant_id = promotion.tenant_id')
+      .leftJoin(
+        Store,
+        'store',
+        'store.store_id = promotion.store_id AND store.tenant_id = promotion.tenant_id',
+      )
       .addSelect(['store.store_id', 'store.store_name', 'store.store_slug']);
 
     // Filter by status if provided

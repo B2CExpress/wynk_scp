@@ -86,7 +86,7 @@ jobs:
       redis:
         image: redis:7-alpine
         ports:
-          - 6382:6379
+          - 6379:6379
         options: >-
           --health-cmd "redis-cli ping"
           --health-interval 5s
@@ -113,7 +113,7 @@ jobs:
           DB_NAME: scp_test
           DB_SCHEMA: scp
           REDIS_HOST: 127.0.0.1
-          REDIS_PORT: 6382
+          REDIS_PORT: 6379
           JWT_ACCESS_SECRET: ci-access-secret
           JWT_REFRESH_SECRET: ci-refresh-secret
         run: npm run test:isolation

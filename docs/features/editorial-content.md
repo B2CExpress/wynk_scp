@@ -14,6 +14,8 @@
   - backend/src/repositories/theater-session.repository.ts
   - backend/src/dtos/event.dto.ts
   - backend/src/dtos/theater.dto.ts
+  - backend/src/jobs/publish-scheduled.ts
+  - backend/src/lib/sanitize.ts (`sanitizeRichTextHtml`)
 **Resumo:** CRUD admin de conteúdo editorial com data — eventos (similares a notícias mas com starts_at/ends_at) e peças teatrais (com múltiplas sessões, cada uma com data/ingresso). Isolamento multitenant via `withTenant()`, validação de conflito de sessão < 90min, cache Redis, publicação automática via cron.
 
 ## Specs desta feature
@@ -21,7 +23,7 @@
 ### Concluídas
 | ID | Data | Commit | Título |
 |---|---|---|---|
-| _(nenhuma)_ | — | — | — |
+| SPEC-20260518-1625 | 2026-05-25 | `42197eb` | API Admin CRUD de Eventos e Apresentações Teatrais |
 
 ### Planejadas (future/)
 | ID | Título | Motivo |
@@ -32,11 +34,11 @@
 ### Em execução (só em branches — não aparece em main)
 | ID | Título | Branch |
 |---|---|---|
-| SPEC-20260518-1625 | API Admin CRUD de Eventos e Apresentações Teatrais | feature/SQU-51-api-admin-crud-de-eventos |
+| _(nenhuma)_ | | |
 
 ## Estado atual
 
-Entrega inicial (SPEC-20260518-1625): endpoints admin de CRUD + validação + isolamento multitenant. Schema fixo em 3 entidades; cron de publicação automática planejada.
+Entrega completa (SPEC-20260518-1625): endpoints admin de CRUD + validação + isolamento multitenant + cron de publicação + sanitização HTML.
 
 Endpoints entregues:
 - Eventos: POST/GET/PUT/DELETE `/api/admin/events` e `/api/admin/events/:id`; POST `/api/admin/events/:id/publish`
@@ -50,10 +52,16 @@ Validação:
 
 Isolamento multitenant:
 - `tenant_id` ignorado em payload (usa contexto da sessão)
-- Cross-tenant = 404 (exceto validação = 422)
-- Cache Redis separado por tenant
+- Cross-tenant = 404 (entidades atuais não têm coluna de categoria — critério 422 para categoria inválida não aplica nesta versão)
+- Cache Redis separado por tenant (prefixos `events:`/`shows:` + `tenant_id`)
 
-> Última atualização: 2026-05-18 16:35 (SPEC-20260518-1625)
+Sanitização:
+- `body` (eventos) e `synopsis` (shows) passam por `sanitizeRichTextHtml` (vide [[infra-base]]) antes de gravar — tags HTML permitidas restritas, atributos perigosos descartados. Defesa contra XSS no render do portal.
+
+Cron de publicação:
+- `jobs/publish-scheduled.ts` (`startPublishScheduledLoop`) roda `setInterval` cross-tenant a cada 60s (configurável). `UPDATE ... RETURNING tenant_id` em `tb_event` e `tb_theater_show` para registros `status='scheduled' AND published_at <= NOW()`, depois `invalidateByPattern` em `events:*` / `shows:*` por tenant afetado. Loop tem `unref()` (não bloqueia shutdown) e desabilitado em `NODE_ENV=test`. Falhas no UPDATE/SCAN são logadas mas não derrubam o processo.
+
+> Última atualização: 2026-05-25 08:50 (SPEC-20260518-1625)
 
 ## Decisões arquiteturais ativas
 
@@ -63,6 +71,8 @@ Isolamento multitenant:
 - **Cache Redis por tenant (pattern `shows:detail:tenant:id` e `shows:list:tenant:*`)** (origem: SPEC-20260518-1625, 2026-05-18 16:32) — Invalidação segura via SCAN. Trade-off: prefixo mais verboso vs legibilidade.
 - **Status `draft | published | scheduled` simples (varchar, não enum DB)** (origem: SPEC-20260518-1625, 2026-05-18 16:26) — Validação no service. Trade-off: menos rigor DB vs velocidade de mudança.
 - **Slug gerado automaticamente de title (lowercase, remove symbols)** (origem: SPEC-20260518-1625, 2026-05-18 16:31) — Evita conflito de entrada. Trade-off: slug pode não ser ideal; admin pode sobrescrever se necessário em CRUD futuro.
+- **Cron via `setInterval` simples (zero-dep), 60s, `unref()`** (origem: SPEC-20260518-1625, 2026-05-25 08:50) — Sem `node-cron` ou agendador externo. Trade-off: granularidade fixa de 60s e sem coordenação multi-process (se rodar 2 réplicas, ambas tentam publicar — `UPDATE` é idempotente, mas há "thundering herd" no cache invalidation). Reavaliar quando deploy multi-réplica entrar.
+- **Sanitização HTML real via `sanitize-html` em `body`/`synopsis`** (origem: SPEC-20260518-1625, 2026-05-25 08:50) — `sanitizeRichTextHtml` em [[infra-base]] (alias do `sanitizeStoreDescription` existente). Allowlist de tags (`p,br,strong,em,u,h2-h4,ul,ol,li,a,img,blockquote`) e atributos (`href,src,alt,target,rel,...`). Antes era só `trim()` — vulnerável a XSS no render do portal.
 
 ## Alternativas consideradas e rejeitadas
 

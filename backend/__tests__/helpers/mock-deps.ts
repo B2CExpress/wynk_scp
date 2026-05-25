@@ -7,6 +7,7 @@ import type { EventController } from '../../src/controllers/event.controller';
 import type { PublicEventController } from '../../src/controllers/public-event.controller';
 import type { TheaterController } from '../../src/controllers/theater.controller';
 import type { PromotionController } from '../../src/controllers/promotion.controller';
+import type { StoreCategoryController } from '../../src/controllers/store-category.controller';
 import type { AppDeps } from '../../src/app';
 
 /**
@@ -133,6 +134,7 @@ export function makeAppDeps(overrides: Partial<AppDeps> = {}): AppDeps {
     publicEventController: makeStubPublicEventController(),
     theaterController: makeStubTheaterController(),
     promotionController: makeStubPromotionController(),
+    storeCategoryController: undefined as StoreCategoryController | undefined,
     ...overrides,
   };
 }

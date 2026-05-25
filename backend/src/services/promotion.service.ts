@@ -1,10 +1,11 @@
 import type Redis from 'ioredis';
-import type { PromotionRepository, ListPromotionsQuery } from '../repositories/promotion.repository';
+import type {
+  PromotionRepository,
+  ListPromotionsQuery,
+} from '../repositories/promotion.repository';
 import { requireTenantContext } from '../middleware/tenant-context';
 import { invalidateByPattern } from '../utils/cache';
 import type { CreatePromotionInput, UpdatePromotionInput } from '../dtos/promotion.dto';
-
-const CACHE_TTL_SECONDS = 300;
 
 export interface PromotionDetailResponse {
   id: string;
