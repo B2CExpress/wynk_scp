@@ -29,6 +29,7 @@
 | SPEC-20260512-1900 | 2026-05-13 | `43424f3` | Validação ponta-a-ponta da Fase 1 Multitenant |
 | SPEC-20260514-2012 | 2026-05-18 | `b38052c` | Isolamento multitenant de stores com testes reais |
 | SPEC-20260518-1625 | 2026-05-25 | `42197eb` | API Admin CRUD de Eventos e Apresentações Teatrais (introduz `backend/src/jobs/` para crons cross-tenant e generaliza `sanitizeRichTextHtml` em `lib/sanitize.ts`) |
+| SPEC-20260519-2010 | 2026-05-25 | _(commit pendente)_ | API Admin CRUD de Promoções (registra entity `Promotion` em `config/database.ts` e rota em `app.ts`; sem mudanças arquiteturais na feature) |
 
 ### Planejadas (future/)
 | ID | Título | Motivo |
