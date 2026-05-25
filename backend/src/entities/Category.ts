@@ -22,6 +22,9 @@ export class Category {
   @Column({ name: 'category_name', type: 'varchar', length: 120 })
   name: string;
 
+  @Column({ name: 'category_sort_order', type: 'int', default: 0 })
+  sortOrder: number;
+
   @CreateDateColumn({ name: 'category_created_at', type: 'timestamptz' })
   createdAt: Date;
 

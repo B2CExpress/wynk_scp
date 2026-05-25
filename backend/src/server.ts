@@ -13,6 +13,7 @@ import { TheaterShowRepository } from './repositories/theater-show.repository';
 import { TheaterSessionRepository } from './repositories/theater-session.repository';
 import { PromotionRepository } from './repositories/promotion.repository';
 import { NewsRepository } from './repositories/news.repository';
+import { StoreCategoryRepository } from './repositories/store-category.repository';
 import { TenantResolverService } from './services/tenant-resolver.service';
 import { AuthService } from './services/auth.service';
 import { StoreService } from './services/store.service';
@@ -28,6 +29,10 @@ import { TheaterController } from './controllers/theater.controller';
 import { PromotionController } from './controllers/promotion.controller';
 import { NewsController } from './controllers/news.controller';
 import { CronController } from './controllers/cron.controller';
+import { PublicPromotionController } from './controllers/public-promotion.controller';
+import { StoreCategoryService } from './services/store-category.service';
+import { StoreCategoryController } from './controllers/store-category.controller';
+import { startPublishScheduledLoop } from './jobs/publish-scheduled';
 
 async function main(): Promise<void> {
   // Inicialização do banco e Redis fica opt-in pra ambiente: em dev/prod conectamos,
@@ -57,6 +62,7 @@ async function main(): Promise<void> {
   const theaterSessionRepo = new TheaterSessionRepository(AppDataSource);
   const promotionRepo = new PromotionRepository(AppDataSource);
   const newsRepo = new NewsRepository(AppDataSource);
+  const storeCategoryRepo = new StoreCategoryRepository(AppDataSource);
 
   const tenantResolver = new TenantResolverService(tenantRepo, redis);
   const authService = new AuthService(tenantRepo, userRepo, refreshTokenRepo);
@@ -65,6 +71,7 @@ async function main(): Promise<void> {
   const theaterService = new TheaterService(theaterShowRepo, theaterSessionRepo, redis);
   const promotionService = new PromotionService(promotionRepo, redis);
   const newsService = new NewsService(newsRepo, redis);
+  const storeCategoryService = new StoreCategoryService(storeCategoryRepo);
   const authController = new AuthController(authService, userRepo);
   const storeController = new StoreController(storeService);
   const eventController = new EventController(eventService);
@@ -73,10 +80,14 @@ async function main(): Promise<void> {
   const promotionController = new PromotionController(promotionService);
   const newsController = new NewsController(newsService);
   const cronController = new CronController(newsService);
+  const publicPromotionController = new PublicPromotionController(promotionService);
+  const storeCategoryController = new StoreCategoryController(storeCategoryService);
 
   const app = createApp({
     tenantResolver,
+
     authController,
+
     storeController,
     eventController,
     publicEventController,
@@ -84,7 +95,14 @@ async function main(): Promise<void> {
     promotionController,
     newsController,
     cronController,
+    publicPromotionController,
+    storeCategoryController,
   });
+
+  if (config.nodeEnv !== 'test') {
+    startPublishScheduledLoop(AppDataSource, redis);
+    logger.info('publish-scheduled loop started', { intervalMs: 60_000 });
+  }
 
   app.listen(config.port, () => {
     logger.info('server listening', { port: config.port, env: config.nodeEnv });

@@ -3,7 +3,12 @@ import type { TheaterShowRepository } from '../repositories/theater-show.reposit
 import type { TheaterSessionRepository } from '../repositories/theater-session.repository';
 import { requireTenantContext } from '../middleware/tenant-context';
 import { invalidateByPattern } from '../utils/cache';
-import type { CreateTheaterShowInput, UpdateTheaterShowInput, CreateTheaterSessionInput, UpdateTheaterSessionInput } from '../dtos/theater.dto';
+import type {
+  CreateTheaterShowInput,
+  UpdateTheaterShowInput,
+  CreateTheaterSessionInput,
+  UpdateTheaterSessionInput,
+} from '../dtos/theater.dto';
 
 export interface TheaterSessionResponse {
   id: string;
@@ -77,14 +82,22 @@ export class TheaterService {
     };
   }
 
-  async createShowForCurrentTenant(input: CreateTheaterShowInput): Promise<TheaterShowDetailResponse> {
-    if (!input.title || !input.synopsis || input.duration_minutes === undefined || !input.age_rating) {
+  async createShowForCurrentTenant(
+    input: CreateTheaterShowInput,
+  ): Promise<TheaterShowDetailResponse> {
+    if (
+      !input.title ||
+      !input.synopsis ||
+      input.duration_minutes === undefined ||
+      !input.age_rating
+    ) {
       throw new Error('invalid_request');
     }
 
-    const duration = typeof input.duration_minutes === 'string'
-      ? Number.parseInt(input.duration_minutes, 10)
-      : input.duration_minutes;
+    const duration =
+      typeof input.duration_minutes === 'string'
+        ? Number.parseInt(input.duration_minutes, 10)
+        : input.duration_minutes;
 
     if (!Number.isInteger(duration) || duration < 10 || duration > 600) {
       throw new Error('invalid_request');
@@ -114,14 +127,21 @@ export class TheaterService {
     };
   }
 
-  async updateShowForCurrentTenant(id: string, input: UpdateTheaterShowInput): Promise<TheaterShowDetailResponse> {
-    const duration = input.duration_minutes !== undefined
-      ? typeof input.duration_minutes === 'string'
-        ? Number.parseInt(input.duration_minutes, 10)
-        : input.duration_minutes
-      : undefined;
+  async updateShowForCurrentTenant(
+    id: string,
+    input: UpdateTheaterShowInput,
+  ): Promise<TheaterShowDetailResponse> {
+    const duration =
+      input.duration_minutes !== undefined
+        ? typeof input.duration_minutes === 'string'
+          ? Number.parseInt(input.duration_minutes, 10)
+          : input.duration_minutes
+        : undefined;
 
-    if (duration !== undefined && (!Number.isInteger(duration) || duration < 10 || duration > 600)) {
+    if (
+      duration !== undefined &&
+      (!Number.isInteger(duration) || duration < 10 || duration > 600)
+    ) {
       throw new Error('invalid_request');
     }
 
@@ -185,7 +205,10 @@ export class TheaterService {
     };
   }
 
-  async addSessionForCurrentTenant(showId: string, input: CreateTheaterSessionInput): Promise<TheaterSessionResponse> {
+  async addSessionForCurrentTenant(
+    showId: string,
+    input: CreateTheaterSessionInput,
+  ): Promise<TheaterSessionResponse> {
     // Verify show exists in current tenant
     const show = await this.showRepo.findByIdForCurrentTenant(showId);
     if (!show) {
@@ -225,7 +248,10 @@ export class TheaterService {
     };
   }
 
-  async updateSessionForCurrentTenant(id: string, input: UpdateTheaterSessionInput): Promise<TheaterSessionResponse> {
+  async updateSessionForCurrentTenant(
+    id: string,
+    input: UpdateTheaterSessionInput,
+  ): Promise<TheaterSessionResponse> {
     const updated = await this.sessionRepo.updateForCurrentTenant(id, {
       startsAt: input.starts_at ? new Date(input.starts_at) : undefined,
       ticketUrl: input.ticket_url,

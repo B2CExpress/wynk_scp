@@ -9,6 +9,8 @@ import type { TheaterController } from '../../src/controllers/theater.controller
 import type { PromotionController } from '../../src/controllers/promotion.controller';
 import type { NewsController } from '../../src/controllers/news.controller';
 import type { CronController } from '../../src/controllers/cron.controller';
+import type { PublicPromotionController } from '../../src/controllers/public-promotion.controller';
+import type { StoreCategoryController } from '../../src/controllers/store-category.controller';
 import type { AppDeps } from '../../src/app';
 
 /**
@@ -150,6 +152,19 @@ export function makeStubPublicEventController(): PublicEventController {
   } as unknown as PublicEventController;
 }
 
+/**
+ * Stub do `PublicPromotionController` que responde 501. Usado por testes que
+ * não exercitam public promotions.
+ */
+export function makeStubPublicPromotionController(): PublicPromotionController {
+  const notImplemented = async (_req: Request, res: Response): Promise<void> => {
+    res.status(501).json({ error: 'not_implemented_in_test' });
+  };
+  return {
+    listPublished: notImplemented,
+  } as unknown as PublicPromotionController;
+}
+
 export function makeAppDeps(overrides: Partial<AppDeps> = {}): AppDeps {
   return {
     tenantResolver: makeFakeTenantResolver(),
@@ -161,6 +176,8 @@ export function makeAppDeps(overrides: Partial<AppDeps> = {}): AppDeps {
     promotionController: makeStubPromotionController(),
     newsController: makeStubNewsController(),
     cronController: makeStubCronController(),
+    publicPromotionController: makeStubPublicPromotionController(),
+    storeCategoryController: undefined as StoreCategoryController | undefined,
     ...overrides,
   };
 }

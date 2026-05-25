@@ -79,24 +79,34 @@ export interface IsolationContext {
 let cachedContext: IsolationContext | null = null;
 
 async function ensureTestDatabase(): Promise<void> {
-  const client = new Client({
+  const connection = {
     host: process.env.DB_HOST ?? 'localhost',
     port: Number(process.env.DB_PORT ?? '5435'),
     user: process.env.DB_USER ?? 'scp',
     password: process.env.DB_PASS ?? 'scp',
-    database: 'postgres',
-  });
+  };
 
-  await client.connect();
+  const adminClient = new Client({ ...connection, database: 'postgres' });
+  await adminClient.connect();
   try {
-    const existing = await client.query('SELECT 1 FROM pg_database WHERE datname = $1', [
+    const existing = await adminClient.query('SELECT 1 FROM pg_database WHERE datname = $1', [
       TEST_DB_NAME,
     ]);
     if (existing.rowCount === 0) {
-      await client.query(`CREATE DATABASE ${TEST_DB_NAME}`);
+      await adminClient.query(`CREATE DATABASE ${TEST_DB_NAME}`);
     }
   } finally {
-    await client.end();
+    await adminClient.end();
+  }
+
+  // TypeORM falha em runMigrations() se o schema não existir antes — mesmo
+  // gotcha de backend/scripts/ensure-schema.ts no fluxo de dev.
+  const dbClient = new Client({ ...connection, database: TEST_DB_NAME });
+  await dbClient.connect();
+  try {
+    await dbClient.query(`CREATE SCHEMA IF NOT EXISTS ${TEST_DB_SCHEMA}`);
+  } finally {
+    await dbClient.end();
   }
 }
 
@@ -158,7 +168,7 @@ export async function createIsolationContext(): Promise<IsolationContext> {
 
   const redis = new Redis({
     host: process.env.REDIS_HOST ?? 'localhost',
-    port: Number(process.env.REDIS_PORT ?? '6382'),
+    port: Number(process.env.REDIS_PORT ?? '6379'),
     db: TEST_REDIS_DB,
     maxRetriesPerRequest: 1,
     lazyConnect: false,
@@ -185,10 +195,58 @@ export async function createIsolationContext(): Promise<IsolationContext> {
   const authController = new modules.authControllerModule.AuthController(authService, userRepo);
   const storeController = new modules.storeControllerModule.StoreController(storeService);
 
+  // Testes de isolation só exercitam stores. Event/Theater/Promotion
+  // controllers ficam como stubs 501 pra satisfazer o contrato de AppDeps
+  // sem montar repos/services/redis dedicados (que essa suite não usa).
+  const notImplemented = async (
+    _req: unknown,
+    res: { status: (n: number) => { json: (b: unknown) => void } },
+  ): Promise<void> => {
+    res.status(501).json({ error: 'not_implemented_in_isolation_test' });
+  };
+  const eventControllerStub = {
+    getById: notImplemented,
+    create: notImplemented,
+    update: notImplemented,
+    delete: notImplemented,
+    publish: notImplemented,
+  } as unknown as Parameters<typeof modules.appModule.createApp>[0]['eventController'];
+  const theaterControllerStub = {
+    getShowById: notImplemented,
+    createShow: notImplemented,
+    updateShow: notImplemented,
+    deleteShow: notImplemented,
+    publishShow: notImplemented,
+    addSession: notImplemented,
+    updateSession: notImplemented,
+    deleteSession: notImplemented,
+  } as unknown as Parameters<typeof modules.appModule.createApp>[0]['theaterController'];
+  const promotionControllerStub = {
+    list: notImplemented,
+    getById: notImplemented,
+    create: notImplemented,
+    update: notImplemented,
+    delete: notImplemented,
+    publish: notImplemented,
+    archive: notImplemented,
+  } as unknown as Parameters<typeof modules.appModule.createApp>[0]['promotionController'];
+  const publicEventControllerStub = {
+    listPublished: notImplemented,
+    getBySlugPublished: notImplemented,
+  } as unknown as Parameters<typeof modules.appModule.createApp>[0]['publicEventController'];
+  const publicPromotionControllerStub = {
+    listPublished: notImplemented,
+  } as unknown as Parameters<typeof modules.appModule.createApp>[0]['publicPromotionController'];
+
   const app = modules.appModule.createApp({
     tenantResolver,
     authController,
     storeController,
+    eventController: eventControllerStub,
+    theaterController: theaterControllerStub,
+    promotionController: promotionControllerStub,
+    publicEventController: publicEventControllerStub,
+    publicPromotionController: publicPromotionControllerStub,
   });
 
   const server = app.listen(0);
@@ -357,7 +415,8 @@ export async function createCategoryFixture(input: {
 }): Promise<CategoryFixture> {
   const context = await createIsolationContext();
   const { AppDataSource } = context.databaseModule;
-  const { Category } = (await import('../../backend/src/entities/Category')) as CategoryEntityModule;
+  const { Category } =
+    (await import('../../backend/src/entities/Category')) as CategoryEntityModule;
   const repo = AppDataSource.getRepository(Category);
   const created = await repo.save(
     repo.create({

@@ -14,6 +14,8 @@ import type { TheaterController } from './controllers/theater.controller';
 import type { PromotionController } from './controllers/promotion.controller';
 import type { NewsController } from './controllers/news.controller';
 import type { CronController } from './controllers/cron.controller';
+import type { PublicPromotionController } from './controllers/public-promotion.controller';
+import type { StoreCategoryController } from './controllers/store-category.controller';
 import { createResolveTenantByHostMiddleware } from './middleware/resolve-tenant-by-host';
 import { tenantContextMiddleware } from './middleware/tenant-context';
 import { tenantRoutes } from './routes/tenant.routes';
@@ -24,6 +26,7 @@ import { createTheaterRoutes } from './routes/theater.routes';
 import { createPromotionRoutes } from './routes/promotion.routes';
 import { createNewsRoutes } from './routes/news.routes';
 import { createCronRoutes } from './routes/cron.routes';
+import { createStoreCategoryRoutes } from './routes/store-category.routes';
 
 export interface AppDeps {
   tenantResolver: TenantResolverService;
@@ -35,6 +38,8 @@ export interface AppDeps {
   promotionController: PromotionController;
   newsController: NewsController;
   cronController: CronController;
+  publicPromotionController: PublicPromotionController;
+  storeCategoryController?: StoreCategoryController;
 }
 
 /**
@@ -96,7 +101,8 @@ export function createApp(deps: AppDeps): Express {
   app.use(createStoreRoutes(deps.storeController));
   app.use(createEventRoutes(deps.eventController, deps.publicEventController));
   app.use(createTheaterRoutes(deps.theaterController));
-  app.use(createPromotionRoutes(deps.promotionController));
+  app.use(createPromotionRoutes(deps.promotionController, deps.publicPromotionController));
+  app.use(createStoreCategoryRoutes(deps.storeCategoryController));
   app.use(createNewsRoutes(deps.newsController));
   app.use(createCronRoutes(deps.cronController));
 

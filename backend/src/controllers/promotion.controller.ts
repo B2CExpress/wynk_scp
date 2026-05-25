@@ -18,7 +18,8 @@ export class PromotionController {
         limit: req.query.limit ? parseInt(req.query.limit as string, 10) : 10,
         status: req.query.status as string | undefined,
         store_id: req.query.store_id as string | undefined,
-        expired: req.query.expired === 'true' ? true : req.query.expired === 'false' ? false : undefined,
+        expired:
+          req.query.expired === 'true' ? true : req.query.expired === 'false' ? false : undefined,
       };
 
       const result = await this.promotionService.listForCurrentTenant(query);
