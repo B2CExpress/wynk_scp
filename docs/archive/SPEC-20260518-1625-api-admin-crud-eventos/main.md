@@ -1,10 +1,10 @@
 # SPEC-20260518-1625: API Admin CRUD de Eventos e Apresentações Teatrais
 
-**Status:** active
+**Status:** done
 **Criada:** 2026-05-18 16:25
 **Ativada:** 2026-05-18 16:25
-**Concluida:** —
-**Commit final:** —
+**Concluida:** 2026-05-25 08:50
+**Commit final:** `42197eb`
 **Keywords:** eventos, theater-shows, admin-api, crud, multitenant, isolamento
 **Features:** editorial-content, tenant-resolution, auth, infra-base
 **Branch:** feature/SQU-51-api-admin-crud-de-eventos
@@ -112,27 +112,27 @@ Expandir a plataforma editorial com conteúdo datado (eventos, apresentações t
 
 ## Critério de aceite
 
-- [ ] Entidades `Event`, `TheaterShow`, `TheaterSession` criadas com indexes corretos
-- [ ] `lib/validators/event.ts` e `lib/validators/theater.ts` com schemas Zod funcionais
-- [ ] `POST /api/admin/events` cria evento, `GET /api/admin/events` lista, `PUT /api/admin/events/:id` atualiza
-- [ ] `DELETE /api/admin/events/:id` remove evento (retorna 204)
-- [ ] `POST /api/admin/events/:id/publish` publica evento agendado
-- [ ] `POST /api/admin/theater-shows` cria peça
-- [ ] `GET /api/admin/theater-shows/:id` retorna peça com `sessions[]` no response
-- [ ] `PUT /api/admin/theater-shows/:id` atualiza peça
-- [ ] `DELETE /api/admin/theater-shows/:id` remove peça (CASCADE em sessões)
-- [ ] `POST /api/admin/theater-shows/:id/publish` publica peça agendada
-- [ ] `POST /api/admin/theater-shows/:id/sessions` adiciona sessão com validação de conflito < 90min
-- [ ] `PUT /api/admin/theater-sessions/:id` atualiza sessão (ex.: marcar `is_sold_out`)
-- [ ] `DELETE /api/admin/theater-sessions/:id` remove sessão (retorna 204)
-- [ ] Validação: ends_at >= starts_at (eventos)
-- [ ] Validação: starts_at no futuro (1h mínimo) — sessões
-- [ ] Validação: conflito de sessão < 90min retorna 409
-- [ ] Isolamento multitenant: `tenant_id` ignorado em payload
-- [ ] Cross-tenant retorna 404 (exceto 422 pra categoria inválida)
-- [ ] Cache Redis invalidado em CREATE/UPDATE/DELETE
-- [ ] Cron de publicação cobre `Event` e `TheaterShow`
-- [ ] Sanitização de `body` (eventos) e `synopsis` (shows)
-- [ ] **Features tocadas (editorial-content, tenant-resolution, auth, infra-base) atualizadas** com timestamp e referência a esta SPEC
-- [ ] `state.md` com entrada `[conclusão]`
-- [ ] `memory.md` com TL;DR final atualizado
+- [x] Entidades `Event`, `TheaterShow`, `TheaterSession` criadas com indexes corretos (2026-05-18 16:26, commit `3c48de1`)
+- [x] Validadores funcionais em `dtos/event.dto.ts` e `dtos/theater.dto.ts` — parser/validador manual (sem Zod, decisão registrada) (2026-05-18 16:28, commit `3c48de1`)
+- [x] `POST /api/admin/events` cria evento, `GET /api/admin/events` lista, `PUT /api/admin/events/:id` atualiza (2026-05-18 16:32, commit `3c48de1`)
+- [x] `DELETE /api/admin/events/:id` remove evento (retorna 204) (2026-05-18 16:32, commit `3c48de1`)
+- [x] `POST /api/admin/events/:id/publish` publica evento agendado (2026-05-18 16:32, commit `3c48de1`)
+- [x] `POST /api/admin/theater-shows` cria peça (2026-05-18 16:32, commit `3c48de1`)
+- [x] `GET /api/admin/theater-shows/:id` retorna peça com `sessions[]` no response (2026-05-18 16:32, commit `3c48de1`)
+- [x] `PUT /api/admin/theater-shows/:id` atualiza peça (2026-05-18 16:32, commit `3c48de1`)
+- [x] `DELETE /api/admin/theater-shows/:id` remove peça (CASCADE em sessões) (2026-05-18 16:32, commit `3c48de1`)
+- [x] `POST /api/admin/theater-shows/:id/publish` publica peça agendada (2026-05-18 16:32, commit `3c48de1`)
+- [x] `POST /api/admin/theater-shows/:id/sessions` adiciona sessão com validação de conflito < 90min (2026-05-18 16:32, commit `3c48de1`)
+- [x] `PUT /api/admin/theater-sessions/:id` atualiza sessão (ex.: marcar `is_sold_out`) (2026-05-18 16:32, commit `3c48de1`)
+- [x] `DELETE /api/admin/theater-sessions/:id` remove sessão (retorna 204) (2026-05-18 16:32, commit `3c48de1`)
+- [x] Validação: ends_at >= starts_at (eventos) (2026-05-18 16:31, commit `3c48de1`)
+- [x] Validação: starts_at no futuro (1h mínimo) — sessões (2026-05-18 16:31, commit `3c48de1`)
+- [x] Validação: conflito de sessão < 90min retorna 409 (2026-05-18 16:31, commit `3c48de1`)
+- [x] Isolamento multitenant: `tenant_id` ignorado em payload (2026-05-18 16:30, commit `3c48de1`)
+- [x] Cross-tenant retorna 404 (2026-05-18 16:30, commit `3c48de1`) — validação de categoria 422 não aplica, entidades não têm coluna de categoria
+- [x] Cache Redis invalidado em CREATE/UPDATE/DELETE (2026-05-18 16:32, commit `3c48de1`)
+- [x] Cron de publicação cobre `Event` e `TheaterShow` (2026-05-25 08:50, commit `42197eb`)
+- [x] Sanitização de `body` (eventos) e `synopsis` (shows) via `sanitize-html` (2026-05-25 08:50, commit `42197eb`)
+- [x] **Features tocadas (editorial-content, tenant-resolution, auth, infra-base) atualizadas** com timestamp e referência a esta SPEC (2026-05-25 08:55, commit pendente)
+- [x] `state.md` com entrada `[conclusão]` (2026-05-25 08:55, commit pendente)
+- [x] `memory.md` com TL;DR final atualizado (2026-05-25 08:55, commit pendente)
