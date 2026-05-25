@@ -2,6 +2,7 @@ import { TenantResolverService } from '../src/services/tenant-resolver.service';
 import type { TenantRepository } from '../src/repositories/tenant.repository';
 import type { Tenant } from '../src/entities/Tenant';
 import type Redis from 'ioredis';
+import { logger } from '../src/utils/logger';
 
 function makeRepoMock(tenant: Tenant | null): TenantRepository {
   return {
@@ -43,6 +44,10 @@ const tenantRow: Tenant = {
 };
 
 describe('TenantResolverService.resolveByHost', () => {
+  beforeEach(() => {
+    jest.restoreAllMocks();
+  });
+
   it('returns null when no tenant matches the host', async () => {
     const repo = makeRepoMock(null);
     const { redis } = makeRedisMock();
@@ -90,6 +95,58 @@ describe('TenantResolverService.resolveByHost', () => {
       flavorSlug: tenantRow.flavorSlug,
     });
     expect(repo.findByHost).toHaveBeenCalledTimes(1);
+  });
+
+  it('falls back to the database when Redis GET fails', async () => {
+    const repo = makeRepoMock(tenantRow);
+    const { redis, getSpy, setSpy } = makeRedisMock();
+    const warnSpy = jest.spyOn(logger, 'warn').mockImplementation(() => undefined);
+    getSpy.mockRejectedValueOnce(new Error('redis down'));
+    const service = new TenantResolverService(repo, redis);
+
+    const ctx = await service.resolveByHost('shopping-x.local');
+
+    expect(ctx).toEqual({
+      tenantId: tenantRow.id,
+      slug: tenantRow.slug,
+      flavorSlug: tenantRow.flavorSlug,
+    });
+    expect(repo.findByHost).toHaveBeenCalledTimes(1);
+    expect(setSpy).toHaveBeenCalledTimes(1);
+    expect(warnSpy).toHaveBeenCalledWith(
+      'tenant cache unavailable, falling back to database',
+      expect.objectContaining({
+        host: 'shopping-x.local',
+        key: 'tenant:resolve:shopping-x.local',
+        message: 'redis down',
+      }),
+    );
+  });
+
+  it('serves the tenant even when Redis SET fails', async () => {
+    const repo = makeRepoMock(tenantRow);
+    const { redis, setSpy } = makeRedisMock();
+    const warnSpy = jest.spyOn(logger, 'warn').mockImplementation(() => undefined);
+    setSpy.mockRejectedValueOnce(new Error('write failed'));
+    const service = new TenantResolverService(repo, redis);
+
+    const ctx = await service.resolveByHost('shopping-x.local');
+
+    expect(ctx).toEqual({
+      tenantId: tenantRow.id,
+      slug: tenantRow.slug,
+      flavorSlug: tenantRow.flavorSlug,
+    });
+    expect(repo.findByHost).toHaveBeenCalledTimes(1);
+    expect(warnSpy).toHaveBeenCalledWith(
+      'tenant cache write failed',
+      expect.objectContaining({
+        host: 'shopping-x.local',
+        key: 'tenant:resolve:shopping-x.local',
+        ttlSeconds: 600,
+        message: 'write failed',
+      }),
+    );
   });
 
   it('removes the cache entry on invalidate(host)', async () => {
@@ -140,5 +197,23 @@ describe('TenantResolverService.resolveByHost', () => {
 
     await expect(service.invalidate('never-cached.local')).resolves.toBeUndefined();
     expect(delSpy).toHaveBeenCalledWith('tenant:resolve:never-cached.local');
+  });
+
+  it('swallows Redis DEL errors during invalidation', async () => {
+    const repo = makeRepoMock(null);
+    const { redis, delSpy } = makeRedisMock();
+    const warnSpy = jest.spyOn(logger, 'warn').mockImplementation(() => undefined);
+    delSpy.mockRejectedValueOnce(new Error('del failed'));
+    const service = new TenantResolverService(repo, redis);
+
+    await expect(service.invalidate('shopping-x.local')).resolves.toBeUndefined();
+    expect(warnSpy).toHaveBeenCalledWith(
+      'tenant cache invalidation failed',
+      expect.objectContaining({
+        host: 'shopping-x.local',
+        key: 'tenant:resolve:shopping-x.local',
+        message: 'del failed',
+      }),
+    );
   });
 });

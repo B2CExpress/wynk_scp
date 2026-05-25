@@ -5,6 +5,7 @@ import type { AuthController } from '../../src/controllers/auth.controller';
 import type { StoreController } from '../../src/controllers/store.controller';
 import type { EventController } from '../../src/controllers/event.controller';
 import type { TheaterController } from '../../src/controllers/theater.controller';
+import type { StoreCategoryController } from '../../src/controllers/store-category.controller';
 import type { AppDeps } from '../../src/app';
 
 /**
@@ -100,6 +101,7 @@ export function makeAppDeps(overrides: Partial<AppDeps> = {}): AppDeps {
     storeController: makeStubStoreController(),
     eventController: makeStubEventController(),
     theaterController: makeStubTheaterController(),
+    storeCategoryController: undefined as StoreCategoryController | undefined,
     ...overrides,
   };
 }

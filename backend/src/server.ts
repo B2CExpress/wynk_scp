@@ -11,6 +11,7 @@ import { StoreRepository } from './repositories/store.repository';
 import { EventRepository } from './repositories/event.repository';
 import { TheaterShowRepository } from './repositories/theater-show.repository';
 import { TheaterSessionRepository } from './repositories/theater-session.repository';
+import { StoreCategoryRepository } from './repositories/store-category.repository';
 import { TenantResolverService } from './services/tenant-resolver.service';
 import { AuthService } from './services/auth.service';
 import { StoreService } from './services/store.service';
@@ -20,6 +21,8 @@ import { AuthController } from './controllers/auth.controller';
 import { StoreController } from './controllers/store.controller';
 import { EventController } from './controllers/event.controller';
 import { TheaterController } from './controllers/theater.controller';
+import { StoreCategoryService } from './services/store-category.service';
+import { StoreCategoryController } from './controllers/store-category.controller';
 
 async function main(): Promise<void> {
   // Inicialização do banco e Redis fica opt-in pra ambiente: em dev/prod conectamos,
@@ -47,23 +50,31 @@ async function main(): Promise<void> {
   const eventRepo = new EventRepository(AppDataSource);
   const theaterShowRepo = new TheaterShowRepository(AppDataSource);
   const theaterSessionRepo = new TheaterSessionRepository(AppDataSource);
+  const storeCategoryRepo = new StoreCategoryRepository(AppDataSource);
 
   const tenantResolver = new TenantResolverService(tenantRepo, redis);
   const authService = new AuthService(tenantRepo, userRepo, refreshTokenRepo);
   const storeService = new StoreService(storeRepo, redis);
   const eventService = new EventService(eventRepo, redis);
   const theaterService = new TheaterService(theaterShowRepo, theaterSessionRepo, redis);
+  const storeCategoryService = new StoreCategoryService(storeCategoryRepo);
   const authController = new AuthController(authService, userRepo);
   const storeController = new StoreController(storeService);
   const eventController = new EventController(eventService);
   const theaterController = new TheaterController(theaterService);
+  const storeCategoryController = new StoreCategoryController(storeCategoryService);
 
   const app = createApp({
+   
     tenantResolver,
+   
     authController,
+   
     storeController,
     eventController,
     theaterController,
+ ,
+    storeCategoryController,
   });
 
   app.listen(config.port, () => {
