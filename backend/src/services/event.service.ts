@@ -201,4 +201,46 @@ export class EventService {
     await invalidateByPattern(this.redis, `events:detail:${tenantId}:*`);
     await invalidateByPattern(this.redis, `events:list:${tenantId}:*`);
   }
+
+  async listPublishedForCurrentTenant(limit: number = 50): Promise<EventDetailResponse[]> {
+    const events = await this.eventRepo.findPublishedForCurrentTenant(limit);
+    return events.map((event) =>
+      serializeEvent({
+        id: event.id,
+        tenantId: event.tenantId,
+        title: event.title,
+        slug: event.slug,
+        summary: event.summary,
+        body: event.body,
+        startsAt: event.startsAt,
+        endsAt: event.endsAt,
+        location: event.location,
+        ticketInfo: event.ticketInfo,
+        status: event.status,
+        publishedAt: event.publishedAt,
+      }),
+    );
+  }
+
+  async getPublishedBySlugForCurrentTenant(slug: string): Promise<EventDetailResponse> {
+    const event = await this.eventRepo.findPublishedBySlugForCurrentTenant(slug);
+    if (!event) {
+      throw new EventNotFoundError();
+    }
+
+    return serializeEvent({
+      id: event.id,
+      tenantId: event.tenantId,
+      title: event.title,
+      slug: event.slug,
+      summary: event.summary,
+      body: event.body,
+      startsAt: event.startsAt,
+      endsAt: event.endsAt,
+      location: event.location,
+      ticketInfo: event.ticketInfo,
+      status: event.status,
+      publishedAt: event.publishedAt,
+    });
+  }
 }

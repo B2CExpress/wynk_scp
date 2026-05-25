@@ -220,4 +220,15 @@ export class PromotionRepository {
       .orderBy('promotion.promotion_created_at', 'DESC')
       .getMany();
   }
+
+  async findPublishedActiveForCurrentTenant(limit: number = 200): Promise<Promotion[]> {
+    const now = new Date();
+    return withTenant(this.promotionRepo.createQueryBuilder('promotion'))
+      .andWhere('promotion.promotion_status = :status', { status: 'published' })
+      .andWhere('promotion.promotion_valid_from <= :now', { now })
+      .andWhere('promotion.promotion_valid_until >= :now', { now })
+      .orderBy('promotion.promotion_updated_at', 'DESC')
+      .limit(limit)
+      .getMany();
+  }
 }

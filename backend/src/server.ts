@@ -22,8 +22,10 @@ import { PromotionService } from './services/promotion.service';
 import { AuthController } from './controllers/auth.controller';
 import { StoreController } from './controllers/store.controller';
 import { EventController } from './controllers/event.controller';
+import { PublicEventController } from './controllers/public-event.controller';
 import { TheaterController } from './controllers/theater.controller';
 import { PromotionController } from './controllers/promotion.controller';
+import { PublicPromotionController } from './controllers/public-promotion.controller';
 import { StoreCategoryService } from './services/store-category.service';
 import { StoreCategoryController } from './controllers/store-category.controller';
 import { startPublishScheduledLoop } from './jobs/publish-scheduled';
@@ -67,8 +69,10 @@ async function main(): Promise<void> {
   const authController = new AuthController(authService, userRepo);
   const storeController = new StoreController(storeService);
   const eventController = new EventController(eventService);
+  const publicEventController = new PublicEventController(eventService);
   const theaterController = new TheaterController(theaterService);
   const promotionController = new PromotionController(promotionService);
+  const publicPromotionController = new PublicPromotionController(promotionService);
   const storeCategoryController = new StoreCategoryController(storeCategoryService);
 
   const app = createApp({
@@ -78,8 +82,10 @@ async function main(): Promise<void> {
 
     storeController,
     eventController,
+    publicEventController,
     theaterController,
     promotionController,
+    publicPromotionController,
     storeCategoryController,
   });
 

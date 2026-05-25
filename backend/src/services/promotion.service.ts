@@ -279,6 +279,13 @@ export class PromotionService {
     };
   }
 
+  async listPublishedActiveForCurrentTenant(
+    limit: number = 200,
+  ): Promise<PromotionDetailResponse[]> {
+    const promotions = await this.promotionRepo.findPublishedActiveForCurrentTenant(limit);
+    return promotions.map((p) => serializePromotion(p));
+  }
+
   private async invalidateListings(tenantId: string, storeId?: string): Promise<void> {
     await invalidateByPattern(this.redis, `promotions:detail:${tenantId}:*`);
     await invalidateByPattern(this.redis, `promotions:list:${tenantId}:*`);

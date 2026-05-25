@@ -112,4 +112,21 @@ export class EventRepository {
       },
     });
   }
+
+  async findPublishedForCurrentTenant(limit: number = 50): Promise<Event[]> {
+    return withTenant(this.eventRepo.createQueryBuilder('event'))
+      .andWhere('event.event_status = :status', { status: 'published' })
+      .andWhere('event.event_published_at <= :now', { now: new Date() })
+      .orderBy('event.event_published_at', 'DESC')
+      .limit(limit)
+      .getMany();
+  }
+
+  async findPublishedBySlugForCurrentTenant(slug: string): Promise<Event | null> {
+    return withTenant(this.eventRepo.createQueryBuilder('event'))
+      .andWhere('event.event_slug = :slug', { slug })
+      .andWhere('event.event_status = :status', { status: 'published' })
+      .andWhere('event.event_published_at <= :now', { now: new Date() })
+      .getOne();
+  }
 }

@@ -230,6 +230,13 @@ export async function createIsolationContext(): Promise<IsolationContext> {
     publish: notImplemented,
     archive: notImplemented,
   } as unknown as Parameters<typeof modules.appModule.createApp>[0]['promotionController'];
+  const publicEventControllerStub = {
+    listPublished: notImplemented,
+    getBySlugPublished: notImplemented,
+  } as unknown as Parameters<typeof modules.appModule.createApp>[0]['publicEventController'];
+  const publicPromotionControllerStub = {
+    listPublished: notImplemented,
+  } as unknown as Parameters<typeof modules.appModule.createApp>[0]['publicPromotionController'];
 
   const app = modules.appModule.createApp({
     tenantResolver,
@@ -238,6 +245,8 @@ export async function createIsolationContext(): Promise<IsolationContext> {
     eventController: eventControllerStub,
     theaterController: theaterControllerStub,
     promotionController: promotionControllerStub,
+    publicEventController: publicEventControllerStub,
+    publicPromotionController: publicPromotionControllerStub,
   });
 
   const server = app.listen(0);
