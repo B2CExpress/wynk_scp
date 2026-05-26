@@ -12,6 +12,7 @@ import { TheaterShow } from '../entities/TheaterShow';
 import { TheaterSession } from '../entities/TheaterSession';
 import { Promotion } from '../entities/Promotion';
 import { News } from '../entities/News';
+import { Banner } from '../entities/Banner';
 
 /**
  * AppDataSource — instância única do TypeORM compartilhada por toda a aplicação.
@@ -33,7 +34,7 @@ export const AppDataSource = new DataSource({
   schema: config.database.schema,
   synchronize: false,
   logging: process.env.TYPEORM_LOGGING === 'true',
-  entities: [Tenant, User, RefreshToken, Store, Category, StoreCategory, Event, TheaterShow, TheaterSession, Promotion, News],
+  entities: [Tenant, User, RefreshToken, Store, Category, StoreCategory, Event, TheaterShow, TheaterSession, Promotion, News, Banner],
   migrations: [
     config.nodeEnv === 'production' ? 'dist/migrations/**/*.js' : 'src/migrations/**/*.{ts,js}',
   ],

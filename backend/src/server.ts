@@ -13,6 +13,7 @@ import { TheaterShowRepository } from './repositories/theater-show.repository';
 import { TheaterSessionRepository } from './repositories/theater-session.repository';
 import { PromotionRepository } from './repositories/promotion.repository';
 import { NewsRepository } from './repositories/news.repository';
+import { BannerRepository } from './repositories/banner.repository';
 import { TenantResolverService } from './services/tenant-resolver.service';
 import { AuthService } from './services/auth.service';
 import { StoreService } from './services/store.service';
@@ -20,6 +21,7 @@ import { EventService } from './services/event.service';
 import { TheaterService } from './services/theater.service';
 import { PromotionService } from './services/promotion.service';
 import { NewsService } from './services/news.service';
+import { BannerService } from './services/banner.service';
 import { AuthController } from './controllers/auth.controller';
 import { StoreController } from './controllers/store.controller';
 import { EventController } from './controllers/event.controller';
@@ -27,6 +29,7 @@ import { PublicEventController } from './controllers/public-event.controller';
 import { TheaterController } from './controllers/theater.controller';
 import { PromotionController } from './controllers/promotion.controller';
 import { NewsController } from './controllers/news.controller';
+import { BannerController } from './controllers/banner.controller';
 import { CronController } from './controllers/cron.controller';
 
 async function main(): Promise<void> {
@@ -57,6 +60,7 @@ async function main(): Promise<void> {
   const theaterSessionRepo = new TheaterSessionRepository(AppDataSource);
   const promotionRepo = new PromotionRepository(AppDataSource);
   const newsRepo = new NewsRepository(AppDataSource);
+  const bannerRepo = new BannerRepository(AppDataSource);
 
   const tenantResolver = new TenantResolverService(tenantRepo, redis);
   const authService = new AuthService(tenantRepo, userRepo, refreshTokenRepo);
@@ -65,6 +69,7 @@ async function main(): Promise<void> {
   const theaterService = new TheaterService(theaterShowRepo, theaterSessionRepo, redis);
   const promotionService = new PromotionService(promotionRepo, redis);
   const newsService = new NewsService(newsRepo, redis);
+  const bannerService = new BannerService(bannerRepo, redis);
   const authController = new AuthController(authService, userRepo);
   const storeController = new StoreController(storeService);
   const eventController = new EventController(eventService);
@@ -72,6 +77,7 @@ async function main(): Promise<void> {
   const theaterController = new TheaterController(theaterService);
   const promotionController = new PromotionController(promotionService);
   const newsController = new NewsController(newsService);
+  const bannerController = new BannerController(bannerService);
   const cronController = new CronController(newsService);
 
   const app = createApp({
@@ -83,6 +89,7 @@ async function main(): Promise<void> {
     theaterController,
     promotionController,
     newsController,
+    bannerController,
     cronController,
   });
 
