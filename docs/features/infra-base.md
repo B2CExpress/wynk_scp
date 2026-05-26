@@ -31,6 +31,7 @@
 | SPEC-20260518-1625 | 2026-05-25 | `42197eb` | API Admin CRUD de Eventos e Apresentações Teatrais (introduz `backend/src/jobs/` para crons cross-tenant e generaliza `sanitizeRichTextHtml` em `lib/sanitize.ts`) |
 | SPEC-20260519-2010 | 2026-05-25 | _(commit pendente)_ | API Admin CRUD de Promoções (registra entity `Promotion` em `config/database.ts` e rota em `app.ts`; sem mudanças arquiteturais na feature) |
 | SPEC-20260522-1100 | 2026-05-25 | _(commit pendente)_ | API Admin CRUD de Notícias (registra entity `News` em `config/database.ts`, rotas em `app.ts`, e estende `jobs/publish-scheduled.ts` para cobrir `tb_news` cross-tenant; introduz convenção de variável de ambiente `CRON_SECRET` para auth de endpoints cron externos via header `X-Cron-Secret`) |
+| SPEC-20260526-1326 | 2026-05-26 | _(commit pendente)_ | Seed de conteúdo demo (`backend/scripts/seed-demo.ts` + npm script `seed:demo`) + scope creep: `setup.sh` passa a auto-instalar Docker Compose v2 quando ausente ou só v1 presente, e ganha flag opt-in `--reset` (`docker compose down -v`) |
 
 ### Planejadas (future/)
 | ID | Título | Motivo |
@@ -40,7 +41,7 @@
 ### Em execução (só em branches — não aparece em main)
 | ID | Título | Branch |
 |---|---|---|
-| SPEC-20260526-1326 | Seed de conteúdo demo (lojas, categorias, promoções, notícias) | feature/demo-seed-content |
+| _(nenhuma)_ | | |
 
 ## Estado atual
 
@@ -73,6 +74,8 @@ Tenants no `seeds/tenants.json`: `shopping-x` (host `shopping-x.local`, exige `/
 - **Naming Postgres alinhado com wynk_ecommerce** (origem: SPEC-20260503-1505, 2026-05-08 16:43) - Tabelas `tb_<entity>`, colunas snake_case com prefixo da entity (`tenant_slug`, `user_email`), property TS em camelCase via `name:` no decorator. PK `uuid`. Migrations SQL puro com schema dinamico (`${schemaName}.tb_X`), `CREATE TABLE IF NOT EXISTS`, constraints nomeadas (`pk_tb_X`, `uq_tb_X_<col>`, `fk_tb_X_<col>`).
 - **`synchronize: false` + migrations versionadas** (origem: SPEC-20260503-1505, 2026-05-08 17:42) - Schema sempre via migrations; nenhum auto-sync. Entities listadas explicitamente em `AppDataSource.entities[]` (sem glob); migrations e subscribers via glob (`src/` em dev, `dist/` em prod).
 - **Redis configurado por URL + TTL operacional via env** (origem: SPEC-20260512-1601, 2026-05-12 16:01) - `REDIS_URL` simplifica configuracao local e remota; `CACHE_TTL_TENANT_SECONDS` evita microajustes de performance via deploy de codigo. Trade-off: precisa coordenar porta default do Docker local com eventuais Redis ja instalados no host.
+- **`setup.sh` opcionalmente *instala* Docker Compose v2 plugin (não só verifica)** (origem: SPEC-20260526-1326, 2026-05-26 14:35) — quando detecta ausência de Compose ou só v1 (EOL, bug `KeyError: 'ContainerConfig'`), baixa o binário do plugin v2 do GitHub pra `~/.docker/cli-plugins/` (per-user, sem sudo). Detecta arch x86_64/aarch64. Quebra parcialmente o princípio anterior "verifica pré-reqs, não instala" — justificado pela frequência do problema (Ubuntu Jammy com `apt install docker.io` cai nessa) e por ser per-user, sem deps de sistema. Trade-off: introduz dependência implícita de rede no setup; fallback se download falhar é cair pro v1 com warning ou erro acionável.
+- **`setup.sh --reset` (opt-in) destrói volumes (`docker compose down -v`)** (origem: SPEC-20260526-1326, 2026-05-26 14:42) — flag explícita pra resetar o estado local quando migrations divergem do snapshot do banco (ex: coluna removida ou renomeada). Default (sem `--reset`) faz apenas `down --remove-orphans`, preservando volumes. Decisão consciente de manter destruição como ação opt-in pra não ser footgun de execução repetida.
 
 ## Alternativas consideradas e rejeitadas
 
@@ -91,6 +94,10 @@ Tenants no `seeds/tenants.json`: `shopping-x` (host `shopping-x.local`, exige `/
 - **`baseUrl` deprecated em TS recente; paths exigem prefixo `./`** (2026-05-08 17:04) — Sem `baseUrl`, paths não-relativos no `tsconfig` falham. Fix: usar `./` prefixo em tudo.
 - **`docker.io` do Ubuntu universe não vem com plugin Compose v2** (2026-05-13 10:00, [[SPEC-20260513-0910]]) — Pacote `docker.io` do `jammy-updates`/`jammy-security` instala Docker Engine sem `docker compose` (v2). Em Jammy, `apt install docker-compose-plugin` falha com "Unable to locate package" (plugin só está em `download.docker.com`). Fix recomendado: baixar binário direto pra `~/.docker/cli-plugins/docker-compose`; fix fallback: `apt install docker-compose` v1 (EOL jul/2023, mas funcional). `setup.sh` detecta v1/v2 e usa o que tiver via variável `${COMPOSE}` (com warn quando cai no v1).
 - **Editar `seeds/tenants.json` não dispara seed automaticamente** (2026-05-13 19:00, [[SPEC-20260513-0910]]) — `./run.sh` é opt-in: rodar seed depois requer `npm run seed -w backend` direto OU `./run.sh --seed backend` (que faz seed antes de subir). Caso típico: dev edita JSON, sobe `./run.sh backend`, backend continua respondendo 404 pro tenant novo (porque o banco não foi atualizado). Documentado em README troubleshooting #9.
+- **`docker-compose` v1 (1.29.2, EOL) explode com `KeyError: 'ContainerConfig'` em recreates** (2026-05-26 14:30, [[SPEC-20260526-1326]]) — bug clássico do v1 ao tentar recriar containers cuja imagem foi atualizada (ex.: pull novo). Bloqueia `setup.sh` antes do `db:setup`. Mitigação automática: `setup.sh` agora detecta v1 e auto-instala o plugin v2 (ver decisão arquitetural). Mitigação manual de emergência: `docker rm -f $(docker ps -aq --filter "name=scp_") && docker compose up -d`.
+- **`./run.sh --seed` só cobre o seed canônico (tenants), não o `seed:demo`** (2026-05-26 15:18, [[SPEC-20260526-1326]]) — `seed:demo` (lojas, categorias, promoções, notícias) é manual: `npm run seed:demo -w backend`. Intencional: seed canônico é pré-requisito de boot; seed-demo é conteúdo de DX, não infra. Documentar em README troubleshooting #10 se virar dúvida recorrente.
+- **`docker compose down` sem `-v` preserva volumes; com `-v` apaga `pgdata`/`redisdata`** (2026-05-26 14:42, [[SPEC-20260526-1326]]) — `setup.sh --reset` invoca `-v` explicitamente. Sintoma típico que requer `--reset`: migration falha com "column X does not exist" porque o volume tem schema de uma versão anterior das migrations.
+- **`seed:demo` precisa de tenant `local-dev` já criado em `tb_tenant`** (2026-05-26 13:36, [[SPEC-20260526-1326]]) — o script lê `tb_tenant` pra resolver o `tenantId` alvo. Rodar `seed:demo` em DB sem seed canônico aborta com erro acionável ("tenant 'local-dev' não encontrado. Rode `npm run seed -w backend` primeiro."). Aceita override via `--tenant=<slug>`.
 
 ## Estado congelado (se houver)
 

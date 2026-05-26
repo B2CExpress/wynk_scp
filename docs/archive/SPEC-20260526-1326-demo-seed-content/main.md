@@ -1,12 +1,12 @@
 # SPEC-20260526-1326: Seed de conteúdo demo (lojas, categorias, promoções, notícias)
 
-**Status:** active
+**Status:** done
 **Criada:** 2026-05-26 13:26
 **Ativada:** 2026-05-26 13:26
-**Concluída:** —
-**Commit final:** —
-**Keywords:** seed, demo, fixtures, dx, devex, content, stores, categories, promotions, news
-**Features:** infra-base
+**Concluída:** 2026-05-26 15:18
+**Commit final:** _(pendente)_
+**Keywords:** seed, demo, fixtures, dx, devex, content, stores, categories, promotions, news, docker-compose, hotfix
+**Features:** infra-base, stores-public-api
 **Branch:** feature/demo-seed-content
 **Depende de:** SPEC-20260522-1100 (entity `News` em `tb_news`) — mergea junto na mesma série de PRs
 **Origem:** usuário em 2026-05-26 13:26 ("preciso um seed para uma demo que tenho que rodar hoje")
@@ -80,12 +80,20 @@ Hoje (2026-05-26) o `npm run seed -w backend` só cria tenants + admins. Resulta
 
 ## Critério de aceite
 
-- [ ] `npm run seed:demo -w backend` roda sem erro contra um DB limpo (após `db:setup` + `seed`)
-- [ ] Re-execução do `seed:demo` é idempotente (sem duplicatas, sem erros de unique constraint)
-- [ ] Backoffice logado como `admin@localhost` (tenant slug `local-dev`, host `localhost`) lista 4 categorias e 8 lojas após o seed
-- [ ] Portal em `http://localhost:3000/lojas` (com `Host: localhost`) renderiza as 8 lojas com cover image
-- [ ] `npm run typecheck -w backend` passa
-- [ ] `npm run lint -w backend` passa
-- [ ] **Features tocadas (`infra-base`) atualizadas** com timestamp e referência a esta SPEC
-- [ ] `state.md` com entrada `[conclusão]`
-- [ ] `memory.md` com TL;DR final atualizado
+- [x] `npm run seed:demo -w backend` roda sem erro contra um DB limpo (após `db:setup` + `seed`) (2026-05-26 15:18, validado em demo ao vivo)
+- [x] Re-execução do `seed:demo` é idempotente (sem duplicatas, sem erros de unique constraint) (2026-05-26 15:18, idempotência por `(tenantId, slug)` + delete+reinsert de `StoreCategory`)
+- [x] Backoffice logado como `admin@localhost` (tenant slug `local-dev`, host `localhost`) lista 4 categorias e 8 lojas após o seed (2026-05-26 15:18)
+- [x] Portal em `http://localhost:3000/lojas` (com `Host: localhost`) renderiza as 8 lojas com cover image (2026-05-26 15:18 — só depois do hotfix em `store.repository.ts`, ver "Notas de escopo" abaixo)
+- [x] `npm run typecheck -w backend` passa (2026-05-26 13:36)
+- [x] `npm run lint -w backend` passa (2026-05-26 13:36, sem novos warnings)
+- [x] **Features tocadas (`infra-base`, `stores-public-api`) atualizadas** com timestamp e referência a esta SPEC (2026-05-26 15:18)
+- [x] `state.md` com entrada `[conclusão]` (2026-05-26 15:18)
+- [x] `memory.md` com TL;DR final atualizado (2026-05-26 15:18)
+
+## Notas de escopo (creep durante execução)
+
+Durante a corrida pra demo de hoje, três correções de infra/bug entraram nesta branch fora do escopo original ("seed de conteúdo"). Registrado aqui pra rastreabilidade — em condições normais seriam SPECs separadas.
+
+1. **`setup.sh` agora auto-instala plugin Docker Compose v2 quando ausente ou só v1 (EOL) está presente** (feature: `infra-base`). Motivação: docker-compose v1 1.29.2 quebrou com `KeyError: 'ContainerConfig'` no meio do bootstrap, bloqueando a demo. Solução: detectar v1 → baixar binário v2 do GitHub pra `~/.docker/cli-plugins/` (per-user, sem sudo). Mudança de princípio: `setup.sh` antes era estritamente "verifica, não instala" — passa a *opcionalmente* instalar Compose v2.
+2. **`setup.sh --reset` (opt-in) faz `docker compose down -v`** (feature: `infra-base`). Motivação: volumes locais ficaram com schema antigo (faltava `store_description` em `tb_store`), e as migrations atuais reconstroem o schema do zero. Default ainda preserva volumes — destruição só com flag explícita.
+3. **`store.repository.ts:findActiveListing` orderBy passou a usar propriedades da entity** (`store.isFeatured`, `store.sortOrder`, `store.name`) em vez de nomes de coluna do banco (feature: `stores-public-api`). Motivação: TypeORM 0.3 não conseguia resolver metadata na paginação combinada com inner join quando orderBy referenciava colunas DB cruas — estourava `Cannot read properties of undefined (reading 'databaseName')` ao filtrar por categoria.
