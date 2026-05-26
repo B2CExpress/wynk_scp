@@ -40,7 +40,7 @@
 ### Em execução (só em branches — não aparece em main)
 | ID | Título | Branch |
 |---|---|---|
-| _(nenhuma)_ | | |
+| SPEC-20260526-1326 | Seed de conteúdo demo (lojas, categorias, promoções, notícias) | feature/demo-seed-content |
 
 ## Estado atual
 
