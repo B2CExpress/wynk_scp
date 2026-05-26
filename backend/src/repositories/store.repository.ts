@@ -86,11 +86,7 @@ export class StoreRepository {
         );
     }
 
-    qb = (
-      query.search
-        ? qb.orderBy('search_rank', 'DESC')
-        : qb.orderBy('store.isFeatured', 'DESC')
-    )
+    qb = (query.search ? qb.orderBy('search_rank', 'DESC') : qb.orderBy('store.isFeatured', 'DESC'))
       .addOrderBy('store.isFeatured', 'DESC')
       .addOrderBy('store.sortOrder', 'ASC')
       .addOrderBy('store.name', 'ASC')

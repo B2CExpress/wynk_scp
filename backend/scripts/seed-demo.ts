@@ -93,7 +93,8 @@ const STORES: StoreSeed[] = [
   {
     slug: 'renner',
     name: 'Renner',
-    description: '<p>Moda feminina, masculina, infantil, casa e beleza com bom custo-benefício.</p>',
+    description:
+      '<p>Moda feminina, masculina, infantil, casa e beleza com bom custo-benefício.</p>',
     floor: 'L1',
     phone: '(11) 4002-8002',
     externalUrl: 'https://www.lojasrenner.com.br',
@@ -133,7 +134,7 @@ const STORES: StoreSeed[] = [
     slug: 'outback',
     name: 'Outback Steakhouse',
     description:
-      '<p>Steakhouse australiano com cortes nobres, drinks e o famoso Bloomin\' Onion.</p>',
+      "<p>Steakhouse australiano com cortes nobres, drinks e o famoso Bloomin' Onion.</p>",
     floor: 'L3',
     phone: '(11) 4002-8005',
     externalUrl: 'https://www.outback.com.br',
