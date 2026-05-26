@@ -22,7 +22,7 @@ services:
     image: redis:7-alpine
     container_name: scp_redis
     ports:
-      - '${REDIS_PORT_HOST:-6382}:6379'
+      - '${REDIS_PORT_HOST:-6379}:6379'
     volumes:
       - scp_redis_data:/data
     networks:
