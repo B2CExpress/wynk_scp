@@ -1,11 +1,12 @@
 # Feature: editorial-content
 
-**Keywords:** eventos, theater-shows, news, noticias, editorial, content-management, crud-admin, scheduler, publicacao-automatica, state-machine, cron-secret
+**Keywords:** eventos, theater-shows, news, noticias, banners, carrossel, editorial, content-management, crud-admin, scheduler, publicacao-automatica, state-machine, cron-secret, reorder
 **Arquivos principais:**
   - backend/src/entities/Event.ts
   - backend/src/entities/TheaterShow.ts
   - backend/src/entities/TheaterSession.ts
   - backend/src/entities/News.ts
+  - backend/src/entities/Banner.ts
   - backend/src/controllers/event.controller.ts
   - backend/src/controllers/theater.controller.ts
   - backend/src/controllers/news.controller.ts
@@ -13,6 +14,11 @@
   - backend/src/services/event.service.ts
   - backend/src/services/theater.service.ts
   - backend/src/services/news.service.ts
+  - backend/src/services/banner.service.ts
+  - backend/src/controllers/banner.controller.ts
+  - backend/src/repositories/banner.repository.ts
+  - backend/src/dtos/banner.dto.ts
+  - backend/src/routes/banner.routes.ts
   - backend/src/repositories/event.repository.ts
   - backend/src/repositories/theater-show.repository.ts
   - backend/src/repositories/theater-session.repository.ts
@@ -33,6 +39,7 @@
 |---|---|---|---|
 | SPEC-20260518-1625 | 2026-05-25 | `42197eb` | API Admin CRUD de Eventos e Apresentações Teatrais |
 | SPEC-20260522-1100 | 2026-05-25 | _(commit pendente)_ | API Admin CRUD de Notícias com fluxo de publicação (introduz entity `News`, state machine `lib/news/state.ts`, endpoint cron externo `POST /api/cron/publish-scheduled` com `X-Cron-Secret`, e estende `jobs/publish-scheduled.ts` setInterval para cobrir `tb_news`) |
+| SPEC-20260526-1900 | 2026-05-29 | `8e0df51` | API Admin Gerenciar Banners com reordenação e agendamento (introduz entity `Banner` para o carrossel da home: CRUD + `POST /reorder` transacional + `POST /:id/toggle`, versões desktop/mobile, janela `starts_at`/`ends_at`, `alt_text` obrigatório, bloqueio `javascript:` em `link_url`) |
 
 ### Planejadas (future/)
 | ID | Título | Motivo |
@@ -54,6 +61,7 @@ Endpoints admin entregues:
 - Theater shows (SPEC-20260518-1625): POST/GET/PUT/DELETE `/api/admin/theater-shows`, POST `/api/admin/theater-shows/:id/publish`
 - Theater sessions (SPEC-20260518-1625): POST `/api/admin/theater-shows/:id/sessions`, PUT/DELETE `/api/admin/theater-sessions/:id`
 - Notícias (SPEC-20260522-1100): GET/POST/PUT/DELETE `/api/admin/news`, POST `/api/admin/news/:id/publish`, POST `/api/admin/news/:id/archive`
+- Banners (SPEC-20260526-1900): GET/POST `/api/admin/banners`, GET/PUT/DELETE `/api/admin/banners/:id`, POST `/api/admin/banners/reorder`, POST `/api/admin/banners/:id/toggle`. Carrossel da home com versões desktop/mobile, agendamento (`starts_at`/`ends_at`), ordenação por `sort_order` e ativação sem deletar. Sem state machine (diferente de news) — `is_active` é booleano simples.
 
 Validação:
 - Eventos: ISO 8601 com timezone, ends_at >= starts_at, starts_at até 5 anos futuro
@@ -77,7 +85,7 @@ State machine (apenas notícias):
 - Transições válidas via `canTransition(current, next)`: `draft → {scheduled, published}`, `scheduled → published`, `qualquer → archived`. Resto rejeitado com `NewsInvalidTransitionError` → 409.
 - Delete via `canDelete(status)`: aceita só `draft` e `archived`. Senão 409 `cannot_delete_<status>`.
 
-> Última atualização: 2026-05-25 15:30 (SPEC-20260522-1100)
+> Última atualização: 2026-05-29 13:53 (SPEC-20260526-1900)
 
 ## Decisões arquiteturais ativas
 
@@ -93,6 +101,9 @@ State machine (apenas notícias):
 - **Cron coexiste em dois mecanismos: setInterval interno + endpoint POST com `X-Cron-Secret`** (origem: SPEC-20260522-1100, 2026-05-22 11:00) — Interno (`jobs/publish-scheduled.ts`) cobre eventos/shows/news cross-tenant a cada 60s. Externo (`POST /api/cron/publish-scheduled` com header `X-Cron-Secret`) só promove news, validando header contra `process.env.CRON_SECRET`. Trade-off: redundância proposital — em deploy serverless o setInterval não persiste; em deploy persistente o externo é redundante mas inofensivo (UPDATE é idempotente).
 - **`publish_at` > 1h no passado é rejeitado com `NewsPublishDateInPastError`** (origem: SPEC-20260522-1100, 2026-05-22 11:00) — Evita agendar publicação retroativa por engano (ex.: timezone errado). Trade-off: admin que realmente quer publicar com data antiga > 1h precisa publicar agora e ajustar `published_at` via SQL — caso raro.
 - **Delete só em status `draft` ou `archived` (via `canDelete`)** (origem: SPEC-20260522-1100, 2026-05-22 11:00) — Força fluxo: archive primeiro, depois delete. Evita exclusão acidental de notícia publicada. Espelha decisão de [[promotions-admin]] (mesma regra pra promoções).
+- **Reorder de banners em transação atômica (`dataSource.transaction()`)** (origem: SPEC-20260526-1900, 2026-05-29 13:53) — `POST /api/admin/banners/reorder` recebe lista `{id, sort_order}` e atualiza todos os `sort_order` numa transação única. Evita race condition quando dois admins reordenam o carrossel simultaneamente (estado intermediário inconsistente). Trade-off: lock mais longo vs consistência da ordem.
+- **`alt_text` obrigatório em banners (5-300 chars)** (origem: SPEC-20260526-1900, 2026-05-29 13:53) — Banner sem `alt_text` quebra acessibilidade (WCAG) e SEO da home. Validação 400 se ausente. Mesma filosofia de acessibilidade-por-default do resto do conteúdo editorial.
+- **`is_active` booleano simples em banners (sem state machine)** (origem: SPEC-20260526-1900, 2026-05-29 13:53) — Diferente de news (que tem `draft→scheduled→published→archived` via `lib/news/state.ts`), banner liga/desliga via `POST /:id/toggle` num booleano. A "agenda" de exibição é resolvida por janela `starts_at`/`ends_at` na API pública (Fase 4.7), não por status. Trade-off: menos granularidade de fluxo, mas o caso de uso de banner (campanha on/off) não pede.
 
 ## Alternativas consideradas e rejeitadas
 
@@ -111,6 +122,8 @@ State machine (apenas notícias):
 - **`X-Cron-Secret` ausente do env trava o endpoint cron com 500** (2026-05-22 11:00, SPEC-20260522-1100) — Se `process.env.CRON_SECRET` não está configurado, `POST /api/cron/publish-scheduled` retorna 500 antes de checar o header. Faz sentido (não tem como autenticar sem secret) mas pode ser confuso em dev — set `CRON_SECRET=dev-cron-secret` no `.env`.
 - **News `body` com HTML mal-formado pode passar do limite após sanitização** (2026-05-25 15:00, SPEC-20260522-1100) — `sanitizeRichTextHtml` pode adicionar fechamento de tags ausentes, levemente inflando o tamanho. Cap de 50000 chars é aplicado **após** sanitização. Raro causar problema na prática.
 - **Cron interno e externo podem rodar simultâneo** (2026-05-22 11:00, SPEC-20260522-1100) — Em deploy persistente, setInterval roda E cron externo (se configurado) também chama o endpoint. `UPDATE ... WHERE status='scheduled'` é idempotente, mas o segundo encontra menos rows. Logs vão mostrar duplo trabalho — aceitar como custo da defesa em profundidade.
+- **Banner agendado não é filtrado por cron — só pela API pública** (2026-05-29 13:53, SPEC-20260526-1900) — Diferente de events/shows/news (que têm `status` promovido por `jobs/publish-scheduled.ts`), banner não tem job de publicação. A janela `starts_at`/`ends_at` é aplicada em tempo de leitura pela API pública `GET /api/v1/banners` (Fase 4.7, ainda não implementada). Logo, no admin um banner agendado aparece sempre na listagem; o filtro de visibilidade é responsabilidade do endpoint público. Esquecer esse filtro na Fase 4.7 = banner fora de janela vaza pro portal.
+- **`link_url` aceita path interno além de http/https — mas bloqueia `javascript:`** (2026-05-29 13:53, SPEC-20260526-1900) — `containsJavaScriptProtocol()` rejeita `javascript:` (vetor XSS no clique do banner). URLs válidas: `http://`, `https://` ou paths internos `/...`. Diferente da sanitização HTML de body/synopsis (que usa `sanitizeRichTextHtml` de [[infra-base]]) — banner não tem corpo HTML, só a URL do link, então a defesa é checagem de protocolo, não allowlist de tags.
 
 ## Estado congelado (se houver)
 

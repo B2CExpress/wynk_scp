@@ -8,6 +8,7 @@ import type { PublicEventController } from '../../src/controllers/public-event.c
 import type { TheaterController } from '../../src/controllers/theater.controller';
 import type { PromotionController } from '../../src/controllers/promotion.controller';
 import type { NewsController } from '../../src/controllers/news.controller';
+import type { BannerController } from '../../src/controllers/banner.controller';
 import type { CronController } from '../../src/controllers/cron.controller';
 import type { PublicPromotionController } from '../../src/controllers/public-promotion.controller';
 import type { StoreCategoryController } from '../../src/controllers/store-category.controller';
@@ -129,6 +130,21 @@ export function makeStubNewsController(): NewsController {
   } as unknown as NewsController;
 }
 
+export function makeStubBannerController(): BannerController {
+  const notImplemented = async (_req: Request, res: Response): Promise<void> => {
+    res.status(501).json({ error: 'not_implemented_in_test' });
+  };
+  return {
+    listBanners: notImplemented,
+    getBanner: notImplemented,
+    createBanner: notImplemented,
+    updateBanner: notImplemented,
+    deleteBanner: notImplemented,
+    reorderBanners: notImplemented,
+    toggleBanner: notImplemented,
+  } as unknown as BannerController;
+}
+
 export function makeStubCronController(): CronController {
   const notImplemented = async (_req: Request, res: Response): Promise<void> => {
     res.status(501).json({ error: 'not_implemented_in_test' });
@@ -175,6 +191,7 @@ export function makeAppDeps(overrides: Partial<AppDeps> = {}): AppDeps {
     theaterController: makeStubTheaterController(),
     promotionController: makeStubPromotionController(),
     newsController: makeStubNewsController(),
+    bannerController: makeStubBannerController(),
     cronController: makeStubCronController(),
     publicPromotionController: makeStubPublicPromotionController(),
     storeCategoryController: undefined as StoreCategoryController | undefined,
