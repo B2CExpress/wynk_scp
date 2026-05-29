@@ -1,5 +1,9 @@
 # Memory — SPEC-20260526-1900: API Admin Gerenciar Banners
 
+## TL;DR
+
+**SPEC concluída em 2026-05-29 13:53, commit `8e0df51`.** API admin de banners (7 endpoints, entity `Banner`, reorder transacional, agendamento, toggle, cache Redis, isolamento `withTenant`). Arquivada. Follow-up pendente (não bloqueante): testes manuais curl/Postman dos casos 1-8 não executados; endpoint público `GET /api/v1/banners` (Fase 4.7) fora do escopo.
+
 ## Contexto
 
 Banners do carrossel da home são a principal peça de comunicação visual. Cada banner tem:

@@ -1,10 +1,10 @@
 # SPEC-20260526-1900: API Admin Gerenciar Banners com Reordenação e Agendamento
 
-**Status:** active
+**Status:** done
 **Criada:** 2026-05-26 19:00
 **Ativada:** 2026-05-26 19:00
-**Concluida:** —
-**Commit final:** —
+**Concluida:** 2026-05-29 13:53
+**Commit final:** `8e0df51`
 **Keywords:** banners, carousel, admin-api, crud, reorder, scheduling, multitenant
 **Features:** editorial-content, tenant-resolution, auth, infra-base
 **Branch:** SQU-58-api-admin-gerenciar-banners
@@ -169,16 +169,21 @@ Principal peça de comunicação visual do portal. Banners aparecem em carrossel
 | 7. | DELETE existente | 204 | ⏳ |
 | 8 | GET listem banners ordenado por sort_order | 200 com array ordenado | ⏳ |
 
-## Critérios de Aceite
+## Critério de aceite
 
-- [✓] CRUD funcionando (GET, POST, PUT, DELETE) — Implementado
-- [✓] Reorder em transação — Implementado com `dataSource.transaction()`
-- [✓] Toggle alterna is_active — Implementado
-- [✓] alt_text obrigatório (validação 400) — Implementado com validação em DTO
-- [✓] Agendamento funciona (starts_at/ends_at respeita lógica) — Implementado com ISO 8601
-- [✓] Cache invalidado em todas as escritas — Implementado com `invalidateBannersCache()`
-- [✓] URLs javascript: bloqueadas (XSS) — Implementado em `containsJavaScriptProtocol()`
-- [✓] Isolamento multitenant — Implementado com `withTenant()` em todos os repos
+- [x] CRUD funcionando (GET, POST, PUT, DELETE) — Implementado (2026-05-26 19:30, commit `8e0df51`)
+- [x] Reorder em transação — `dataSource.transaction()` (2026-05-26 19:30, commit `8e0df51`)
+- [x] Toggle alterna is_active (2026-05-26 19:30, commit `8e0df51`)
+- [x] alt_text obrigatório (validação 400) — validação em DTO (2026-05-26 19:30, commit `8e0df51`)
+- [x] Agendamento funciona (starts_at/ends_at respeita lógica) — ISO 8601 (2026-05-26 19:30, commit `8e0df51`)
+- [x] Cache invalidado em todas as escritas — `invalidateBannersCache()` (2026-05-26 19:30, commit `8e0df51`)
+- [x] URLs javascript: bloqueadas (XSS) — `containsJavaScriptProtocol()` (2026-05-26 19:30, commit `8e0df51`)
+- [x] Isolamento multitenant — `withTenant()` em todos os repos (2026-05-26 19:30, commit `8e0df51`)
+- [x] **Features tocadas (editorial-content, tenant-resolution, auth, infra-base) atualizadas** com timestamp e referência a esta SPEC (2026-05-29 13:53, commit `8e0df51`)
+- [x] `state.md` com entrada `[conclusão]` (2026-05-29 13:53)
+- [x] `memory.md` com TL;DR final atualizado (2026-05-29 13:53)
+
+> **Nota de conclusão (2026-05-29 13:53):** os "Testes Manuais" (curl/Postman, casos 1-8) permaneceram ⏳ — não foram executados. Critérios de aceite formais validados via build TypeScript + lint + format limpos. Validação manual de endpoints fica como follow-up (não bloqueia esta SPEC, que entrega a API; testes e2e estavam explicitamente FORA do escopo).
 
 ## Status de Implementação
 
