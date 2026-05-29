@@ -1,11 +1,7 @@
 import type { Request, Response } from 'express';
 import type { BannerService } from '../services/banner.service';
 import { BannerNotFoundError } from '../services/banner.service';
-import {
-  validateBannerInput,
-  parseBannerInput,
-  parseBannerReorderInput,
-} from '../dtos/banner.dto';
+import { validateBannerInput, parseBannerInput, parseBannerReorderInput } from '../dtos/banner.dto';
 
 export class BannerController {
   constructor(private readonly bannerService: BannerService) {}
@@ -108,7 +104,9 @@ export class BannerController {
       const parsed = parseBannerReorderInput(input);
 
       if (!parsed || !Array.isArray(parsed.order) || parsed.order.length === 0) {
-        res.status(400).json({ errors: [{ field: 'order', message: 'Order must be a non-empty array' }] });
+        res
+          .status(400)
+          .json({ errors: [{ field: 'order', message: 'Order must be a non-empty array' }] });
         return;
       }
 
