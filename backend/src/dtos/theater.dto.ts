@@ -1,3 +1,5 @@
+import { sanitizeRichTextHtml } from '../lib/sanitize';
+
 export interface CreateTheaterShowInput {
   title?: string;
   synopsis?: string;
@@ -33,8 +35,7 @@ export interface ValidationError {
 const VALID_AGE_RATINGS = ['L', '10', '12', '14', '16', '18'];
 
 function isValidISO8601WithTimezone(value: string): boolean {
-  const iso8601Regex =
-    /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}([+-]\d{2}:\d{2}|Z)$/;
+  const iso8601Regex = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}([+-]\d{2}:\d{2}|Z)$/;
   return iso8601Regex.test(value);
 }
 
@@ -82,19 +83,26 @@ export function validateTheaterShowInput(
 
   // Duration validation
   if (input.duration_minutes !== undefined) {
-    const duration = typeof input.duration_minutes === 'string'
-      ? Number.parseInt(input.duration_minutes, 10)
-      : input.duration_minutes;
+    const duration =
+      typeof input.duration_minutes === 'string'
+        ? Number.parseInt(input.duration_minutes, 10)
+        : input.duration_minutes;
 
     if (!Number.isInteger(duration) || duration < 10 || duration > 600) {
-      errors.push({ field: 'duration_minutes', message: 'duration_minutes must be an integer between 10 and 600' });
+      errors.push({
+        field: 'duration_minutes',
+        message: 'duration_minutes must be an integer between 10 and 600',
+      });
     }
   }
 
   // Age rating validation
   if (input.age_rating !== undefined) {
     if (typeof input.age_rating !== 'string' || !VALID_AGE_RATINGS.includes(input.age_rating)) {
-      errors.push({ field: 'age_rating', message: `age_rating must be one of: ${VALID_AGE_RATINGS.join(', ')}` });
+      errors.push({
+        field: 'age_rating',
+        message: `age_rating must be one of: ${VALID_AGE_RATINGS.join(', ')}`,
+      });
     }
   }
 
@@ -113,13 +121,19 @@ export function validateTheaterSessionInput(input: CreateTheaterSessionInput): V
 
   // starts_at validation (required for create)
   if (input.starts_at === undefined || typeof input.starts_at !== 'string') {
-    errors.push({ field: 'starts_at', message: 'starts_at is required and must be a valid ISO 8601 timestamp with timezone' });
+    errors.push({
+      field: 'starts_at',
+      message: 'starts_at is required and must be a valid ISO 8601 timestamp with timezone',
+    });
     return errors;
   }
 
   const startsAt = parseISO8601(input.starts_at);
   if (!startsAt) {
-    errors.push({ field: 'starts_at', message: 'starts_at must be a valid ISO 8601 timestamp with timezone' });
+    errors.push({
+      field: 'starts_at',
+      message: 'starts_at must be a valid ISO 8601 timestamp with timezone',
+    });
     return errors;
   }
 
@@ -151,7 +165,10 @@ export function validateTheaterSessionUpdate(input: UpdateTheaterSessionInput): 
   // starts_at validation (optional for update)
   if (input.starts_at !== undefined && typeof input.starts_at === 'string') {
     if (!isValidISO8601WithTimezone(input.starts_at)) {
-      errors.push({ field: 'starts_at', message: 'starts_at must be a valid ISO 8601 timestamp with timezone' });
+      errors.push({
+        field: 'starts_at',
+        message: 'starts_at must be a valid ISO 8601 timestamp with timezone',
+      });
     }
   }
 
@@ -168,7 +185,9 @@ export function validateTheaterSessionUpdate(input: UpdateTheaterSessionInput): 
 export function parseTheaterShowInput(input: Record<string, unknown>): CreateTheaterShowInput {
   return {
     title: typeof input.title === 'string' ? sanitizeText(input.title) : undefined,
-    synopsis: typeof input.synopsis === 'string' ? sanitizeText(input.synopsis) : undefined,
+    // synopsis é rich text HTML — sanitiza tags/atributos perigosos (XSS) antes de gravar.
+    synopsis:
+      typeof input.synopsis === 'string' ? sanitizeRichTextHtml(input.synopsis.trim()) : undefined,
     duration_minutes:
       input.duration_minutes !== undefined && input.duration_minutes !== null
         ? (input.duration_minutes as number | string)
@@ -183,7 +202,9 @@ export function parseTheaterShowInput(input: Record<string, unknown>): CreateThe
   };
 }
 
-export function parseTheaterSessionInput(input: Record<string, unknown>): CreateTheaterSessionInput {
+export function parseTheaterSessionInput(
+  input: Record<string, unknown>,
+): CreateTheaterSessionInput {
   return {
     starts_at: typeof input.starts_at === 'string' ? input.starts_at : undefined,
     ticket_url:

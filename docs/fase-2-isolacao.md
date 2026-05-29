@@ -30,20 +30,25 @@
   - `FLUSHDB` no Redis de teste
   - `TRUNCATE ... CASCADE` em `tb_store_category`, `tb_store`, `tb_category`, `tb_refresh_token`, `tb_user`, `tb_tenant`
 
-## Resultado desta sessao
+## Resultado
 
+**Sessão #1 (2026-05-14):**
 - `npm run typecheck -w backend`: verde
-- `npm test -w backend`: verde (`71/71`)
-- `npm run test:isolation`: suite sobe e carrega, mas a execucao local ficou bloqueada por infraestrutura ausente nesta maquina do agente:
-  - `ECONNREFUSED 127.0.0.1:5435`
-  - sem WSL
-  - sem Docker no PATH/instalado
+- `npm test -w backend`: verde (`71/71` à época; `74/74` após PRs #7-#10 mergeados)
+- `npm run test:isolation`: suite implementada, mas execução local bloqueada por infraestrutura ausente (`ECONNREFUSED 127.0.0.1:5435`, sem WSL, sem Docker).
 
-Em outras palavras: o codigo e o harness da suite estao implementados, mas a validacao local completa precisa de Postgres e Redis ativos nas portas esperadas.
+**Sessão #2 (2026-05-18) — execução final no CI:**
+- 5 commits resolveram o gap entre "código pronto" e "suite verde":
+  1. Merge de `main` (resolução de conflitos pós-PR #16)
+  2. Acentos lint + Redis port alinhado pra `6379` (PR #7)
+  3. `ensureTestDatabase()` cria schema `scp` antes de `runMigrations()`
+  4. Globs de migrations absolutos em `AppDataSource` (path resolvido via `__dirname`, não CWD)
+  5. `ts-node/register` no `setupFiles` do Vitest pra `require('.ts')` do TypeORM funcionar
+- **CI verde:** 12/12 checks no commit `b38052c`; job `isolation tests` executa os 8 cenários contra Postgres + Redis reais (services do workflow).
 
 ## Como validar localmente
 
-1. Suba Postgres e Redis nas portas do projeto (`5435` e `6382`)
+1. Suba Postgres e Redis nas portas do projeto (`5435` e `6379`)
 2. Rode:
 
 ```bash

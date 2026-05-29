@@ -1,11 +1,13 @@
 'use server';
 
 import { headers } from 'next/headers';
+import { unstable_cache } from 'next/cache';
 import { resolveTenantByHost } from '@/lib/tenant/resolve';
 import { escapeXml, toRfc822 } from '@/lib/xml';
 import { loadTheme } from '@/lib/theme/load';
 
 const BACKEND_URL = process.env.BACKEND_URL ?? 'http://localhost:3001';
+const CACHE_TTL_SECONDS = 3600;
 
 interface NewsItem {
   id: string;
@@ -48,7 +50,9 @@ function buildRssXml(tenant: Record<string, string>, baseUrl: string, items: New
 
   for (const item of items) {
     const link = `${baseUrl}/eventos/${item.slug}`;
-    const pubDate = item.publishedAt ? toRfc822(new Date(item.publishedAt)) : new Date().toUTCString();
+    const pubDate = item.publishedAt
+      ? toRfc822(new Date(item.publishedAt))
+      : new Date().toUTCString();
 
     xml += '    <item>\n';
     xml += `      <title>${escapeXml(item.title)}</title>\n`;
@@ -64,6 +68,26 @@ function buildRssXml(tenant: Record<string, string>, baseUrl: string, items: New
   return xml;
 }
 
+async function getCachedRss(host: string, tenantId: string, flavorSlug: string): Promise<string> {
+  return unstable_cache(
+    async () => {
+      const baseUrl = `https://${host}`;
+      const theme = await loadTheme(flavorSlug);
+      const news = await fetchPublishedNews(host);
+      return buildRssXml(
+        { name: theme.meta.title, metaDescription: theme.meta.description },
+        baseUrl,
+        news,
+      );
+    },
+    [`rss-news-${tenantId}`],
+    {
+      revalidate: CACHE_TTL_SECONDS,
+      tags: [`rss:news:${tenantId}`],
+    },
+  )();
+}
+
 export async function GET() {
   try {
     const host = (await headers()).get('host') ?? '';
@@ -73,22 +97,13 @@ export async function GET() {
       return new Response('Not Found', { status: 404 });
     }
 
-    const baseUrl = `https://${host}`;
-    const theme = await loadTheme(tenant.flavorSlug);
-    const news = await fetchPublishedNews(host);
-
-    const tenantData = {
-      name: theme.meta.title,
-      metaDescription: theme.meta.description,
-    };
-
-    const xml = buildRssXml(tenantData, baseUrl, news);
+    const xml = await getCachedRss(host, tenant.id, tenant.flavorSlug);
 
     return new Response(xml, {
       status: 200,
       headers: {
         'Content-Type': 'application/rss+xml',
-        'Cache-Control': 'public, max-age=3600',
+        'Cache-Control': `public, max-age=${CACHE_TTL_SECONDS}`,
       },
     });
   } catch (error) {

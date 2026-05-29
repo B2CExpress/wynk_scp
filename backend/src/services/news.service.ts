@@ -6,7 +6,6 @@ import type { CreateNewsInput, UpdateNewsInput, PublishNewsInput } from '../dtos
 import { canTransition, canDelete } from '../lib/news/state';
 import { validateNewsInput, validatePublishInput, parseISO8601 } from '../dtos/news.dto';
 
-const CACHE_TTL_SECONDS = 300;
 const ONE_HOUR_MS = 60 * 60 * 1000;
 
 export interface NewsDetailResponse {
@@ -82,13 +81,6 @@ function serializeNews(news: any): NewsDetailResponse {
 
 function buildCacheKey(tenantId: string, id: string): string {
   return `news:detail:${tenantId}:${id}`;
-}
-
-function buildListCacheKey(tenantId: string, page: number, pageSize: number, status?: string, search?: string): string {
-  const parts = [`news:list:${tenantId}:${page}:${pageSize}`];
-  if (status) parts.push(`status:${status}`);
-  if (search) parts.push(`search:${Buffer.from(search).toString('hex')}`);
-  return parts.join(':');
 }
 
 export class NewsService {
