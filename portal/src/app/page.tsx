@@ -1,67 +1,152 @@
 import Image from 'next/image';
+import Link from 'next/link';
 import { headers } from 'next/headers';
-import { resolveTenantByHost } from '../lib/tenant/resolve';
-import { loadTheme, flavorAssets } from '../lib/theme/load';
-import styles from './page.module.css';
+import { fetchHero, fetchBanners, fetchFeaturedStores } from '../lib/home/api';
+import { fetchPromotions } from '../lib/promotions/api';
+import { fetchEvents } from '../lib/events/api';
+import { fetchNews } from '../lib/news/api';
+import BannerCarousel from './_components/BannerCarousel';
+import home from './home.module.css';
+import content from './content.module.css';
 
-/**
- * Homepage temporária — apenas para validar visualmente o pipeline de
- * white-label durante a fase 4 da SPEC-1505.
- *
- * Mostra: logo do flavor, nome do tenant, cores aplicadas via CSS vars,
- * meta carregadas. Sai assim que tivermos design real (fase futura).
- */
 export default async function Home() {
   const host = (await headers()).get('host') ?? '';
-  const tenant = await resolveTenantByHost(host);
-  const flavorSlug = tenant?.flavorSlug ?? '_default';
-  const theme = await loadTheme(flavorSlug);
-  const assets = flavorAssets(flavorSlug);
+
+  const [hero, banners, stores, promotions, events, news] = await Promise.all([
+    fetchHero(host),
+    fetchBanners(host),
+    fetchFeaturedStores(host, 8),
+    fetchPromotions(host),
+    fetchEvents(host),
+    fetchNews(host),
+  ]);
 
   return (
-    <div className={styles.page}>
-      <main className={styles.main}>
+    <div className={home.home}>
+      <section className={home.hero}>
         <Image
-          src={assets.logo}
-          alt={`Logo ${theme.name}`}
-          width={240}
-          height={60}
-          priority
+          src={hero.backgroundImageUrl}
+          alt=""
+          fill
           unoptimized
+          priority
+          className={home.heroImage}
         />
-        <div className={styles.intro}>
-          <h1>{theme.name}</h1>
-          <p>{theme.meta.description}</p>
+        <div className={home.heroOverlay} />
+        <div className={home.heroContent}>
+          <h1>{hero.title}</h1>
+          <p>{hero.subtitle}</p>
+          <Link href={hero.ctaUrl} className={home.heroCta}>
+            {hero.ctaLabel}
+          </Link>
         </div>
-        <dl className={styles.tokens}>
-          <dt>flavor_slug</dt>
-          <dd>
-            <code>{flavorSlug}</code>
-          </dd>
-          <dt>primary</dt>
-          <dd>
-            <span
-              className={styles.swatch}
-              style={{ backgroundColor: theme.colors.primary }}
-              aria-hidden
-            />
-            <code>{theme.colors.primary}</code>
-          </dd>
-          <dt>secondary</dt>
-          <dd>
-            <span
-              className={styles.swatch}
-              style={{ backgroundColor: theme.colors.secondary }}
-              aria-hidden
-            />
-            <code>{theme.colors.secondary}</code>
-          </dd>
-          <dt>font</dt>
-          <dd>
-            <code>{theme.fonts.primary}</code>
-          </dd>
-        </dl>
-      </main>
+      </section>
+
+      <BannerCarousel banners={banners} />
+
+      <section className={home.section}>
+        <div className={home.sectionHeader}>
+          <h2>Lojas em destaque</h2>
+          <Link href="/lojas" className={home.sectionLink}>
+            Ver todas →
+          </Link>
+        </div>
+        <div className={home.storeGrid}>
+          {stores.map((store) => (
+            <Link key={store.id} href={`/lojas/${store.slug}`} className={home.storeCard}>
+              <span className={home.storeAvatar}>{store.name.slice(0, 1)}</span>
+              <strong>{store.name}</strong>
+              <span className={home.storeCategory}>{store.category}</span>
+            </Link>
+          ))}
+        </div>
+      </section>
+
+      <section className={`${home.section} ${home.sectionAccent}`}>
+        <div className={home.sectionHeader}>
+          <h2>Promoções</h2>
+          <Link href="/promocoes" className={home.sectionLink}>
+            Ver todas →
+          </Link>
+        </div>
+        <div className={content.grid}>
+          {promotions.map((promotion) => (
+            <Link key={promotion.id} href={`/promocoes/${promotion.slug}`} className={content.card}>
+              <div className={content.cardMedia}>
+                <Image
+                  src={promotion.imageUrl ?? `https://picsum.photos/seed/${promotion.slug}/600/400`}
+                  alt={promotion.title}
+                  fill
+                  unoptimized
+                  className={content.cardImage}
+                />
+                <span className={content.cardBadge}>{promotion.discountLabel}</span>
+              </div>
+              <div className={content.cardBody}>
+                <span className={content.cardTitle}>{promotion.title}</span>
+              </div>
+            </Link>
+          ))}
+        </div>
+      </section>
+
+      <section className={home.section}>
+        <div className={home.sectionHeader}>
+          <h2>Próximos eventos</h2>
+          <Link href="/eventos" className={home.sectionLink}>
+            Ver todos →
+          </Link>
+        </div>
+        <div className={content.grid}>
+          {events.map((event) => (
+            <Link key={event.id} href={`/eventos/${event.slug}`} className={content.card}>
+              <div className={content.cardMedia}>
+                <Image
+                  src={`https://picsum.photos/seed/${event.slug}/600/400`}
+                  alt={event.title}
+                  fill
+                  unoptimized
+                  className={content.cardImage}
+                />
+              </div>
+              <div className={content.cardBody}>
+                <span className={content.cardTitle}>{event.title}</span>
+                <span className={content.cardExcerpt}>{event.summary}</span>
+              </div>
+            </Link>
+          ))}
+        </div>
+      </section>
+
+      <section className={`${home.section} ${home.sectionAccent}`}>
+        <div className={home.sectionHeader}>
+          <h2>Últimas notícias</h2>
+          <Link href="/noticias" className={home.sectionLink}>
+            Ver todas →
+          </Link>
+        </div>
+        <div className={content.grid}>
+          {news.map((article) => (
+            <Link key={article.id} href={`/noticias/${article.slug}`} className={content.card}>
+              <div className={content.cardMedia}>
+                <Image
+                  src={
+                    article.coverImageUrl ?? `https://picsum.photos/seed/${article.slug}/600/400`
+                  }
+                  alt={article.title}
+                  fill
+                  unoptimized
+                  className={content.cardImage}
+                />
+              </div>
+              <div className={content.cardBody}>
+                <span className={content.cardTitle}>{article.title}</span>
+                <span className={content.cardExcerpt}>{article.summary}</span>
+              </div>
+            </Link>
+          ))}
+        </div>
+      </section>
     </div>
   );
 }
