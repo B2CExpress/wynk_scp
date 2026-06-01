@@ -12,6 +12,7 @@ import type { BannerController } from '../../src/controllers/banner.controller';
 import type { CronController } from '../../src/controllers/cron.controller';
 import type { PublicPromotionController } from '../../src/controllers/public-promotion.controller';
 import type { StoreCategoryController } from '../../src/controllers/store-category.controller';
+import type { AdminDashboardController } from '../../src/controllers/admin-dashboard.controller';
 import type { AppDeps } from '../../src/app';
 
 /**
@@ -181,6 +182,19 @@ export function makeStubPublicPromotionController(): PublicPromotionController {
   } as unknown as PublicPromotionController;
 }
 
+/**
+ * Stub do `AdminDashboardController` que responde 501. Usado por testes que
+ * não exercitam o dashboard de métricas.
+ */
+export function makeStubAdminDashboardController(): AdminDashboardController {
+  const notImplemented = async (_req: Request, res: Response): Promise<void> => {
+    res.status(501).json({ error: 'not_implemented_in_test' });
+  };
+  return {
+    getMetrics: notImplemented,
+  } as unknown as AdminDashboardController;
+}
+
 export function makeAppDeps(overrides: Partial<AppDeps> = {}): AppDeps {
   return {
     tenantResolver: makeFakeTenantResolver(),
@@ -195,6 +209,7 @@ export function makeAppDeps(overrides: Partial<AppDeps> = {}): AppDeps {
     cronController: makeStubCronController(),
     publicPromotionController: makeStubPublicPromotionController(),
     storeCategoryController: undefined as StoreCategoryController | undefined,
+    dashboardController: makeStubAdminDashboardController(),
     ...overrides,
   };
 }

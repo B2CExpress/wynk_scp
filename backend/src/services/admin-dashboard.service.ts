@@ -36,20 +36,21 @@ export class AdminDashboardService {
     const cacheKey = `dashboard:${tenantId}`;
 
     const { data } = await cached(this.redis, cacheKey, CACHE_TTL_SECONDS, async () => {
-      const metrics = await this.aggregateMetrics(tenantId);
+      const metrics = await this.aggregateMetrics();
       return metrics;
     });
 
     return data;
   }
 
-  private async aggregateMetrics(tenantId: string): Promise<DashboardMetrics> {
-    // Run all metric queries in parallel
+  private async aggregateMetrics(): Promise<DashboardMetrics> {
+    // Run all metric queries in parallel. Tenant scoping is applied by
+    // `withTenant()`, which reads the tenant from the request context (ALS).
     const [stores, events, news, promotions] = await Promise.all([
-      this.getStoresMetrics(tenantId),
-      this.getEventsMetrics(tenantId),
-      this.getNewsMetrics(tenantId),
-      this.getPromotionsMetrics(tenantId),
+      this.getStoresMetrics(),
+      this.getEventsMetrics(),
+      this.getNewsMetrics(),
+      this.getPromotionsMetrics(),
     ]);
 
     // TODO: Newsletter metrics not yet implemented — replace with actual query when table exists
@@ -67,9 +68,7 @@ export class AdminDashboardService {
     };
   }
 
-  private async getStoresMetrics(
-    tenantId: string,
-  ): Promise<{ total: number; active: number }> {
+  private async getStoresMetrics(): Promise<{ total: number; active: number }> {
     const storeRepo = this.dataSource.getRepository(Store);
 
     const qb = withTenant(storeRepo.createQueryBuilder('store')).select(
@@ -87,7 +86,7 @@ export class AdminDashboardService {
     };
   }
 
-  private async getEventsMetrics(tenantId: string): Promise<{ upcoming: number }> {
+  private async getEventsMetrics(): Promise<{ upcoming: number }> {
     const eventRepo = this.dataSource.getRepository(Event);
     const now = new Date();
 
@@ -101,7 +100,7 @@ export class AdminDashboardService {
     return { upcoming };
   }
 
-  private async getNewsMetrics(tenantId: string): Promise<{ published_30d: number }> {
+  private async getNewsMetrics(): Promise<{ published_30d: number }> {
     const newsRepo = this.dataSource.getRepository(News);
     const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
 
@@ -114,7 +113,7 @@ export class AdminDashboardService {
     return { published_30d };
   }
 
-  private async getPromotionsMetrics(tenantId: string): Promise<{ active: number }> {
+  private async getPromotionsMetrics(): Promise<{ active: number }> {
     const promotionRepo = this.dataSource.getRepository(Promotion);
     const now = new Date();
 
@@ -129,7 +128,7 @@ export class AdminDashboardService {
   }
 
   // Optional: GA4 metrics (called separately to avoid blocking on slow API)
-  async getGA4Metrics(tenantId: string): Promise<{
+  async getGA4Metrics(): Promise<{
     configured: boolean;
     users_30d?: number;
     pageviews_30d?: number;
