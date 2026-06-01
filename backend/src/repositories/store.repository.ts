@@ -175,7 +175,7 @@ export class StoreRepository {
     externalUrl?: string | null;
     floor?: string | null;
     phone?: string | null;
-    openingHours?: Record<string, any> | null;
+    openingHours?: Record<string, unknown> | null;
     isRestaurant?: boolean;
     isFeatured?: boolean;
     status?: string;
@@ -235,7 +235,7 @@ export class StoreRepository {
       externalUrl?: string | null;
       floor?: string | null;
       phone?: string | null;
-      openingHours?: Record<string, any> | null;
+      openingHours?: Record<string, unknown> | null;
       isRestaurant?: boolean;
       isFeatured?: boolean;
       status?: string;
