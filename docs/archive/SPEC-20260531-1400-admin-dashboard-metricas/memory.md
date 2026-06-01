@@ -8,12 +8,12 @@
 
 ## TL;DR (sobrescrever ao fim de cada sessão)
 
-**Última atualização:** 2026-05-31 14:35 (sessão #1)
-**Onde tô:** ✅ COMPLETO — todos os checkboxes da SPEC marcados. Pronto para merge.
-**Próximo passo:** Commit + push. Testes manuais opcionais (rodar backend, curl endpoint).
-**Última decisão:** Promise.all para queries; cache por tenant; isolamento via requireTenantContext
+**Última atualização:** 2026-06-01 18:45 (sessão #2)
+**Onde tô:** ✅ SPEC CONCLUÍDA em 2026-06-01 18:45, commit `52edc13`, arquivada em `docs/archive/`. CI verde.
+**Próximo passo:** nenhum — SPEC fechada. Push + merge da branch ficam com o dev.
+**Última decisão:** Escopo de tenant via `withTenant()`/ALS (sem param `tenantId`); controller obrigatório em `AppDeps` exige stub nos 2 helpers de teste
 **Bloqueio atual:** nenhum
-**Se retomar, ler:** Entrada de 2026-05-31 14:35 no state.md ([conclusão])
+**Se retomar, ler:** Entradas de 2026-06-01 no state.md ([conclusão])
 
 ---
 
@@ -36,11 +36,14 @@ Backend e frontend implementados. Dashboard exibe 7 cards (lojas, eventos, posts
 
 ### Respostas-chave do usuário
 
-_(nenhuma ainda — contexto vem da documentação passada)_
+- [2026-06-01] Usuário: "Tudo certo, pode concluir a spec"
+  Contexto: após os fixes de CI e confirmação do isolation verde no ambiente dele (Postgres na 5435). Autorizou o fechamento formal (R.7 + arquivamento).
+- [2026-06-01] Usuário escolheu: 2 commits separados (dashboard vs regressão de stores) + NÃO fechar a SPEC no primeiro momento, só após CI verde.
 
 ### Tentativas que falharam (para NÃO repetir)
 
-_(nenhuma ainda)_
+- [2026-06-01] Diagnóstico inicial atribuiu o isolation vermelho ao `orderBy` de `store.repository`. ERRADO — a causa era `dashboardController` faltando em `tests/helpers/setup.ts`. O `orderBy` era bug latente separado. Lição: o isolation falhava em `createApp` (setup), antes de qualquer query; ler o stack trace até o ponto real de falha antes de inferir a causa.
+- [2026-06-01] `mock-deps.ts` (e2e) e `tests/helpers/setup.ts` (isolation) são DOIS helpers distintos que montam `AppDeps` de forma independente — corrigir só um deixa o outro vermelho.
 
 ### Arquivos ativamente sendo tocados
 
@@ -63,3 +66,4 @@ Implementação pronta. Código está em files criados e modificações feitas e
 | # | Início | Duração | Tipo | Sumário 1 linha |
 |---|--------|---------|------|-----------------|
 | 1 | 2026-05-31 14:00 | 0.5h | ativação+implementação | SPEC criada, backend + frontend implementados |
+| 2 | 2026-06-01 18:30 | 0.5h | continuidade+conclusão | Fixes de CI (lint/typecheck/test/format/isolation), conclusão e arquivamento |

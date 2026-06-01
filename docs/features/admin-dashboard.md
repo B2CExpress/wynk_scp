@@ -12,15 +12,15 @@
 ## Specs desta feature
 
 ### Concluídas
-_(nenhuma — feature nova)_
+| ID | Data | Commit | Título |
+|---|---|---|---|
+| SPEC-20260531-1400 | 2026-06-01 | `52edc13` | Admin Dashboard com Métricas do Tenant |
 
 ### Planejadas (future/)
 _(nenhuma planejada)_
 
 ### Em execução (só em branches — não aparece em main)
-| ID | Título | Branch |
-|---|---|---|
-| SPEC-20260531-1400 | Admin Dashboard com Métricas do Tenant | feature/SQU-67-dashboard-com-metricas-do-tenant |
+_(nenhuma)_
 
 ## Estado atual
 
@@ -28,11 +28,11 @@ Backend: Service com aggregação de 5 contadores via `Promise.all`, cache Redis
 
 Frontend: Page AdminDashboard renderiza 7 cards em grid responsivo (3 colunas desktop, 2 tablet, 1 mobile). Componente MetricCard reutilizável com loading/erro/retry. Fetch com credentials. Refresh automático a cada 60s.
 
-> Última atualização: 2026-05-31 14:30 (SPEC-20260531-1400)
+> Última atualização: 2026-06-01 18:45 (SPEC-20260531-1400)
 
 ## Decisões arquiteturais ativas
 
-_(nenhuma ainda)_
+- **Escopo de tenant via `withTenant()`/ALS, não por parâmetro** (origem: SPEC-20260531-1400, 2026-06-01 18:45) — Os métodos de agregação do `AdminDashboardService` não recebem `tenantId`; o escopo vem do contexto de tenant (`AsyncLocalStorage`) lido por `withTenant()`. A chave de cache (`dashboard:{tenantId}`) usa o `tenantId` de `requireTenantContext()`. Trade-off: dependência implícita do contexto de request (não dá pra chamar o service fora do pipeline multitenant), em troca de evitar passar `tenantId` por toda a cadeia.
 
 ## Alternativas consideradas e rejeitadas
 
@@ -40,7 +40,7 @@ _(nenhuma ainda)_
 
 ## Gotchas
 
-_(nenhum ainda)_
+- **Novo controller em `AppDeps` precisa de stub nos DOIS helpers de teste** (2026-06-01 18:45, SPEC-20260531-1400) — `createAdminDashboardRoutes` acessa `controller.getMetrics` na montagem das rotas. Ao adicionar um controller obrigatório em `AppDeps`, é preciso stubá-lo em `backend/__tests__/helpers/mock-deps.ts` (e2e) **e** em `tests/helpers/setup.ts` (isolation tests) — senão `createApp` lança `Cannot read properties of undefined` e derruba e2e + isolation no CI.
 
 ## Estado congelado (se houver)
 
