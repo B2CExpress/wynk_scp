@@ -249,6 +249,9 @@ export async function createIsolationContext(): Promise<IsolationContext> {
   const cronControllerStub = {
     publishScheduledNews: notImplemented,
   } as unknown as Parameters<typeof modules.appModule.createApp>[0]['cronController'];
+  const dashboardControllerStub = {
+    getMetrics: notImplemented,
+  } as unknown as Parameters<typeof modules.appModule.createApp>[0]['dashboardController'];
 
   const app = modules.appModule.createApp({
     tenantResolver,
@@ -261,6 +264,7 @@ export async function createIsolationContext(): Promise<IsolationContext> {
     publicPromotionController: publicPromotionControllerStub,
     newsController: newsControllerStub,
     cronController: cronControllerStub,
+    dashboardController: dashboardControllerStub,
   });
 
   const server = app.listen(0);
