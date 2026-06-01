@@ -10,10 +10,24 @@
 # Veja README.md (seção "Pré-requisitos") para instalá-los.
 #
 # Uso:
-#   ./setup.sh             # setup sem seed
+#   ./setup.sh             # setup sem seed (volumes preservados)
 #   ./setup.sh --seed      # setup e popula tenants de exemplo
+#   ./setup.sh --reset     # DESTRUTIVO: 'docker compose down -v' antes (apaga
+#                          # pgdata + redisdata). Use quando migrations divergirem
+#                          # do snapshot atual do banco. Combinável: '--reset --seed'.
 #
 set -euo pipefail
+
+# ---- parse flags (ordem livre) ----
+do_seed=false
+do_reset=false
+for arg in "$@"; do
+  case "${arg}" in
+    --seed|--with-seed) do_seed=true ;;
+    --reset|--fresh) do_reset=true ;;
+    *) printf '[aviso] Argumento desconhecido ignorado: %s\n' "${arg}" >&2 ;;
+  esac
+done
 
 # ---- saída colorida (sem emojis) ----
 if [ -t 1 ]; then
@@ -57,16 +71,64 @@ command -v docker >/dev/null 2>&1 \
   || err "Docker não encontrado. Instale: https://docs.docker.com/engine/install/"
 
 # Detect Docker Compose flavor (v2 plugin preferido, v1 legacy aceito como fallback).
+# Se nenhum estiver presente OU só houver v1 (EOL, bug conhecido KeyError: 'ContainerConfig'),
+# tenta auto-instalar o plugin v2 em ~/.docker/cli-plugins/ (per-user, sem sudo).
+install_compose_v2_plugin() {
+  local arch
+  arch="$(uname -m)"
+  case "${arch}" in
+    x86_64|amd64) arch="x86_64" ;;
+    aarch64|arm64) arch="aarch64" ;;
+    *)
+      warn "Arquitetura '${arch}' não suportada para auto-install do plugin v2. Instale manualmente: https://docs.docker.com/compose/install/"
+      return 1
+      ;;
+  esac
+  command -v curl >/dev/null 2>&1 || { warn "curl ausente; pulando auto-install do plugin v2."; return 1; }
+  local url="https://github.com/docker/compose/releases/latest/download/docker-compose-linux-${arch}"
+  local dest="${HOME}/.docker/cli-plugins/docker-compose"
+  log "Baixando Docker Compose v2 plugin (${arch}) para ${dest}..."
+  mkdir -p "${HOME}/.docker/cli-plugins"
+  if ! curl -fsSL "${url}" -o "${dest}"; then
+    warn "Falha ao baixar plugin v2 de ${url}. Sem rede? Instale manualmente."
+    rm -f "${dest}"
+    return 1
+  fi
+  chmod +x "${dest}"
+  if docker compose version >/dev/null 2>&1; then
+    ok "Plugin v2 instalado."
+    return 0
+  fi
+  warn "Plugin v2 baixado mas 'docker compose version' ainda falha. Verifique permissões em ${dest}."
+  return 1
+}
+
 if docker compose version >/dev/null 2>&1; then
   COMPOSE="docker compose"
   compose_kind="v2 (plugin)"
+elif command -v docker-compose >/dev/null 2>&1 && docker-compose --version 2>&1 | grep -qE '^docker-compose version 1\.'; then
+  # v1 detectado: EOL + bug 'ContainerConfig' na recreate. Tenta upgrade pro v2.
+  warn "docker-compose v1 detectado (EOL, bug conhecido KeyError 'ContainerConfig'). Tentando instalar plugin v2..."
+  if install_compose_v2_plugin && docker compose version >/dev/null 2>&1; then
+    COMPOSE="docker compose"
+    compose_kind="v2 (plugin, auto-instalado)"
+  else
+    COMPOSE="docker-compose"
+    compose_kind="v1 (legacy, EOL — auto-install do v2 falhou)"
+  fi
 elif docker-compose --version >/dev/null 2>&1; then
   COMPOSE="docker-compose"
   compose_kind="v1 (legacy, EOL desde jul/2023)"
 else
-  err "Docker Compose não encontrado. Instale uma das duas:
-       - Plugin v2 (recomendado): 'sudo apt install docker-compose-plugin' OU baixe de https://github.com/docker/compose/releases para ~/.docker/cli-plugins/docker-compose
-       - Legacy v1 (fallback): 'sudo apt install docker-compose'"
+  warn "Docker Compose não encontrado. Tentando instalar plugin v2 automaticamente..."
+  if install_compose_v2_plugin && docker compose version >/dev/null 2>&1; then
+    COMPOSE="docker compose"
+    compose_kind="v2 (plugin, auto-instalado)"
+  else
+    err "Docker Compose não encontrado e auto-install falhou. Instale uma das duas:
+         - Plugin v2 (recomendado): 'sudo apt install docker-compose-plugin' OU baixe de https://github.com/docker/compose/releases para ~/.docker/cli-plugins/docker-compose
+         - Legacy v1 (fallback): 'sudo apt install docker-compose'"
+  fi
 fi
 
 if ! docker info >/dev/null 2>&1; then
@@ -98,6 +160,16 @@ for app in backend portal; do
 done
 
 # ---- 4. docker compose up ----
+# Limpa containers órfãos antes de subir (cobre transição v1→v2 e estados meio-quebrados
+# onde 'up' falharia com conflito de nome). Com --reset, apaga TAMBÉM volumes
+# (útil quando migrations divergiram do snapshot do banco — ex: coluna que sumiu).
+if [ "${do_reset}" = true ]; then
+  warn "Modo --reset: apagando containers E volumes (pgdata/redisdata)..."
+  ${COMPOSE} down -v --remove-orphans >/dev/null 2>&1 || true
+else
+  log "Limpando containers órfãos do projeto (${COMPOSE} down --remove-orphans)..."
+  ${COMPOSE} down --remove-orphans >/dev/null 2>&1 || true
+fi
 log "Subindo Postgres + Redis em containers (${COMPOSE} up -d)..."
 ${COMPOSE} up -d
 ok "Containers iniciados (scp_postgres, scp_redis)."
@@ -127,14 +199,6 @@ npm run db:setup -w backend
 ok "Banco pronto (schema criado e migrations aplicadas)."
 
 # ---- 7. seed opcional ----
-do_seed=false
-for arg in "$@"; do
-  case "${arg}" in
-    --seed|--with-seed) do_seed=true ;;
-    *) warn "Argumento desconhecido ignorado: ${arg}" ;;
-  esac
-done
-
 if [ "${do_seed}" = true ]; then
   log "Populando tenants de exemplo (npm run seed -w backend)..."
   npm run seed -w backend

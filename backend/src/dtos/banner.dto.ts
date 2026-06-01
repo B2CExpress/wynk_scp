@@ -37,8 +37,7 @@ export interface BannerReorderInput {
 }
 
 export function isValidISO8601(value: string): boolean {
-  const iso8601Regex =
-    /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}([+-]\d{2}:\d{2}|Z)$/;
+  const iso8601Regex = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}([+-]\d{2}:\d{2}|Z)$/;
   return iso8601Regex.test(value);
 }
 
@@ -94,10 +93,16 @@ export function validateBannerInput(
 
   // image_desktop_url: required, valid URL (http/https)
   if (input.image_desktop_url !== undefined) {
-    if (typeof input.image_desktop_url !== 'string' || input.image_desktop_url.trim().length === 0) {
+    if (
+      typeof input.image_desktop_url !== 'string' ||
+      input.image_desktop_url.trim().length === 0
+    ) {
       errors.push({ field: 'image_desktop_url', message: 'Desktop image URL is required' });
     } else if (!isValidUrl(input.image_desktop_url)) {
-      errors.push({ field: 'image_desktop_url', message: 'Desktop image URL must be a valid HTTP(S) URL' });
+      errors.push({
+        field: 'image_desktop_url',
+        message: 'Desktop image URL must be a valid HTTP(S) URL',
+      });
     }
   }
 
@@ -106,7 +111,10 @@ export function validateBannerInput(
     if (typeof input.image_mobile_url !== 'string' || input.image_mobile_url.trim().length === 0) {
       errors.push({ field: 'image_mobile_url', message: 'Mobile image URL is required' });
     } else if (!isValidUrl(input.image_mobile_url)) {
-      errors.push({ field: 'image_mobile_url', message: 'Mobile image URL must be a valid HTTP(S) URL' });
+      errors.push({
+        field: 'image_mobile_url',
+        message: 'Mobile image URL must be a valid HTTP(S) URL',
+      });
     }
   }
 
@@ -129,7 +137,10 @@ export function validateBannerInput(
       if (containsJavaScriptProtocol(input.link_url)) {
         errors.push({ field: 'link_url', message: 'JavaScript URLs are not allowed' });
       } else if (!isValidUrl(input.link_url)) {
-        errors.push({ field: 'link_url', message: 'Link URL must be a valid HTTP(S) URL or internal path' });
+        errors.push({
+          field: 'link_url',
+          message: 'Link URL must be a valid HTTP(S) URL or internal path',
+        });
       }
     }
   }
@@ -150,7 +161,10 @@ export function validateBannerInput(
     } else {
       const startsAt = parseISO8601(input.starts_at);
       if (!startsAt) {
-        errors.push({ field: 'starts_at', message: 'Start time must be a valid ISO 8601 timestamp' });
+        errors.push({
+          field: 'starts_at',
+          message: 'Start time must be a valid ISO 8601 timestamp',
+        });
       }
     }
   }
@@ -206,8 +220,10 @@ export function validateBannerInput(
 export function parseBannerInput(input: Record<string, unknown>): CreateBannerInput {
   return {
     title: typeof input.title === 'string' ? sanitizeText(input.title, 200) : undefined,
-    image_desktop_url: typeof input.image_desktop_url === 'string' ? input.image_desktop_url : undefined,
-    image_mobile_url: typeof input.image_mobile_url === 'string' ? input.image_mobile_url : undefined,
+    image_desktop_url:
+      typeof input.image_desktop_url === 'string' ? input.image_desktop_url : undefined,
+    image_mobile_url:
+      typeof input.image_mobile_url === 'string' ? input.image_mobile_url : undefined,
     alt_text: typeof input.alt_text === 'string' ? sanitizeText(input.alt_text, 300) : undefined,
     link_url:
       typeof input.link_url === 'string'
@@ -216,8 +232,14 @@ export function parseBannerInput(input: Record<string, unknown>): CreateBannerIn
           ? null
           : undefined,
     link_target: typeof input.link_target === 'string' ? input.link_target : undefined,
-    starts_at: typeof input.starts_at === 'string' ? input.starts_at : input.starts_at === null ? null : undefined,
-    ends_at: typeof input.ends_at === 'string' ? input.ends_at : input.ends_at === null ? null : undefined,
+    starts_at:
+      typeof input.starts_at === 'string'
+        ? input.starts_at
+        : input.starts_at === null
+          ? null
+          : undefined,
+    ends_at:
+      typeof input.ends_at === 'string' ? input.ends_at : input.ends_at === null ? null : undefined,
     is_active: typeof input.is_active === 'boolean' ? input.is_active : undefined,
     sort_order: typeof input.sort_order === 'number' ? input.sort_order : undefined,
   };

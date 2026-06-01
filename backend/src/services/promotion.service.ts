@@ -1,10 +1,11 @@
 import type Redis from 'ioredis';
-import type { PromotionRepository, ListPromotionsQuery } from '../repositories/promotion.repository';
+import type {
+  PromotionRepository,
+  ListPromotionsQuery,
+} from '../repositories/promotion.repository';
 import { requireTenantContext } from '../middleware/tenant-context';
 import { invalidateByPattern } from '../utils/cache';
 import type { CreatePromotionInput, UpdatePromotionInput } from '../dtos/promotion.dto';
-
-const CACHE_TTL_SECONDS = 300;
 
 export interface PromotionDetailResponse {
   id: string;
@@ -276,6 +277,13 @@ export class PromotionService {
       })),
       total: result.total,
     };
+  }
+
+  async listPublishedActiveForCurrentTenant(
+    limit: number = 200,
+  ): Promise<PromotionDetailResponse[]> {
+    const promotions = await this.promotionRepo.findPublishedActiveForCurrentTenant(limit);
+    return promotions.map((p) => serializePromotion(p));
   }
 
   private async invalidateListings(tenantId: string, storeId?: string): Promise<void> {

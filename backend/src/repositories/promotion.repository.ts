@@ -1,4 +1,4 @@
-import type { DataSource, Repository, SelectQueryBuilder } from 'typeorm';
+import type { DataSource, Repository } from 'typeorm';
 import { Promotion } from '../entities/Promotion';
 import { Store } from '../entities/Store';
 import { withTenant } from '../utils/with-tenant';
@@ -155,7 +155,11 @@ export class PromotionRepository {
     const skip = (page - 1) * limit;
 
     let qb = withTenant(this.promotionRepo.createQueryBuilder('promotion'))
-      .leftJoin(Store, 'store', 'store.store_id = promotion.store_id AND store.tenant_id = promotion.tenant_id')
+      .leftJoin(
+        Store,
+        'store',
+        'store.store_id = promotion.store_id AND store.tenant_id = promotion.tenant_id',
+      )
       .addSelect(['store.store_id', 'store.store_name', 'store.store_slug']);
 
     // Filter by status if provided
@@ -214,6 +218,17 @@ export class PromotionRepository {
       .andWhere('promotion.promotion_valid_from <= :now', { now })
       .andWhere('promotion.promotion_valid_until >= :now', { now })
       .orderBy('promotion.promotion_created_at', 'DESC')
+      .getMany();
+  }
+
+  async findPublishedActiveForCurrentTenant(limit: number = 200): Promise<Promotion[]> {
+    const now = new Date();
+    return withTenant(this.promotionRepo.createQueryBuilder('promotion'))
+      .andWhere('promotion.promotion_status = :status', { status: 'published' })
+      .andWhere('promotion.promotion_valid_from <= :now', { now })
+      .andWhere('promotion.promotion_valid_until >= :now', { now })
+      .orderBy('promotion.promotion_updated_at', 'DESC')
+      .limit(limit)
       .getMany();
   }
 }

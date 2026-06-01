@@ -110,10 +110,7 @@ export class BannerRepository {
       const bannerRepo = manager.getRepository(Banner);
 
       for (const { id, sortOrder } of banners) {
-        await bannerRepo.update(
-          { id, tenantId },
-          { sortOrder },
-        );
+        await bannerRepo.update({ id, tenantId }, { sortOrder });
         updatedCount++;
       }
     });

@@ -26,8 +26,7 @@ export interface PromotionValidationError {
 }
 
 function isValidISO8601WithTimezone(value: string): boolean {
-  const iso8601Regex =
-    /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}([+-]\d{2}:\d{2}|Z)$/;
+  const iso8601Regex = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}([+-]\d{2}:\d{2}|Z)$/;
   return iso8601Regex.test(value);
 }
 
@@ -40,8 +39,7 @@ function parseISO8601(value: string): Date | null {
 }
 
 function isValidUUID(value: string): boolean {
-  const uuidRegex =
-    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
   return uuidRegex.test(value);
 }
 
@@ -111,26 +109,41 @@ export function validatePromotionInput(
   // discount_label validation (if provided)
   if (input.discount_label !== undefined) {
     if (typeof input.discount_label !== 'string' || input.discount_label.trim().length === 0) {
-      errors.push({ field: 'discount_label', message: 'discount_label must be a non-empty string' });
+      errors.push({
+        field: 'discount_label',
+        message: 'discount_label must be a non-empty string',
+      });
     } else if (input.discount_label.length > 50) {
-      errors.push({ field: 'discount_label', message: 'discount_label must not exceed 50 characters' });
+      errors.push({
+        field: 'discount_label',
+        message: 'discount_label must not exceed 50 characters',
+      });
     }
   }
 
   // valid_from validation (if provided)
   if (input.valid_from !== undefined) {
     if (typeof input.valid_from !== 'string') {
-      errors.push({ field: 'valid_from', message: 'valid_from must be a valid ISO 8601 timestamp with timezone' });
+      errors.push({
+        field: 'valid_from',
+        message: 'valid_from must be a valid ISO 8601 timestamp with timezone',
+      });
     } else {
       const validFrom = parseISO8601(input.valid_from);
       if (!validFrom) {
-        errors.push({ field: 'valid_from', message: 'valid_from must be a valid ISO 8601 timestamp with timezone' });
+        errors.push({
+          field: 'valid_from',
+          message: 'valid_from must be a valid ISO 8601 timestamp with timezone',
+        });
       } else {
         // Check if within 2 years in future
         const now = new Date();
         const twoYearsFromNow = new Date(now.getTime() + 2 * 365 * 24 * 60 * 60 * 1000);
         if (validFrom > twoYearsFromNow) {
-          errors.push({ field: 'valid_from', message: 'valid_from must be within 2 years in the future' });
+          errors.push({
+            field: 'valid_from',
+            message: 'valid_from must be within 2 years in the future',
+          });
         }
       }
     }
@@ -139,17 +152,26 @@ export function validatePromotionInput(
   // valid_until validation (if provided)
   if (input.valid_until !== undefined) {
     if (typeof input.valid_until !== 'string') {
-      errors.push({ field: 'valid_until', message: 'valid_until must be a valid ISO 8601 timestamp with timezone' });
+      errors.push({
+        field: 'valid_until',
+        message: 'valid_until must be a valid ISO 8601 timestamp with timezone',
+      });
     } else {
       const validUntil = parseISO8601(input.valid_until);
       if (!validUntil) {
-        errors.push({ field: 'valid_until', message: 'valid_until must be a valid ISO 8601 timestamp with timezone' });
+        errors.push({
+          field: 'valid_until',
+          message: 'valid_until must be a valid ISO 8601 timestamp with timezone',
+        });
       } else {
         // Check if within 2 years in future
         const now = new Date();
         const twoYearsFromNow = new Date(now.getTime() + 2 * 365 * 24 * 60 * 60 * 1000);
         if (validUntil > twoYearsFromNow) {
-          errors.push({ field: 'valid_until', message: 'valid_until must be within 2 years in the future' });
+          errors.push({
+            field: 'valid_until',
+            message: 'valid_until must be within 2 years in the future',
+          });
         }
       }
     }
@@ -181,9 +203,7 @@ export function parsePromotionInput(input: Record<string, unknown>): CreatePromo
           ? null
           : undefined,
     discount_label:
-      typeof input.discount_label === 'string'
-        ? sanitizeText(input.discount_label)
-        : undefined,
+      typeof input.discount_label === 'string' ? sanitizeText(input.discount_label) : undefined,
     valid_from: typeof input.valid_from === 'string' ? input.valid_from : undefined,
     valid_until: typeof input.valid_until === 'string' ? input.valid_until : undefined,
   };

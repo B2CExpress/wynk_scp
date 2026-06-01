@@ -1,3 +1,5 @@
+import { sanitizeRichTextHtml } from '../lib/sanitize';
+
 export interface CreateNewsInput {
   title?: string;
   slug?: string;
@@ -28,8 +30,7 @@ export interface NewsValidationError {
 }
 
 export function isValidISO8601(value: string): boolean {
-  const iso8601Regex =
-    /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}([+-]\d{2}:\d{2}|Z)$/;
+  const iso8601Regex = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}([+-]\d{2}:\d{2}|Z)$/;
   return iso8601Regex.test(value);
 }
 
@@ -58,9 +59,7 @@ function isValidUrl(url: string): boolean {
   }
 }
 
-export function validateNewsInput(
-  input: CreateNewsInput | UpdateNewsInput,
-): NewsValidationError[] {
+export function validateNewsInput(input: CreateNewsInput | UpdateNewsInput): NewsValidationError[] {
   const errors: NewsValidationError[] = [];
 
   if (input.title !== undefined) {
@@ -102,7 +101,10 @@ export function validateNewsInput(
 
   if (input.cover_image_url !== undefined && input.cover_image_url !== null) {
     if (typeof input.cover_image_url !== 'string') {
-      errors.push({ field: 'cover_image_url', message: 'Cover image URL must be a string or null' });
+      errors.push({
+        field: 'cover_image_url',
+        message: 'Cover image URL must be a string or null',
+      });
     } else if (!isValidUrl(input.cover_image_url)) {
       errors.push({ field: 'cover_image_url', message: 'Cover image URL must be a valid URL' });
     }
@@ -155,7 +157,12 @@ export function parseNewsInput(input: Record<string, unknown>): CreateNewsInput 
     title: typeof input.title === 'string' ? sanitizeText(input.title, 255) : undefined,
     slug: typeof input.slug === 'string' ? sanitizeText(input.slug) : undefined,
     summary: typeof input.summary === 'string' ? sanitizeText(input.summary, 500) : undefined,
-    body: typeof input.body === 'string' ? sanitizeText(input.body, 50000) : undefined,
+    // body é rich text HTML — sanitiza tags/atributos perigosos (XSS) e
+    // aplica cap de 50000 chars antes de gravar.
+    body:
+      typeof input.body === 'string'
+        ? sanitizeRichTextHtml(input.body.trim()).substring(0, 50000)
+        : undefined,
     cover_image_url:
       typeof input.cover_image_url === 'string'
         ? input.cover_image_url

@@ -9,7 +9,9 @@ export function createBannerRoutes(controller: BannerController): Router {
   router.get('/api/admin/banners', requireAuth, (req, res) => controller.listBanners(req, res));
   router.post('/api/admin/banners', requireAuth, (req, res) => controller.createBanner(req, res));
   router.get('/api/admin/banners/:id', requireAuth, (req, res) => controller.getBanner(req, res));
-  router.put('/api/admin/banners/:id', requireAuth, (req, res) => controller.updateBanner(req, res));
+  router.put('/api/admin/banners/:id', requireAuth, (req, res) =>
+    controller.updateBanner(req, res),
+  );
   router.delete('/api/admin/banners/:id', requireAuth, (req, res) =>
     controller.deleteBanner(req, res),
   );

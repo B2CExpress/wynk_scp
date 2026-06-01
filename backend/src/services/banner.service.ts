@@ -69,7 +69,6 @@ export class BannerService {
   }
 
   async listForCurrentTenant(): Promise<BannerListResponse> {
-    const { tenantId } = requireTenantContext();
     const banners = await this.bannerRepository.listForCurrentTenant();
 
     return {
@@ -120,8 +119,18 @@ export class BannerService {
       altText: input.alt_text,
       linkUrl: input.link_url !== undefined ? input.link_url : undefined,
       linkTarget: input.link_target,
-      startsAt: input.starts_at !== undefined ? (input.starts_at ? parseISO8601(input.starts_at) : null) : undefined,
-      endsAt: input.ends_at !== undefined ? (input.ends_at ? parseISO8601(input.ends_at) : null) : undefined,
+      startsAt:
+        input.starts_at !== undefined
+          ? input.starts_at
+            ? parseISO8601(input.starts_at)
+            : null
+          : undefined,
+      endsAt:
+        input.ends_at !== undefined
+          ? input.ends_at
+            ? parseISO8601(input.ends_at)
+            : null
+          : undefined,
       isActive: input.is_active,
       sortOrder: input.sort_order,
     });
