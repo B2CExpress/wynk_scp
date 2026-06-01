@@ -55,9 +55,14 @@ export const AdminDashboard: React.FC = () => {
   };
 
   useEffect(() => {
-    fetchMetrics();
+    // Defer the initial fetch to the next tick so the loading state isn't set
+    // synchronously inside the effect (react-hooks/set-state-in-effect).
+    const initial = setTimeout(fetchMetrics, 0);
     const interval = setInterval(fetchMetrics, 60000); // Refresh a cada minuto
-    return () => clearInterval(interval);
+    return () => {
+      clearTimeout(initial);
+      clearInterval(interval);
+    };
   }, []);
 
   if (error && !metrics) {

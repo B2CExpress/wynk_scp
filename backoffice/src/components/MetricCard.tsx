@@ -44,7 +44,8 @@ export const MetricCard: React.FC<MetricCardProps> = ({
             <div className="metric-value">{value}</div>
             {trend && (
               <div className={`metric-trend ${trend.isPositive ? 'positive' : 'negative'}`}>
-                {trend.isPositive ? '+' : '−'}{trend.value}
+                {trend.isPositive ? '+' : '−'}
+                {trend.value}
               </div>
             )}
           </>
