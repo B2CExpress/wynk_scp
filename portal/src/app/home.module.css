@@ -1,0 +1,201 @@
+/* Estilos da home pública. Usa as CSS vars do tema do layout raiz. */
+
+.home {
+  min-height: 100vh;
+  color: var(--color-text);
+  background: var(--color-background);
+}
+
+.hero {
+  position: relative;
+  min-height: 460px;
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+}
+
+.heroImage {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.heroOverlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.2));
+}
+
+.heroContent {
+  position: relative;
+  z-index: 1;
+  padding: clamp(1.5rem, 5vw, 4rem);
+  max-width: 720px;
+  color: white;
+}
+
+.heroContent h1 {
+  font-size: clamp(2rem, 5vw, 3.2rem);
+  margin-bottom: 0.75rem;
+}
+
+.heroContent p {
+  font-size: 1.15rem;
+  margin-bottom: 1.5rem;
+  opacity: 0.95;
+}
+
+.heroCta {
+  display: inline-block;
+  padding: 0.85rem 1.6rem;
+  border-radius: 999px;
+  font-weight: 700;
+  color: white;
+  background: var(--color-primary);
+}
+
+.carousel {
+  position: relative;
+  margin: 2rem auto;
+  max-width: 1200px;
+  padding: 0 clamp(1rem, 4vw, 2rem);
+}
+
+.carouselViewport {
+  position: relative;
+  border-radius: 1rem;
+  overflow: hidden;
+}
+
+.carouselTrack {
+  display: flex;
+  transition: transform 0.5s ease;
+}
+
+.slide {
+  position: relative;
+  min-width: 100%;
+}
+
+.slideImage {
+  width: 100%;
+  height: clamp(200px, 30vw, 360px);
+  object-fit: cover;
+  display: block;
+}
+
+.slideTitle {
+  position: absolute;
+  left: 1.5rem;
+  bottom: 1.5rem;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  background: rgba(0, 0, 0, 0.55);
+  color: white;
+  font-weight: 700;
+}
+
+.carouselNav {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  border: none;
+  cursor: pointer;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 999px;
+  font-size: 1.25rem;
+  background: rgba(255, 255, 255, 0.85);
+}
+
+.prev {
+  left: 1.5rem;
+}
+
+.next {
+  right: 1.5rem;
+}
+
+.dots {
+  display: flex;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.dot {
+  width: 0.6rem;
+  height: 0.6rem;
+  border: none;
+  padding: 0;
+  border-radius: 999px;
+  cursor: pointer;
+  background: color-mix(in srgb, var(--color-text) 30%, transparent);
+}
+
+.dotActive {
+  background: var(--color-primary);
+}
+
+.section {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 3rem clamp(1rem, 4vw, 2rem);
+}
+
+.sectionAccent {
+  background: color-mix(in srgb, var(--color-primary) 6%, transparent);
+}
+
+.sectionHeader {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 1.5rem;
+}
+
+.sectionHeader h2 {
+  font-size: clamp(1.5rem, 3vw, 2rem);
+}
+
+.sectionLink {
+  font-weight: 600;
+  color: var(--color-primary);
+}
+
+.storeGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 1rem;
+}
+
+.storeCard {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 1.5rem 1rem;
+  border: 1px solid color-mix(in srgb, var(--color-text) 12%, transparent);
+  border-radius: 1rem;
+  text-align: center;
+}
+
+.storeAvatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 3.5rem;
+  height: 3.5rem;
+  border-radius: 999px;
+  font-weight: 700;
+  font-size: 1.25rem;
+  color: white;
+  background: var(--color-primary);
+}
+
+.storeCategory {
+  font-size: 0.8rem;
+  color: color-mix(in srgb, var(--color-text) 65%, transparent);
+}
