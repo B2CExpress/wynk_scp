@@ -4,7 +4,7 @@
 **Criada:** 2026-05-31 14:00
 **Ativada:** 2026-05-31 14:00
 **Concluída:** 2026-05-31 14:35
-**Commit final:** — _(será preenchido após merge)_
+**Commit final:** `e69e043`
 **Keywords:** dashboard, métricas, admin, cache, tenant
 **Features:** admin-dashboard
 **Branch:** feature/SQU-67-dashboard-com-metricas-do-tenant
