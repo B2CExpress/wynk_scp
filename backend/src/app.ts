@@ -15,6 +15,7 @@ import type { PromotionController } from './controllers/promotion.controller';
 import type { NewsController } from './controllers/news.controller';
 import type { BannerController } from './controllers/banner.controller';
 import type { CronController } from './controllers/cron.controller';
+import type { AdminDashboardController } from './controllers/admin-dashboard.controller';
 import { createResolveTenantByHostMiddleware } from './middleware/resolve-tenant-by-host';
 import { tenantContextMiddleware } from './middleware/tenant-context';
 import { tenantRoutes } from './routes/tenant.routes';
@@ -26,6 +27,7 @@ import { createPromotionRoutes } from './routes/promotion.routes';
 import { createNewsRoutes } from './routes/news.routes';
 import { createBannerRoutes } from './routes/banner.routes';
 import { createCronRoutes } from './routes/cron.routes';
+import { createAdminDashboardRoutes } from './routes/admin-dashboard.routes';
 
 export interface AppDeps {
   tenantResolver: TenantResolverService;
@@ -37,6 +39,7 @@ export interface AppDeps {
   promotionController: PromotionController;
   newsController: NewsController;
   bannerController: BannerController;
+  dashboardController: AdminDashboardController;
   cronController: CronController;
 }
 
@@ -102,6 +105,7 @@ export function createApp(deps: AppDeps): Express {
   app.use(createPromotionRoutes(deps.promotionController));
   app.use(createNewsRoutes(deps.newsController));
   app.use(createBannerRoutes(deps.bannerController));
+  app.use(createAdminDashboardRoutes(deps.dashboardController));
   app.use(createCronRoutes(deps.cronController));
 
   // 404

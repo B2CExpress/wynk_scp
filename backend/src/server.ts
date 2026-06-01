@@ -22,6 +22,7 @@ import { TheaterService } from './services/theater.service';
 import { PromotionService } from './services/promotion.service';
 import { NewsService } from './services/news.service';
 import { BannerService } from './services/banner.service';
+import { AdminDashboardService } from './services/admin-dashboard.service';
 import { AuthController } from './controllers/auth.controller';
 import { StoreController } from './controllers/store.controller';
 import { EventController } from './controllers/event.controller';
@@ -31,6 +32,7 @@ import { PromotionController } from './controllers/promotion.controller';
 import { NewsController } from './controllers/news.controller';
 import { BannerController } from './controllers/banner.controller';
 import { CronController } from './controllers/cron.controller';
+import { AdminDashboardController } from './controllers/admin-dashboard.controller';
 
 async function main(): Promise<void> {
   // Inicialização do banco e Redis fica opt-in pra ambiente: em dev/prod conectamos,
@@ -70,6 +72,7 @@ async function main(): Promise<void> {
   const promotionService = new PromotionService(promotionRepo, redis);
   const newsService = new NewsService(newsRepo, redis);
   const bannerService = new BannerService(bannerRepo, redis);
+  const dashboardService = new AdminDashboardService(AppDataSource, redis);
   const authController = new AuthController(authService, userRepo);
   const storeController = new StoreController(storeService);
   const eventController = new EventController(eventService);
@@ -78,6 +81,7 @@ async function main(): Promise<void> {
   const promotionController = new PromotionController(promotionService);
   const newsController = new NewsController(newsService);
   const bannerController = new BannerController(bannerService);
+  const dashboardController = new AdminDashboardController(dashboardService);
   const cronController = new CronController(newsService);
 
   const app = createApp({
@@ -90,6 +94,7 @@ async function main(): Promise<void> {
     promotionController,
     newsController,
     bannerController,
+    dashboardController,
     cronController,
   });
 
