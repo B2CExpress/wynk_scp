@@ -86,10 +86,14 @@ export class StoreRepository {
         );
     }
 
-    qb = (query.search ? qb.orderBy('search_rank', 'DESC') : qb.orderBy('store.isFeatured', 'DESC'))
-      .addOrderBy('store.isFeatured', 'DESC')
-      .addOrderBy('store.sortOrder', 'ASC')
-      .addOrderBy('store.name', 'ASC')
+    qb = (
+      query.search
+        ? qb.orderBy('search_rank', 'DESC')
+        : qb.orderBy('store.store_is_featured', 'DESC')
+    )
+      .addOrderBy('store.store_is_featured', 'DESC')
+      .addOrderBy('store.store_sort_order', 'ASC')
+      .addOrderBy('store.store_name', 'ASC')
       .take(query.limit)
       .skip(offset);
 
