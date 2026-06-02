@@ -1,11 +1,11 @@
 # SPEC-20260602-1400: API admin — hero principal da home
 
-**Status:** active
+**Status:** done
 **Criada:** 2026-06-02 14:00
 **Ativada:** 2026-06-02 14:00
 **Re-escopada:** 2026-06-02 13:40 — Next.js App Router + Drizzle (no portal) → **Express + TypeORM (no backend)**. O desenho original foi escrito pra arquitetura Drizzle-no-portal que foi descartada no re-escopo geral do projeto; nenhum código tinha sido entregue (a pasta estava em `archive/` indevidamente, com `Status: active` e 0 critérios marcados). Decisão do usuário em 2026-06-02 13:40.
-**Concluída:** —
-**Commit final:** —
+**Concluída:** 2026-06-02 13:55
+**Commit final:** `57190fe`
 **Keywords:** hero, admin, api, express, typeorm, upsert, cache, multitenant, editorial
 **Features:** editorial-content
 **Branch:** SCU-59-API-admin-hero-principal-da-home
