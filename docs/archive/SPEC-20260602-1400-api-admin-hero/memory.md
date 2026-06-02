@@ -8,12 +8,14 @@
 
 ## TL;DR (sobrescrever ao fim de cada sessão)
 
-**Última atualização:** 2026-06-02 13:40 (sessão #2 — re-escopo)
-**Onde tô:** SPEC re-escopada (Next/Drizzle → Express+TypeORM) e desarquivada. Os scaffolds Drizzle da sessão 1 são descartados (nunca commitados). Implementação real no backend começando.
-**Próximo passo:** entity `Hero` (`tb_hero`, unique `tenant_id`) + migration + DTO manual + repo (upsert) + service (defaults no GET) + controller + routes (`requireAuth`) + wiring + testes.
-**Última decisão:** re-escopo pro backend Express (igual popup/banner); singleton por tenant via upsert; `requireAuth` real; sem Zod (DTO manual).
+**Última atualização:** 2026-06-02 13:55 (sessão #2 — re-escopo + conclusão)
+**Onde tô:** SPEC CONCLUÍDA e arquivada. Hero implementado no backend Express+TypeORM (commit `57190fe`), tudo verde (117 testes). Features-fantasma removidas, editorial-content atualizada.
+**Próximo passo:** nenhum. Futuro: endpoint público `GET /api/v1/hero`, UI no backoffice, render do hero na home.
+**Última decisão:** singleton por tenant via upsert; `overlay_opacity` numeric(4,2) com transformer; `requireAuth` real; sem Zod.
 **Bloqueio atual:** nenhum.
-**Se retomar, ler:** `[MARCO] [decisão] re-escopo` (2026-06-02 13:40) no state.md.
+**Se retomar, ler:** entrada `[conclusão]` (2026-06-02 13:55) no state.md.
+
+> SPEC concluída em 2026-06-02 13:55, commit `57190fe`.
 
 ---
 

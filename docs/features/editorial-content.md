@@ -1,6 +1,6 @@
 # Feature: editorial-content
 
-**Keywords:** eventos, theater-shows, news, noticias, banners, carrossel, popup, overlay, modal, editorial, content-management, crud-admin, scheduler, publicacao-automatica, state-machine, cron-secret, reorder, ativacao-exclusiva
+**Keywords:** eventos, theater-shows, news, noticias, banners, carrossel, popup, overlay, modal, hero, home, editorial, content-management, crud-admin, scheduler, publicacao-automatica, state-machine, cron-secret, reorder, ativacao-exclusiva, upsert, singleton-por-tenant
 **Arquivos principais:**
   - backend/src/entities/Event.ts
   - backend/src/entities/TheaterShow.ts
@@ -27,6 +27,12 @@
   - backend/src/routes/popup.routes.ts
   - portal/src/app/_components/Popup.tsx
   - portal/src/lib/popup/api.ts
+  - backend/src/entities/Hero.ts
+  - backend/src/controllers/hero.controller.ts
+  - backend/src/services/hero.service.ts
+  - backend/src/repositories/hero.repository.ts
+  - backend/src/dtos/hero.dto.ts
+  - backend/src/routes/hero.routes.ts
   - backend/src/repositories/event.repository.ts
   - backend/src/repositories/theater-show.repository.ts
   - backend/src/repositories/theater-session.repository.ts
@@ -49,6 +55,7 @@
 | SPEC-20260522-1100 | 2026-05-25 | _(commit pendente)_ | API Admin CRUD de Notícias com fluxo de publicação (introduz entity `News`, state machine `lib/news/state.ts`, endpoint cron externo `POST /api/cron/publish-scheduled` com `X-Cron-Secret`, e estende `jobs/publish-scheduled.ts` setInterval para cobrir `tb_news`) |
 | SPEC-20260526-1900 | 2026-05-29 | `8e0df51` | API Admin Gerenciar Banners com reordenação e agendamento (introduz entity `Banner` para o carrossel da home: CRUD + `POST /reorder` transacional + `POST /:id/toggle`, versões desktop/mobile, janela `starts_at`/`ends_at`, `alt_text` obrigatório, bloqueio `javascript:` em `link_url`) |
 | SPEC-20260602-1057 | 2026-06-02 | `3317420` | Popup overlay admin com regras de exibição (introduz entity `Popup`: CRUD + ativação mutuamente exclusiva em transação `POST /:id/activate`+`/deactivate`, endpoint público `GET /api/v1/popups/active`, agendamento `starts_at`/`ends_at`, `show_on_pages` home/all, e `<Popup>` client no portal com cookie 30d) |
+| SPEC-20260602-1400 | 2026-06-02 | `57190fe` | API admin — hero principal da home (re-escopada Next/Drizzle → Express+TypeORM; introduz entity `Hero` singleton por tenant: `GET + PUT /api/admin/hero` com upsert, GET retorna `HERO_DEFAULTS` se não existe, validação manual, `overlay_opacity` numeric(4,2), cache `hero:{tenant}`) |
 
 ### Planejadas (future/)
 | ID | Título | Motivo |
@@ -59,7 +66,7 @@
 ### Em execução (só em branches — não aparece em main)
 | ID | Título | Branch |
 |---|---|---|
-| SPEC-20260602-1400 | API admin — hero principal da home (re-escopada Next/Drizzle → Express+TypeORM) | SCU-59-API-admin-hero-principal-da-home |
+| _(nenhuma)_ | | |
 
 ## Estado atual
 
@@ -72,6 +79,7 @@ Endpoints admin entregues:
 - Notícias (SPEC-20260522-1100): GET/POST/PUT/DELETE `/api/admin/news`, POST `/api/admin/news/:id/publish`, POST `/api/admin/news/:id/archive`
 - Banners (SPEC-20260526-1900): GET/POST `/api/admin/banners`, GET/PUT/DELETE `/api/admin/banners/:id`, POST `/api/admin/banners/reorder`, POST `/api/admin/banners/:id/toggle`. Carrossel da home com versões desktop/mobile, agendamento (`starts_at`/`ends_at`), ordenação por `sort_order` e ativação sem deletar. Sem state machine (diferente de news) — `is_active` é booleano simples.
 - Popups (SPEC-20260602-1057): GET/POST `/api/admin/popups`, GET/PUT/DELETE `/api/admin/popups/:id`, POST `/api/admin/popups/:id/activate`, POST `/api/admin/popups/:id/deactivate`, e público `GET /api/v1/popups/active`. Overlay modal de campanha, **1 ativo por tenant** — `activate` desativa todos os outros e ativa este numa transação (`PopupRepository.runInTransaction`). Agendamento por janela `starts_at`/`ends_at` (ambos NOT NULL); `show_on_pages` (`home`|`all`); `show_after_seconds` (0-60); `image_url` OU `html_content` (pelo menos um). Frontend: client component `<Popup>` no `portal/src/app/layout.tsx` lê o endpoint público (hoje via mock `lib/popup/api.ts`), aplica `show_on_pages` por `pathname` e grava cookie `popup-seen-{id}` (30d) para `show_only_once`.
+- Hero (SPEC-20260602-1400): `GET + PUT /api/admin/hero` (admin, `requireAuth`). Config **única por tenant** (entity `Hero`/`tb_hero`, unique `tenant_id`) — não tem `:id` na rota. `GET` retorna `HERO_DEFAULTS` (do DTO) se o tenant não configurou (200, nunca 404). `PUT` faz **upsert** (lookup+save no repo) e invalida cache `hero:{tenant}`. Campos: `title` (≤300), `subtitle` (≤500), `background_image_url` (URL), `cta_text` (≤50), `cta_link` (URL ou path interno), `overlay_color` (`#RRGGBB`), `overlay_opacity` (numeric(4,2), 0–1). `tenant_id` do payload é ignorado. Endpoint público e UI de backoffice ficaram fora do escopo.
 
 Validação:
 - Eventos: ISO 8601 com timezone, ends_at >= starts_at, starts_at até 5 anos futuro
@@ -95,7 +103,7 @@ State machine (apenas notícias):
 - Transições válidas via `canTransition(current, next)`: `draft → {scheduled, published}`, `scheduled → published`, `qualquer → archived`. Resto rejeitado com `NewsInvalidTransitionError` → 409.
 - Delete via `canDelete(status)`: aceita só `draft` e `archived`. Senão 409 `cannot_delete_<status>`.
 
-> Última atualização: 2026-06-02 12:46 (SPEC-20260602-1057)
+> Última atualização: 2026-06-02 13:55 (SPEC-20260602-1400)
 
 ## Decisões arquiteturais ativas
 
@@ -118,6 +126,9 @@ State machine (apenas notícias):
 - **Popup: `starts_at`/`ends_at` NOT NULL (agendamento sempre obrigatório)** (origem: SPEC-20260602-1057, 2026-06-02 12:46) — A validação já exige ambos; tornar as colunas NOT NULL simplifica o filtro do endpoint público (`starts_at <= now AND ends_at >= now`, sem o `IS NULL OR` do ticket original). Divergência consciente do texto do ticket. Trade-off: não dá pra criar popup "sem janela" (sempre visível) — caso de uso não pedido.
 - **Popup: sem validação de `starts_at` no passado (agendamento retroativo permitido)** (origem: SPEC-20260602-1057, 2026-06-02 12:46) — Removida a `PopupStartDateInPastError` do rascunho. **Diverge de [[promotions-admin]]/news** (que rejeitam `publish_at` retroativo): popup é overlay de campanha que pode começar "agora/ontem"; só `ends_at > starts_at` é exigido. Trade-off: admin pode criar janela já encerrada sem aviso (vem como inativo no público, sem erro).
 - **Popup: rota pública padronizada `GET /api/v1/popups/active`** (origem: SPEC-20260602-1057, 2026-06-02 12:46) — Alinhada com os demais públicos (`/api/v1/stores|events|promotions|store-categories`). O rascunho expunha `/api/popups/active` (sem `/v1`) — corrigido para consistência. Plural + sub-path `active` (retorna o único ativo ou `null`).
+- **Hero: singleton por tenant via upsert (sem `:id` na rota)** (origem: SPEC-20260602-1400, 2026-06-02 13:55) — Hero é config única por tenant (`tb_hero` com unique `tenant_id`), diferente de banners (lista). `PUT /api/admin/hero` faz upsert (`HeroRepository.upsertForCurrentTenant` = lookup da linha do tenant + save). `GET` retorna `HERO_DEFAULTS` se não existe (200, nunca 404) — UI não trata dois estados. Trade-off: não há histórico/versões de hero; sempre 1 linha viva por tenant.
+- **Hero: re-escopo Next.js+Drizzle → Express+TypeORM** (origem: SPEC-20260602-1400, 2026-06-02 13:55) — A SPEC nasceu (em 14:00) como rotas Next `/api/admin/hero/route.ts` + Drizzle no portal + stub de auth, mas nada foi implementado e o desenho era da arquitetura descartada. Re-escopada in place pro backend Express (igual banners/popup), com `requireAuth` real (não stub) e DTO manual (não Zod). As features-fantasma `admin-content-api`/`portal-home` (que descreviam o desenho Next/Drizzle) foram removidas.
+- **Hero: `overlay_opacity` como `numeric(4,2)` com transformer** (origem: SPEC-20260602-1400, 2026-06-02 13:55) — Evita jitter de float (0.4 não é exato em float64). TypeORM devolve `numeric` como string; o `transformer` na entity converte pra `number` nas duas pontas, então o resto do código trata como número.
 
 ## Alternativas consideradas e rejeitadas
 
@@ -142,6 +153,8 @@ State machine (apenas notícias):
 - **Popup: cache `popup:active:{tenant}` precisa cair em TODA mutação** (2026-06-02 12:46, SPEC-20260602-1057) — `getActivePopupForClient` cacheia o popup ativo por 300s. `invalidateCaches(tenantId, id?)` (chamado em create/update/delete/activate/deactivate) faz `del('popup:active:{tenant}')` + `invalidateByPattern('popup:list:{tenant}:*')` + del detail. O rascunho **não** invalidava a chave `active` no activate/deactivate → o público serviria popup obsoleto por até 5 min após uma troca de ativo. Coberto por teste.
 - **Popup no portal lê mock, não o backend real ainda** (2026-06-02 12:46, SPEC-20260602-1057) — `<Popup>` no `layout.tsx` consome `portal/src/lib/popup/api.ts` (mock fixo), igual às páginas de conteúdo da SPEC-20260601-1909. O swap pro `GET /api/v1/popups/active` real ficou FORA do escopo. A lib mock já está no shape camelCase do backend pra swap trivial. Esquecer isso = achar que o popup do portal reflete o que está no admin (não reflete — é mock).
 - **Popup: cookie de "já vi" é setado no fechar E no clique do link** (2026-06-02 12:46, SPEC-20260602-1057) — `popup-seen-{id}` (`max-age` 30d, `SameSite=Lax`) só é gravado se `show_only_once=true`. Setado tanto no X quanto ao clicar a imagem/link. `setIsVisible(true)` só roda dentro do `setTimeout` (deferido) pra não violar `react-hooks/set-state-in-effect` (mesmo cuidado do `Countdown` da SPEC-20260601-1909).
+- **Hero: `overlay_opacity` vem do banco como string sem o transformer** (2026-06-02 13:55, SPEC-20260602-1400) — Colunas `numeric` do TypeORM retornam string por padrão. A entity `Hero` usa um `transformer` (`from: parseFloat`) pra entregar `number`. Se criar outra coluna numeric e esquecer o transformer, a resposta JSON sai com a opacidade como string (`"0.40"`) e quebra clientes que esperam número.
+- **Hero: pasta da SPEC esteve em `archive/` indevidamente (arquivamento-fantasma)** (2026-06-02 13:55, SPEC-20260602-1400) — A SPEC-20260602-1400 chegou a ser movida pra `archive/` com `Status: active`, 0 critérios marcados e **zero código commitado** (o commit só tinha docs). Foi desarquivada e re-escopada. Lição: `archive/` exige o fluxo de conclusão completo (§5.3) — `audit-docs.sh` deveria pegar SPEC em archive com critérios desmarcados.
 
 ## Estado congelado (se houver)
 

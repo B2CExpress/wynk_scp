@@ -8,12 +8,12 @@
 
 ## TL;DR (sobrescrever ao fim de cada sessão)
 
-**Última atualização:** 2026-06-02 13:40
-**Onde tô:** SPEC RE-ESCOPADA (Next/Drizzle → Express+TypeORM) e desarquivada (`archive/` → `active/`). Código Drizzle da sessão 1 nunca foi commitado/aplicável. Começando a implementação real no backend.
-**Próximo passo:** entity `Hero` (`tb_hero`, unique `tenant_id`) + migration + DTO manual + repo (upsert) + service (defaults no GET) + controller + routes (`requireAuth`) + wiring.
-**Última decisão:** singleton por tenant via upsert; `overlay_opacity` numeric(4,2); `requireAuth` real (não stub); sem Zod (DTO manual, padrão do repo).
-**Bloqueio atual:** nenhum (o stub de auth do desenho antigo não se aplica — backend tem `requireAuth` real).
-**Se retomar, ler:** entrada `[MARCO] [decisão] re-escopo` de 2026-06-02 13:40 + Status snapshot.
+**Última atualização:** 2026-06-02 13:55
+**Onde tô:** SPEC CONCLUÍDA (re-escopada + implementada + arquivada). Backend hero entregue (commit `57190fe`), tudo verde (117 testes).
+**Próximo passo:** nenhum. Futuro (fora do escopo): endpoint público `GET /api/v1/hero`; UI no backoffice; render do hero na home.
+**Última decisão:** singleton por tenant via upsert; `overlay_opacity` numeric(4,2) com transformer; `requireAuth` real; sem Zod.
+**Bloqueio atual:** nenhum.
+**Se retomar, ler:** entrada `[conclusão]` de 2026-06-02 13:55.
 
 ---
 
@@ -25,14 +25,14 @@
 |---|-----------|--------|-----------|--------|
 | 0 | Sessão 1 (DESCARTADA): scaffolds Next/Drizzle, nunca commitados/aplicáveis | descartado | 2026-06-02 13:40 | — |
 | 1 | Re-escopo (Next/Drizzle → Express+TypeORM) + desarquivar | concluído | 2026-06-02 13:40 | — |
-| 2 | Entity `Hero` + migration + registro em database.ts | pendente | 2026-06-02 13:40 | — |
-| 3 | DTO manual (`parseHeroInput`/`validateHeroInput` + `HERO_DEFAULTS`) | pendente | 2026-06-02 13:40 | — |
-| 4 | Repository (upsert singleton por tenant) | pendente | 2026-06-02 13:40 | — |
-| 5 | Service (GET defaults, PUT upsert, cache) + controller + routes (`requireAuth`) | pendente | 2026-06-02 13:40 | — |
-| 6 | Wiring server.ts/app.ts + mock-deps | pendente | 2026-06-02 13:40 | — |
-| 7 | Testes backend | pendente | 2026-06-02 13:40 | — |
-| 8 | Remover features-fantasma + atualizar editorial-content | pendente | 2026-06-02 13:40 | — |
-| 9 | Concluir e arquivar (§5.3) | pendente | 2026-06-02 13:40 | — |
+| 2 | Entity `Hero` + migration + registro em database.ts | concluído | 2026-06-02 13:55 | `57190fe` |
+| 3 | DTO manual (`parseHeroInput`/`validateHeroInput` + `HERO_DEFAULTS`) | concluído | 2026-06-02 13:55 | `57190fe` |
+| 4 | Repository (upsert singleton por tenant) | concluído | 2026-06-02 13:55 | `57190fe` |
+| 5 | Service (GET defaults, PUT upsert, cache) + controller + routes (`requireAuth`) | concluído | 2026-06-02 13:55 | `57190fe` |
+| 6 | Wiring server.ts/app.ts + mock-deps | concluído | 2026-06-02 13:55 | `57190fe` |
+| 7 | Testes backend (15 hero; suíte 117) | concluído | 2026-06-02 13:55 | `57190fe` |
+| 8 | Remover features-fantasma + atualizar editorial-content | concluído | 2026-06-02 13:55 | — |
+| 9 | Concluir e arquivar (§5.3) | concluído | 2026-06-02 13:55 | — |
 
 ### Próximos passos
 
@@ -112,3 +112,17 @@ Decisão do usuário (2026-06-02 13:40): **desarquivar e re-escopar a própria S
 - **Feature**: passa de `admin-content-api`/`portal-home` (fantasmas Next/Drizzle) para [[editorial-content]] (onde banners/popup vivem). As 2 features-fantasma serão removidas (descreviam código inexistente).
 
 Pasta movida `archive/` → `active/` (corrige a invariante R.2 / R.5 — era arquivamento por engano). Campos de contrato preservados: conjunto de campos do hero e regras de validação (title/subtitle/bg/cta/overlay) seguem iguais; só muda a stack.
+
+## 2026-06-02 13:55 — [conclusão] SPEC re-escopada, implementada e arquivada
+
+Implementação real entregue no backend (commit `57190fe`):
+- entity `Hero` (`tb_hero`, unique `tenant_id`, `overlay_opacity` numeric(4,2) com transformer) + migration `1747017600000` + registro em `database.ts`
+- `dtos/hero.dto.ts` (parse + validate manual + `HERO_DEFAULTS` + tipos), `repositories/hero.repository.ts` (upsert singleton), `services/hero.service.ts` (GET defaults / PUT upsert + cache `hero:{tenant}`), `controllers/hero.controller.ts`, `routes/hero.routes.ts` (`requireAuth`)
+- wiring `server.ts`/`app.ts` + stub `mock-deps.ts`
+- testes: `hero.dto.test.ts` + `hero.service.test.ts` (15 testes — defaults no GET, hero existente, upsert mapeia/invalida cache, isolamento de `tenant_id`, validação campo-a-campo)
+
+Verificação (2026-06-02 13:55): `typecheck -w backend` ✓ · `lint -w backend` ✓ (0 erros) · `test -w backend` ✓ 16 suites, 117 passed · `format:check` ✓.
+
+Correção de processo: features-fantasma `admin-content-api.md` + `portal-home.md` removidas (`git rm`); feature `editorial-content` atualizada (R.7) com hero em Concluídas, Estado atual, 3 decisões, 3 gotchas, arquivos + keywords. `main.md` Status=done, Commit final=`57190fe`, critérios 100% marcados. Pasta `active/` → `archive/`.
+
+**FORA do escopo (futuro):** endpoint público `GET /api/v1/hero` (cache 5min); UI de admin no backoffice; render do hero na home pública do portal.

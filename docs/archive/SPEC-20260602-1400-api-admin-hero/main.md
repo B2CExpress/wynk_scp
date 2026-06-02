@@ -62,16 +62,16 @@ Body é snake_case (contrato externo). `tenant_id` no payload é ignorado.
 
 ## Critério de aceite
 
-- [ ] Entity `Hero` (`tb_hero`, unique `tenant_id`) + migration; registrada em `config/database.ts`; backend compila
-- [ ] `GET /api/admin/hero` retorna 200 com `HERO_DEFAULTS` quando o tenant não tem hero
-- [ ] `GET /api/admin/hero` retorna 200 com os dados do banco quando existe
-- [ ] `PUT /api/admin/hero` cria (INSERT) quando não existia e atualiza (UPDATE) no segundo PUT — sempre 1 linha por tenant
-- [ ] `PUT` com `overlay_opacity` fora de [0,1] → 400 campo-a-campo; sem `title` → 400; sem `background_image_url` → 400; `overlay_color` inválido → 400
-- [ ] `tenant_id` no body é ignorado (isolamento cross-tenant)
-- [ ] Cache invalidado no PUT (Redis, padrão `hero:{tenant}`)
-- [ ] Rotas com `requireAuth` (sem sessão → 401)
-- [ ] Testes backend cobrindo defaults no GET, upsert, validação e isolamento (verdes)
-- [ ] **Features tocadas (editorial-content) atualizadas** com timestamp e referência a esta SPEC
-- [ ] Features-fantasma `admin-content-api` e `portal-home` removidas (descreviam o desenho Next/Drizzle descartado)
-- [ ] `state.md` com entrada `[conclusão]`
-- [ ] `memory.md` com TL;DR final atualizado
+- [x] Entity `Hero` (`tb_hero`, unique `tenant_id`) + migration; registrada em `config/database.ts`; backend compila (2026-06-02 13:55, commit `57190fe`)
+- [x] `GET /api/admin/hero` retorna 200 com `HERO_DEFAULTS` quando o tenant não tem hero (coberto por teste) (2026-06-02 13:55, commit `57190fe`)
+- [x] `GET /api/admin/hero` retorna 200 com os dados do banco quando existe (coberto por teste) (2026-06-02 13:55, commit `57190fe`)
+- [x] `PUT /api/admin/hero` cria (INSERT) quando não existia e atualiza (UPDATE) no segundo PUT — singleton via `upsertForCurrentTenant` (lookup+save) + unique `tenant_id` (2026-06-02 13:55, commit `57190fe`)
+- [x] `PUT` com `overlay_opacity` fora de [0,1] → 400 campo-a-campo; sem `title` → 400; sem `background_image_url` → 400; `overlay_color` inválido → 400 (coberto por testes do DTO) (2026-06-02 13:55, commit `57190fe`)
+- [x] `tenant_id` no body é ignorado (service nunca lê tenant do payload; coberto por teste) (2026-06-02 13:55, commit `57190fe`)
+- [x] Cache invalidado no PUT (`redis.del('hero:{tenant}')`; coberto por teste) (2026-06-02 13:55, commit `57190fe`)
+- [x] Rotas com `requireAuth` (sem sessão → 401) (2026-06-02 13:55, commit `57190fe`)
+- [x] Testes backend cobrindo defaults no GET, upsert, validação e isolamento (15 testes; suíte 117) (2026-06-02 13:55, commit `57190fe`)
+- [x] **Features tocadas (editorial-content) atualizadas** com timestamp e referência a esta SPEC (2026-06-02 13:55)
+- [x] Features-fantasma `admin-content-api` e `portal-home` removidas (descreviam o desenho Next/Drizzle descartado) (2026-06-02 13:55)
+- [x] `state.md` com entrada `[conclusão]` (2026-06-02 13:55)
+- [x] `memory.md` com TL;DR final atualizado (2026-06-02 13:55)
