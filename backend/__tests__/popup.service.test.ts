@@ -119,7 +119,11 @@ describe('PopupService.deactivateForCurrentTenant', () => {
 
 describe('PopupService.createForCurrentTenant', () => {
   it('maps snake_case input to the repository and applies defaults', async () => {
-    const createSpy = jest.fn(async () => makePopup());
+    let captured: Record<string, unknown> | undefined;
+    const createSpy = jest.fn(async (input: Record<string, unknown>) => {
+      captured = input;
+      return makePopup();
+    });
     const repo = { createForCurrentTenant: createSpy } as unknown as PopupRepository;
     const { redis } = makeRedisMock();
     const service = new PopupService(repo, redis);
@@ -135,8 +139,7 @@ describe('PopupService.createForCurrentTenant', () => {
     );
 
     expect(createSpy).toHaveBeenCalledTimes(1);
-    const arg = createSpy.mock.calls[0][0];
-    expect(arg).toMatchObject({
+    expect(captured).toMatchObject({
       title: 'Campanha',
       imageUrl: 'https://cdn/x.jpg',
       htmlContent: null,
@@ -145,8 +148,8 @@ describe('PopupService.createForCurrentTenant', () => {
       showOnlyOnce: true,
       showOnPages: 'home',
     });
-    expect(arg.startsAt).toBeInstanceOf(Date);
-    expect(arg.endsAt).toBeInstanceOf(Date);
+    expect(captured?.startsAt).toBeInstanceOf(Date);
+    expect(captured?.endsAt).toBeInstanceOf(Date);
   });
 
   it('rejects ends_at <= starts_at', async () => {
