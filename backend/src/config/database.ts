@@ -15,6 +15,7 @@ import { Promotion } from '../entities/Promotion';
 import { News } from '../entities/News';
 import { Banner } from '../entities/Banner';
 import { Popup } from '../entities/Popup';
+import { Hero } from '../entities/Hero';
 
 // Resolve globs de migrations/subscribers absolutos ao próprio módulo, não ao
 // CWD. Necessário pra Vitest da raiz (`npm run test:isolation`) achar os mesmos
@@ -63,6 +64,7 @@ export const AppDataSource = new DataSource({
     News,
     Banner,
     Popup,
+    Hero,
   ],
   migrations: [MIGRATIONS_GLOB],
   subscribers: [SUBSCRIBERS_GLOB],

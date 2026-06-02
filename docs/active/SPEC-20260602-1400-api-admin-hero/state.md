@@ -8,12 +8,12 @@
 
 ## TL;DR (sobrescrever ao fim de cada sessão)
 
-**Última atualização:** 2026-06-02 14:00
-**Onde tô:** Sessão 1 — arquivos gerados, aguardando validação do dev e Docker para testar
-**Próximo passo:** Dev valida main.md, instala `zod` no workspace portal, roda migration SQL, implementa `getAdminSession` real quando auth SPEC estiver ativa
-**Última decisão:** UPSERT via `onConflictDoUpdate` — evita lógica de "existe/não existe" no cliente
-**Bloqueio atual:** `getAdminSession` retorna null (stub) até SPEC de auth — endpoints retornam 401 por enquanto
-**Se retomar, ler:** entrada [ativação] abaixo + seção "Bloqueios ativos"
+**Última atualização:** 2026-06-02 13:40
+**Onde tô:** SPEC RE-ESCOPADA (Next/Drizzle → Express+TypeORM) e desarquivada (`archive/` → `active/`). Código Drizzle da sessão 1 nunca foi commitado/aplicável. Começando a implementação real no backend.
+**Próximo passo:** entity `Hero` (`tb_hero`, unique `tenant_id`) + migration + DTO manual + repo (upsert) + service (defaults no GET) + controller + routes (`requireAuth`) + wiring.
+**Última decisão:** singleton por tenant via upsert; `overlay_opacity` numeric(4,2); `requireAuth` real (não stub); sem Zod (DTO manual, padrão do repo).
+**Bloqueio atual:** nenhum (o stub de auth do desenho antigo não se aplica — backend tem `requireAuth` real).
+**Se retomar, ler:** entrada `[MARCO] [decisão] re-escopo` de 2026-06-02 13:40 + Status snapshot.
 
 ---
 
@@ -23,17 +23,16 @@
 
 | # | Descrição | Status | Atualizado | Commit |
 |---|-----------|--------|-----------|--------|
-| 1 | Criar `lib/validators/hero.ts` | concluído | 2026-06-02 14:00 | — |
-| 2 | Criar `app/api/admin/hero/route.ts` | concluído | 2026-06-02 14:00 | — |
-| 3 | Criar `lib/db/schema.ts` (tabela tenant_hero) | concluído | 2026-06-02 14:00 | — |
-| 4 | Criar `lib/db/index.ts` (singleton db) | concluído | 2026-06-02 14:00 | — |
-| 5 | Criar `lib/auth/session.ts` (stub) | concluído | 2026-06-02 14:00 | — |
-| 6 | Criar migration SQL | concluído | 2026-06-02 14:00 | — |
-| 7 | Instalar `zod` no workspace portal | pendente | 2026-06-02 14:00 | — |
-| 8 | Rodar migration no banco | pendente | 2026-06-02 14:00 | — |
-| 9 | Implementar `getAdminSession` real | pendente | 2026-06-02 14:00 | — |
-| 10 | Validar critérios de aceite manualmente | pendente | 2026-06-02 14:00 | — |
-| 11 | Atualizar features tocadas | pendente | 2026-06-02 14:00 | — |
+| 0 | Sessão 1 (DESCARTADA): scaffolds Next/Drizzle, nunca commitados/aplicáveis | descartado | 2026-06-02 13:40 | — |
+| 1 | Re-escopo (Next/Drizzle → Express+TypeORM) + desarquivar | concluído | 2026-06-02 13:40 | — |
+| 2 | Entity `Hero` + migration + registro em database.ts | pendente | 2026-06-02 13:40 | — |
+| 3 | DTO manual (`parseHeroInput`/`validateHeroInput` + `HERO_DEFAULTS`) | pendente | 2026-06-02 13:40 | — |
+| 4 | Repository (upsert singleton por tenant) | pendente | 2026-06-02 13:40 | — |
+| 5 | Service (GET defaults, PUT upsert, cache) + controller + routes (`requireAuth`) | pendente | 2026-06-02 13:40 | — |
+| 6 | Wiring server.ts/app.ts + mock-deps | pendente | 2026-06-02 13:40 | — |
+| 7 | Testes backend | pendente | 2026-06-02 13:40 | — |
+| 8 | Remover features-fantasma + atualizar editorial-content | pendente | 2026-06-02 13:40 | — |
+| 9 | Concluir e arquivar (§5.3) | pendente | 2026-06-02 13:40 | — |
 
 ### Próximos passos
 
@@ -100,3 +99,16 @@ Float64 não representa 0.4 exatamente. NUMERIC(4,2) garante precisão sem jitte
 ## 2026-06-02 14:00 — [nota] getAdminSession é stub
 
 Auth real (JWT no portal) depende de SPEC futura. O stub retorna `null` — endpoints respondem 401. Interface `AdminSession` já definida com os campos corretos para quando a implementação real chegar: `user_id`, `tenant_id`, `role`.
+
+## 2026-06-02 13:40 — [MARCO] [decisão] Re-escopo: Next.js+Drizzle → Express+TypeORM
+
+Ao retomar, constatou-se que esta SPEC estava em `archive/` **indevidamente**: `main.md` com `Status: active`, 0 critérios marcados, e **nenhum código commitado** (a sessão 1 alegava 6 arquivos gerados, mas o commit `a77c072` da branch só adicionou docs — 5 .md, zero código). Além disso, todo o desenho (`portal/src/lib/db` Drizzle, `app/api/admin/hero/route.ts` no Next, stub de `getAdminSession`) é da arquitetura **descartada** no re-escopo geral do projeto (Next/Drizzle-no-portal → Express+TypeORM-no-backend).
+
+Decisão do usuário (2026-06-02 13:40): **desarquivar e re-escopar a própria SPEC** (não criar nova), implementando de verdade no backend Express. Mudanças vs desenho antigo:
+- **Local**: backend Express + TypeORM (não rotas Next no portal).
+- **Persistência**: entity `Hero`/`tb_hero` com TypeORM (não schema Drizzle); upsert via lookup+save no repository (não `onConflictDoUpdate`).
+- **Validação**: DTO manual `validateHeroInput` (não Zod — alinhado com a decisão "sem Zod" da feature [[editorial-content]]).
+- **Auth**: `requireAuth` **real** (o backend já tem; cai o stub `getAdminSession` e o bloqueio de 401-sempre).
+- **Feature**: passa de `admin-content-api`/`portal-home` (fantasmas Next/Drizzle) para [[editorial-content]] (onde banners/popup vivem). As 2 features-fantasma serão removidas (descreviam código inexistente).
+
+Pasta movida `archive/` → `active/` (corrige a invariante R.2 / R.5 — era arquivamento por engano). Campos de contrato preservados: conjunto de campos do hero e regras de validação (title/subtitle/bg/cta/overlay) seguem iguais; só muda a stack.

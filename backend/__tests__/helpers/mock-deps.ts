@@ -10,6 +10,7 @@ import type { PromotionController } from '../../src/controllers/promotion.contro
 import type { NewsController } from '../../src/controllers/news.controller';
 import type { BannerController } from '../../src/controllers/banner.controller';
 import type { PopupController } from '../../src/controllers/popup.controller';
+import type { HeroController } from '../../src/controllers/hero.controller';
 import type { CronController } from '../../src/controllers/cron.controller';
 import type { PublicPromotionController } from '../../src/controllers/public-promotion.controller';
 import type { StoreCategoryController } from '../../src/controllers/store-category.controller';
@@ -163,6 +164,16 @@ export function makeStubPopupController(): PopupController {
   } as unknown as PopupController;
 }
 
+export function makeStubHeroController(): HeroController {
+  const notImplemented = async (_req: Request, res: Response): Promise<void> => {
+    res.status(501).json({ error: 'not_implemented_in_test' });
+  };
+  return {
+    getHero: notImplemented,
+    putHero: notImplemented,
+  } as unknown as HeroController;
+}
+
 export function makeStubCronController(): CronController {
   const notImplemented = async (_req: Request, res: Response): Promise<void> => {
     res.status(501).json({ error: 'not_implemented_in_test' });
@@ -224,6 +235,7 @@ export function makeAppDeps(overrides: Partial<AppDeps> = {}): AppDeps {
     newsController: makeStubNewsController(),
     bannerController: makeStubBannerController(),
     popupController: makeStubPopupController(),
+    heroController: makeStubHeroController(),
     cronController: makeStubCronController(),
     publicPromotionController: makeStubPublicPromotionController(),
     storeCategoryController: undefined as StoreCategoryController | undefined,

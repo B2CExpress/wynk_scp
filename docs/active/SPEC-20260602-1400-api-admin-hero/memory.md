@@ -8,12 +8,12 @@
 
 ## TL;DR (sobrescrever ao fim de cada sessão)
 
-**Última atualização:** 2026-06-02 14:00 (sessão #1)
-**Onde tô:** Todos os arquivos de código gerados. SPEC ativa mas aguardando validação do dev no main.md e testes manuais após Docker disponível.
-**Próximo passo:** `npm install zod -w portal` → rodar migration SQL → testar os 4 cenários do critério de aceite → implementar `getAdminSession` real
-**Última decisão:** UPSERT via `onConflictDoUpdate` + GET com defaults (nunca 404)
-**Bloqueio atual:** `getAdminSession` stub retorna null → todos os endpoints retornam 401 até auth SPEC
-**Se retomar, ler:** seção "Bloqueios ativos" do state.md + "Onde parei exatamente" abaixo
+**Última atualização:** 2026-06-02 13:40 (sessão #2 — re-escopo)
+**Onde tô:** SPEC re-escopada (Next/Drizzle → Express+TypeORM) e desarquivada. Os scaffolds Drizzle da sessão 1 são descartados (nunca commitados). Implementação real no backend começando.
+**Próximo passo:** entity `Hero` (`tb_hero`, unique `tenant_id`) + migration + DTO manual + repo (upsert) + service (defaults no GET) + controller + routes (`requireAuth`) + wiring + testes.
+**Última decisão:** re-escopo pro backend Express (igual popup/banner); singleton por tenant via upsert; `requireAuth` real; sem Zod (DTO manual).
+**Bloqueio atual:** nenhum.
+**Se retomar, ler:** `[MARCO] [decisão] re-escopo` (2026-06-02 13:40) no state.md.
 
 ---
 

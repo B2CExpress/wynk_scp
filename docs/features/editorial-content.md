@@ -59,7 +59,7 @@
 ### Em execução (só em branches — não aparece em main)
 | ID | Título | Branch |
 |---|---|---|
-| _(nenhuma)_ | | |
+| SPEC-20260602-1400 | API admin — hero principal da home (re-escopada Next/Drizzle → Express+TypeORM) | SCU-59-API-admin-hero-principal-da-home |
 
 ## Estado atual
 
