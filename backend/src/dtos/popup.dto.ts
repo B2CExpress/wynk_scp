@@ -1,57 +1,20 @@
 import { sanitizeRichTextHtml } from '../lib/sanitize';
 
-export interface CreatePopupInput {
-  title?: string;
-  imageUrl?: string;
-  htmlContent?: string;
-  linkUrl?: string;
-  showAfter_seconds?: number;
-  showOnlyOnce?: boolean;
-  showOnPages?: string[];
-  startsAt?: Date;
-  endsAt?: Date;
+export interface PopupDTO {
+  title: string;
+  image_url: string | null;
+  html_content: string | null;
+  link_url?: string;
+  show_after_seconds: number;
+  show_only_once: boolean;
+  show_on_pages: 'home' | 'all';
+  starts_at: string;
+  ends_at: string;
 }
-
-export interface UpdatePopupInput {
-  title?: string;
-  imageUrl?: string;
-  htmlContent?: string;
-  linkUrl?: string;
-  showAfter_seconds?: number;
-  showOnlyOnce?: boolean;
-  showOnPages?: string[];
-  startsAt?: Date;
-  endsAt?: Date;
-}
-
-export interface DeletePopupInput {}
-export interface ActivatePopupInput {}
-export interface DeactivatePopupInput {}
 
 export interface PopupValidationError {
   field: string;
   message: string;
-}
-
-export function isValidISO8601(value: string): boolean {
-  const iso8601Regex = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}([+-]\d{2}:\d{2}|Z)$/;
-  return iso8601Regex.test(value);
-}
-
-export function parseISO8601(value: string): Date | null {
-  if (!isValidISO8601(value)) {
-    return null;
-  }
-  const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? null : date;
-}
-
-function sanitizeText(text: string, maxLength?: number): string {
-  let sanitized = text.trim();
-  if (maxLength && sanitized.length > maxLength) {
-    sanitized = sanitized.substring(0, maxLength);
-  }
-  return sanitized;
 }
 
 function isValidUrl(url: string): boolean {
@@ -63,102 +26,143 @@ function isValidUrl(url: string): boolean {
   }
 }
 
-export function validatePopupInput(input: CreatePopupInput | UpdatePopupInput): PopupValidationError[] {
+function isValidISO8601(value: string): boolean {
+  const iso8601Regex = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}([+-]\d{2}:\d{2}|Z)$/;
+  if (!iso8601Regex.test(value)) return false;
+  const d = new Date(value);
+  return !isNaN(d.getTime());
+}
+
+export function parsePopupInput(input: Record<string, any>): Partial<PopupDTO> {
+  const output: Partial<PopupDTO> = {};
+
+  if (typeof input.title === 'string') output.title = input.title.trim();
+
+  if (input.image_url === null) {
+    output.image_url = null;
+  } else if (typeof input.image_url === 'string') {
+    output.image_url = input.image_url.trim();
+  }
+
+  if (input.html_content === null) {
+    output.html_content = null;
+  } else if (typeof input.html_content === 'string') {
+    output.html_content = sanitizeRichTextHtml(input.html_content.trim()).substring(0, 5000);
+  }
+
+  if (typeof input.link_url === 'string') output.link_url = input.link_url.trim();
+
+  if (input.show_after_seconds === undefined || input.show_after_seconds === null) {
+    output.show_after_seconds = 3;
+  } else {
+    output.show_after_seconds = Number(input.show_after_seconds);
+  }
+
+  if (input.show_only_once === undefined || input.show_only_once === null) {
+    output.show_only_once = true;
+  } else {
+    output.show_only_once = String(input.show_only_once) === 'true';
+  }
+
+  if (input.show_on_pages === undefined || input.show_on_pages === null) {
+    output.show_on_pages = 'home';
+  } else if (input.show_on_pages === 'home' || input.show_on_pages === 'all') {
+    output.show_on_pages = input.show_on_pages;
+  }
+
+  if (typeof input.starts_at === 'string') output.starts_at = input.starts_at.trim();
+  if (typeof input.ends_at === 'string') output.ends_at = input.ends_at.trim();
+
+  return output;
+}
+
+export function validatePopupInput(
+  input: Partial<PopupDTO>,
+  isUpdate = false,
+): PopupValidationError[] {
   const errors: PopupValidationError[] = [];
 
-  if (input.title !== undefined) {
-    if (typeof input.title !== 'string' || input.title.trim().length === 0) {
-      errors.push({ field: 'title', message: 'Title must be a non-empty string' });
-    } else if (input.title.length > 255) {
-      errors.push({ field: 'title', message: 'Title must not exceed 255 characters' });
+  if (!isUpdate || input.title !== undefined) {
+    if (typeof input.title !== 'string' || input.title.length < 2 || input.title.length > 200) {
+      errors.push({ field: 'title', message: 'Title must be between 2 and 200 characters long' });
     }
   }
 
-  if (input.imageUrl !== undefined) {
-    if (typeof input.imageUrl !== 'string' || !isValidUrl(input.imageUrl)) {
-      errors.push({ field: 'imageUrl', message: 'Image URL must be a valid URL string' });
+  if (input.image_url !== undefined && input.image_url !== null) {
+    if (!isValidUrl(input.image_url)) {
+      errors.push({ field: 'image_url', message: 'Image URL must be a valid URL string' });
     }
   }
 
-  if (input.htmlContent !== undefined) {
-    if (typeof input.htmlContent !== 'string' || input.htmlContent.trim().length === 0) {
-      errors.push({ field: 'htmlContent', message: 'HTML content must be a non-empty string' });
-    } else if (input.htmlContent.length > 50000) {
-      errors.push({ field: 'htmlContent', message: 'HTML content must not exceed 50000 characters' });
+  if (input.html_content !== undefined && input.html_content !== null) {
+    if (input.html_content.length > 5000) {
+      errors.push({
+        field: 'html_content',
+        message: 'HTML content must not exceed 5000 characters',
+      });
     }
   }
 
-  if (input.linkUrl !== undefined) {
-    if (typeof input.linkUrl !== 'string' || !isValidUrl(input.linkUrl)) {
-      errors.push({ field: 'linkUrl', message: 'Link URL must be a valid URL string' });
+  const hasImg =
+    input.image_url !== undefined && input.image_url !== null && input.image_url !== '';
+  const hasHtml =
+    input.html_content !== undefined && input.html_content !== null && input.html_content !== '';
+  if (!hasImg && !hasHtml) {
+    errors.push({
+      field: 'image_url',
+      message: 'At least one field (image_url or html_content) must be provided',
+    });
+  }
+
+  if (input.show_after_seconds !== undefined) {
+    if (
+      !Number.isInteger(input.show_after_seconds) ||
+      input.show_after_seconds < 0 ||
+      input.show_after_seconds > 60
+    ) {
+      errors.push({
+        field: 'show_after_seconds',
+        message: 'Show after seconds must be an integer between 0 and 60',
+      });
     }
   }
 
-  if (input.showAfter_seconds !== undefined) {
-    if (typeof input.showAfter_seconds !== 'number' || input.showAfter_seconds < 0) {
-      errors.push({ field: 'showAfter_seconds', message: 'Show after seconds must be a positive number' });
+  if (input.show_on_pages !== undefined) {
+    if (input.show_on_pages !== 'home' && input.show_on_pages !== 'all') {
+      errors.push({
+        field: 'show_on_pages',
+        message: 'Show on pages must be either "home" or "all"',
+      });
     }
   }
 
-  if (input.showOnlyOnce !== undefined) {
-    if (typeof input.showOnlyOnce !== 'boolean') {
-      errors.push({ field: 'showOnlyOnce', message: 'Show only once must be a boolean value' });
+  let validStarts = false;
+  let validEnds = false;
+
+  if (!isUpdate || input.starts_at !== undefined) {
+    if (!input.starts_at || !isValidISO8601(input.starts_at)) {
+      errors.push({ field: 'starts_at', message: 'Starts at must be a valid ISO 8601 string' });
+    } else {
+      validStarts = true;
     }
   }
 
-  if (input.showOnPages !== undefined) {
-    if (!Array.isArray(input.showOnPages) || input.showOnPages.some(p => typeof p !== 'string' || p.trim().length === 0)) {
-      errors.push({ field: 'showOnPages', message: 'Show on pages must be an array of non-empty strings' });
+  if (!isUpdate || input.ends_at !== undefined) {
+    if (!input.ends_at || !isValidISO8601(input.ends_at)) {
+      errors.push({ field: 'ends_at', message: 'Ends at must be a valid ISO 8601 string' });
+    } else {
+      validEnds = true;
     }
   }
 
-  if (input.startsAt !== undefined) {
-    if (!(input.startsAt instanceof Date) || Number.isNaN(input.startsAt.getTime())) {
-      errors.push({ field: 'startsAt', message: 'Starts at must be a valid Date object' });
-    }
-  }
-
-  if (input.endsAt !== undefined) {
-    if (!(input.endsAt instanceof Date) || Number.isNaN(input.endsAt.getTime())) {
-      errors.push({ field: 'endsAt', message: 'Ends at must be a valid Date object' });
+  if (validStarts && validEnds && input.starts_at && input.ends_at) {
+    if (new Date(input.ends_at) <= new Date(input.starts_at)) {
+      errors.push({
+        field: 'ends_at',
+        message: 'Ends at date must be strictly greater than starts at date',
+      });
     }
   }
 
   return errors;
-}
-
-export function parsePopupInput(input: Record<string, unknown>): CreatePopupInput {
-  return {
-    title: typeof input.title === 'string' ? sanitizeText(input.title, 255) : undefined,
-    imageUrl: typeof input.imageUrl === 'string' ? input.imageUrl.trim() : undefined,
-    
-    htmlContent:
-      typeof input.htmlContent === 'string'
-        ? sanitizeRichTextHtml(input.htmlContent.trim()).substring(0, 50000)
-        : undefined,
-        
-    linkUrl: typeof input.linkUrl === 'string' ? input.linkUrl.trim() : undefined,
-    
-    showAfter_seconds: 
-      typeof input.showAfter_seconds === 'number' 
-        ? input.showAfter_seconds 
-        : typeof input.showAfter_seconds === 'string' 
-          ? parseInt(input.showAfter_seconds, 10) 
-          : undefined,
-          
-    showOnlyOnce: 
-      typeof input.showOnlyOnce === 'boolean' 
-        ? input.showOnlyOnce 
-        : typeof input.showOnlyOnce === 'string' 
-          ? input.showOnlyOnce === 'true' 
-          : undefined,
-          
-    showOnPages: 
-      Array.isArray(input.showOnPages) 
-        ? input.showOnPages.map(p => String(p).trim()).filter(p => p.length > 0) 
-        : undefined,
-        
-    startsAt: typeof input.startsAt === 'string' ? (parseISO8601(input.startsAt) ?? undefined) : undefined,
-    endsAt: typeof input.endsAt === 'string' ? (parseISO8601(input.endsAt) ?? undefined) : undefined,
-  };
 }

@@ -32,6 +32,7 @@
 | SPEC-20260519-2010 | 2026-05-25 | _(commit pendente)_ | API Admin CRUD de Promoções (registra entity `Promotion` em `config/database.ts` e rota em `app.ts`; sem mudanças arquiteturais na feature) |
 | SPEC-20260522-1100 | 2026-05-25 | _(commit pendente)_ | API Admin CRUD de Notícias (registra entity `News` em `config/database.ts`, rotas em `app.ts`, e estende `jobs/publish-scheduled.ts` para cobrir `tb_news` cross-tenant; introduz convenção de variável de ambiente `CRON_SECRET` para auth de endpoints cron externos via header `X-Cron-Secret`) |
 | SPEC-20260526-1326 | 2026-05-26 | _(commit pendente)_ | Seed de conteúdo demo (`backend/scripts/seed-demo.ts` + npm script `seed:demo`) + scope creep: `setup.sh` passa a auto-instalar Docker Compose v2 quando ausente ou só v1 presente, e ganha flag opt-in `--reset` (`docker compose down -v`) |
+| SPEC-20260526-1900 | 2026-05-29 | `8e0df51` | API Admin Gerenciar Banners (registra entity `Banner` em `config/database.ts`, rota em `app.ts`, deps em `server.ts` + `mock-deps.ts`, e migration `1746844800000-CreateBannerTable.ts`; sem mudanças arquiteturais na feature) |
 
 ### Planejadas (future/)
 | ID | Título | Motivo |
@@ -54,7 +55,7 @@ Configuracao de Redis no backend:
 - `REDIS_HOST`/`REDIS_PORT` continuam aceitos como fallback de compatibilidade
 - `CACHE_TTL_TENANT_SECONDS` controla o TTL do cache de resolucao de tenant sem exigir deploy de codigo
 - `backend/src/config/redis.ts` usa singleton de `ioredis` e registra falhas de conexao no logger estruturado
-=======
+
 ### Onboarding e atalhos de dev (SPEC-20260513-0910)
 
 Onboarding tem porta de entrada única no `README.md` raiz: passo-a-passo de pré-requisitos (Node 22+, npm 10+, Git, Docker engine + Compose v2 OU v1, WSL2 no Windows), setup Linux/WSL2, comandos do dia-a-dia, estrutura do monorepo e troubleshooting com 10 gotchas conhecidos (formato *Sintoma → Causa → Fix*).

@@ -1,4 +1,4 @@
-import type { DataSource, Repository } from 'typeorm';
+import type { DataSource, Repository, EntityManager } from 'typeorm';
 import { Popup } from '../entities/Popup';
 import { withTenant } from '../utils/with-tenant';
 import { requireTenantContext } from '../middleware/tenant-context';
@@ -7,9 +7,20 @@ export class PopupRepository {
   private readonly dataSource: DataSource;
   private readonly popupRepo: Repository<Popup>;
 
-  constructor(dataSource: DataSource) {
+  constructor(dataSource: DataSource, entityManager?: EntityManager) {
     this.dataSource = dataSource;
-    this.popupRepo = dataSource.getRepository(Popup);
+    this.popupRepo = entityManager
+      ? entityManager.getRepository(Popup)
+      : dataSource.getRepository(Popup);
+  }
+
+  async runInTransaction(
+    callback: (txRepository: PopupRepository) => Promise<void>,
+  ): Promise<void> {
+    await this.dataSource.transaction(async (transactionalEntityManager) => {
+      const txRepository = new PopupRepository(this.dataSource, transactionalEntityManager);
+      await callback(txRepository);
+    });
   }
 
   async findByIdForCurrentTenant(id: string): Promise<Popup | null> {
@@ -18,14 +29,20 @@ export class PopupRepository {
       .getOne();
   }
 
+  async findAllForCurrentTenant(): Promise<Popup[]> {
+    return withTenant(this.popupRepo.createQueryBuilder('popup'))
+      .orderBy('popup.starts_at', 'DESC')
+      .getMany();
+  }
+
   async createForCurrentTenant(input: {
     title: string;
-    imageUrl: string;
-    htmlContent: string;
-    linkUrl: string;
+    imageUrl: string | null;
+    htmlContent: string | null;
+    linkUrl?: string;
     showAfter_seconds: number;
     showOnlyOnce: boolean;
-    showOnPages: string[];
+    showOnPages: 'home' | 'all';
     startsAt: Date;
     endsAt: Date;
   }): Promise<Popup> {
@@ -52,15 +69,14 @@ export class PopupRepository {
     id: string,
     input: {
       title?: string;
-      imageUrl?: string;
-      htmlContent?: string;
+      imageUrl?: string | null;
+      htmlContent?: string | null;
       linkUrl?: string;
       showAfter_seconds?: number;
       showOnlyOnce?: boolean;
-      showOnPages?: string[];
+      showOnPages?: 'home' | 'all';
       startsAt?: Date;
       endsAt?: Date;
-      isActive?: boolean;
     },
   ): Promise<Popup | null> {
     const popup = await this.findByIdForCurrentTenant(id);
@@ -77,7 +93,6 @@ export class PopupRepository {
     if (input.showOnPages !== undefined) popup.show_on_pages = input.showOnPages;
     if (input.startsAt !== undefined) popup.starts_at = input.startsAt;
     if (input.endsAt !== undefined) popup.ends_at = input.endsAt;
-    if (input.isActive !== undefined) popup.isActive = input.isActive;
 
     return this.popupRepo.save(popup);
   }
@@ -92,41 +107,21 @@ export class PopupRepository {
     return true;
   }
 
-  async checkActiveOverlapForCurrentTenant(
-    showOnPages: string[],
-    startsAt: Date,
-    endsAt: Date,
-    ignoreId?: string,
-  ): Promise<boolean> {
-    const query = withTenant(this.popupRepo.createQueryBuilder('popup'))
-      .andWhere('popup.isActive = :isActive', { isActive: true })
-      .andWhere('popup.starts_at < :endsAt', { endsAt })
-      .andWhere('popup.ends_at > :startsAt', { startsAt })
-      .andWhere('popup.show_on_pages && :showOnPages', { showOnPages });
-
-    if (ignoreId) {
-      query.andWhere('popup.id != :ignoreId', { ignoreId });
-    }
-
-    const count = await query.getCount();
-    return count > 0;
+  async deactivateAllForCurrentTenant(): Promise<void> {
+    const { tenantId } = requireTenantContext();
+    await this.popupRepo.update({ tenantId }, { isActive: false });
   }
 
-  async findAllPaginatedForCurrentTenant(
-    page: number = 1,
-    pageSize: number = 20,
-  ): Promise<{ data: Popup[]; total: number; page: number; pageSize: number }> {
-    const query = withTenant(this.popupRepo.createQueryBuilder('popup'));
+  async updateStatusForCurrentTenant(id: string, isActive: boolean): Promise<void> {
+    const { tenantId } = requireTenantContext();
+    await this.popupRepo.update({ id, tenantId }, { isActive });
+  }
 
-    const total = await query.getCount();
-    const offset = (page - 1) * pageSize;
-
-    const data = await query
-      .orderBy('popup.starts_at', 'DESC')
-      .offset(offset)
-      .limit(pageSize)
-      .getMany();
-
-    return { data, total, page, pageSize };
+  async findActiveForCurrentTenant(now: Date): Promise<Popup | null> {
+    return withTenant(this.popupRepo.createQueryBuilder('popup'))
+      .andWhere('popup.isActive = :isActive', { isActive: true })
+      .andWhere('popup.starts_at <= :now', { now })
+      .andWhere('popup.ends_at >= :now', { now })
+      .getOne();
   }
 }

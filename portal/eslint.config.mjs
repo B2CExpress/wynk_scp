@@ -13,6 +13,16 @@ const eslintConfig = defineConfig([
     'build/**',
     'next-env.d.ts',
   ]),
+  // Permite argumentos/vars prefixados com `_` (ex.: `_host`, reservado para o
+  // contrato de troca dos mocks pela API real). Alinha com backend/eslint.config.js.
+  {
+    rules: {
+      '@typescript-eslint/no-unused-vars': [
+        'warn',
+        { argsIgnorePattern: '^_', varsIgnorePattern: '^_' },
+      ],
+    },
+  },
 ]);
 
 export default eslintConfig;
