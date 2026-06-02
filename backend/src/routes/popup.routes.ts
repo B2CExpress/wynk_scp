@@ -6,7 +6,7 @@ export function createPopupRoutes(controller: PopupController): Router {
   const router = Router();
 
   // Public Route (Client-facing)
-  router.get('/api/popups/active', (req, res) => controller.getPublicPopup(req, res));
+  router.get('/api/v1/popups/active', (req, res) => controller.getPublicPopup(req, res));
 
   // Admin Routes (Protected)
   router.get('/api/admin/popups', requireAuth, (req, res) => controller.listPopups(req, res));

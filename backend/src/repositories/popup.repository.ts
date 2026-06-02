@@ -25,13 +25,13 @@ export class PopupRepository {
 
   async findByIdForCurrentTenant(id: string): Promise<Popup | null> {
     return withTenant(this.popupRepo.createQueryBuilder('popup'))
-      .andWhere('popup.id = :id', { id })
+      .andWhere('popup.popup_id = :id', { id })
       .getOne();
   }
 
   async findAllForCurrentTenant(): Promise<Popup[]> {
     return withTenant(this.popupRepo.createQueryBuilder('popup'))
-      .orderBy('popup.starts_at', 'DESC')
+      .orderBy('popup.popup_starts_at', 'DESC')
       .getMany();
   }
 
@@ -39,8 +39,8 @@ export class PopupRepository {
     title: string;
     imageUrl: string | null;
     htmlContent: string | null;
-    linkUrl?: string;
-    showAfter_seconds: number;
+    linkUrl: string | null;
+    showAfterSeconds: number;
     showOnlyOnce: boolean;
     showOnPages: 'home' | 'all';
     startsAt: Date;
@@ -51,14 +51,14 @@ export class PopupRepository {
     const popup = this.popupRepo.create({
       tenantId,
       title: input.title,
-      image_url: input.imageUrl,
-      html_content: input.htmlContent,
-      link_url: input.linkUrl,
-      show_after_seconds: input.showAfter_seconds,
-      show_only_once: input.showOnlyOnce,
-      show_on_pages: input.showOnPages,
-      starts_at: input.startsAt,
-      ends_at: input.endsAt,
+      imageUrl: input.imageUrl,
+      htmlContent: input.htmlContent,
+      linkUrl: input.linkUrl,
+      showAfterSeconds: input.showAfterSeconds,
+      showOnlyOnce: input.showOnlyOnce,
+      showOnPages: input.showOnPages,
+      startsAt: input.startsAt,
+      endsAt: input.endsAt,
       isActive: false,
     });
 
@@ -71,8 +71,8 @@ export class PopupRepository {
       title?: string;
       imageUrl?: string | null;
       htmlContent?: string | null;
-      linkUrl?: string;
-      showAfter_seconds?: number;
+      linkUrl?: string | null;
+      showAfterSeconds?: number;
       showOnlyOnce?: boolean;
       showOnPages?: 'home' | 'all';
       startsAt?: Date;
@@ -85,14 +85,14 @@ export class PopupRepository {
     }
 
     if (input.title !== undefined) popup.title = input.title;
-    if (input.imageUrl !== undefined) popup.image_url = input.imageUrl;
-    if (input.htmlContent !== undefined) popup.html_content = input.htmlContent;
-    if (input.linkUrl !== undefined) popup.link_url = input.linkUrl;
-    if (input.showAfter_seconds !== undefined) popup.show_after_seconds = input.showAfter_seconds;
-    if (input.showOnlyOnce !== undefined) popup.show_only_once = input.showOnlyOnce;
-    if (input.showOnPages !== undefined) popup.show_on_pages = input.showOnPages;
-    if (input.startsAt !== undefined) popup.starts_at = input.startsAt;
-    if (input.endsAt !== undefined) popup.ends_at = input.endsAt;
+    if (input.imageUrl !== undefined) popup.imageUrl = input.imageUrl;
+    if (input.htmlContent !== undefined) popup.htmlContent = input.htmlContent;
+    if (input.linkUrl !== undefined) popup.linkUrl = input.linkUrl;
+    if (input.showAfterSeconds !== undefined) popup.showAfterSeconds = input.showAfterSeconds;
+    if (input.showOnlyOnce !== undefined) popup.showOnlyOnce = input.showOnlyOnce;
+    if (input.showOnPages !== undefined) popup.showOnPages = input.showOnPages;
+    if (input.startsAt !== undefined) popup.startsAt = input.startsAt;
+    if (input.endsAt !== undefined) popup.endsAt = input.endsAt;
 
     return this.popupRepo.save(popup);
   }
@@ -119,9 +119,9 @@ export class PopupRepository {
 
   async findActiveForCurrentTenant(now: Date): Promise<Popup | null> {
     return withTenant(this.popupRepo.createQueryBuilder('popup'))
-      .andWhere('popup.isActive = :isActive', { isActive: true })
-      .andWhere('popup.starts_at <= :now', { now })
-      .andWhere('popup.ends_at >= :now', { now })
+      .andWhere('popup.popup_is_active = :isActive', { isActive: true })
+      .andWhere('popup.popup_starts_at <= :now', { now })
+      .andWhere('popup.popup_ends_at >= :now', { now })
       .getOne();
   }
 }

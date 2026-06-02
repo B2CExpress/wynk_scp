@@ -4,6 +4,7 @@ import { headers } from 'next/headers';
 import { notFound } from 'next/navigation';
 import { resolveTenantByHost } from '../lib/tenant/resolve';
 import { loadTheme, flavorAssets } from '../lib/theme/load';
+import Popup from './_components/Popup';
 import './globals.css';
 
 /**
@@ -60,7 +61,10 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <link rel="stylesheet" href={fontHref} />
         <link rel="alternate" type="application/rss+xml" href="/rss/news.xml" />
       </head>
-      <body>{children}</body>
+      <body>
+        {children}
+        <Popup />
+      </body>
     </html>
   );
 }

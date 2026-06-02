@@ -50,7 +50,7 @@
 ### Em execução (só em branches — não aparece em main)
 | ID | Título | Branch |
 |---|---|---|
-| _(nenhuma)_ | | |
+| SPEC-20260602-1057 | Popup overlay admin com regras de exibição | feature/SQU-60/44-api-admin-popup-com-regras-de-exibicao |
 
 ## Estado atual
 

@@ -1,4 +1,5 @@
 import type Redis from 'ioredis';
+import type { Popup } from '../entities/Popup';
 import { PopupRepository } from '../repositories/popup.repository';
 import type { PopupDTO } from '../dtos/popup.dto';
 import { cached, invalidateByPattern } from '../utils/cache';
@@ -10,8 +11,8 @@ export interface PopupDetailResponse {
   title: string;
   imageUrl: string | null;
   htmlContent: string | null;
-  linkUrl?: string;
-  showAfter_seconds: number;
+  linkUrl: string | null;
+  showAfterSeconds: number;
   showOnlyOnce: boolean;
   showOnPages: 'home' | 'all';
   startsAt: Date;
@@ -25,37 +26,39 @@ export class PopupNotFoundError extends Error {
   }
 }
 
-export class PopupStartDateInPastError extends Error {
-  constructor() {
-    super('starts_at_too_far_in_past');
-  }
-}
-
 export class PopupEndDateMinorOrEqualStartDateError extends Error {
   constructor() {
     super('ends_before_or_at_start');
   }
 }
 
-function serializePopup(popup: any): PopupDetailResponse {
+function serializePopup(popup: Popup): PopupDetailResponse {
   return {
     id: popup.id,
     tenantId: popup.tenantId,
     title: popup.title,
-    imageUrl: popup.image_url,
-    htmlContent: popup.html_content,
-    linkUrl: popup.link_url,
-    showAfter_seconds: popup.show_after_seconds,
-    showOnlyOnce: popup.show_only_once,
-    showOnPages: popup.show_on_pages,
-    startsAt: popup.starts_at,
-    endsAt: popup.ends_at,
+    imageUrl: popup.imageUrl,
+    htmlContent: popup.htmlContent,
+    linkUrl: popup.linkUrl,
+    showAfterSeconds: popup.showAfterSeconds,
+    showOnlyOnce: popup.showOnlyOnce,
+    showOnPages: popup.showOnPages,
+    startsAt: popup.startsAt,
+    endsAt: popup.endsAt,
     isActive: popup.isActive,
   };
 }
 
-function buildCacheKey(tenantId: string, id: string): string {
+function detailCacheKey(tenantId: string, id: string): string {
   return `popup:detail:${tenantId}:${id}`;
+}
+
+function listCacheKey(tenantId: string): string {
+  return `popup:list:${tenantId}:all`;
+}
+
+function activeCacheKey(tenantId: string): string {
+  return `popup:active:${tenantId}`;
 }
 
 export class PopupService {
@@ -64,15 +67,33 @@ export class PopupService {
     private redis: Redis,
   ) {}
 
+  /**
+   * Invalida todas as caches do tenant afetadas por uma mutação. A chave
+   * `active` precisa cair em QUALQUER mutação (create/update/delete/
+   * activate/deactivate), senão o endpoint público serve popup obsoleto por
+   * até 5 min após uma troca de ativo.
+   */
+  private async invalidateCaches(tenantId: string, id?: string): Promise<void> {
+    await this.redis.del(activeCacheKey(tenantId));
+    await invalidateByPattern(this.redis, `popup:list:${tenantId}:*`);
+    if (id) {
+      await this.redis.del(detailCacheKey(tenantId, id));
+    }
+  }
+
   async getByIdForCurrentTenant(id: string): Promise<PopupDetailResponse> {
     const { tenantId } = requireTenantContext();
-    const cacheKey = buildCacheKey(tenantId, id);
 
-    const result = await cached<PopupDetailResponse>(this.redis, cacheKey, 3600, async () => {
-      const popup = await this.popupRepo.findByIdForCurrentTenant(id);
-      if (!popup) throw new PopupNotFoundError();
-      return serializePopup(popup);
-    });
+    const result = await cached<PopupDetailResponse>(
+      this.redis,
+      detailCacheKey(tenantId, id),
+      3600,
+      async () => {
+        const popup = await this.popupRepo.findByIdForCurrentTenant(id);
+        if (!popup) throw new PopupNotFoundError();
+        return serializePopup(popup);
+      },
+    );
 
     return result.data;
   }
@@ -85,7 +106,6 @@ export class PopupService {
     const startsAt = new Date(input.starts_at);
     const endsAt = new Date(input.ends_at);
 
-    if (startsAt < new Date()) throw new PopupStartDateInPastError();
     if (endsAt <= startsAt) throw new PopupEndDateMinorOrEqualStartDateError();
 
     const { tenantId } = requireTenantContext();
@@ -94,15 +114,15 @@ export class PopupService {
       title: input.title,
       imageUrl: input.image_url ?? null,
       htmlContent: input.html_content ?? null,
-      linkUrl: input.link_url,
-      showAfter_seconds: input.show_after_seconds ?? 3,
+      linkUrl: input.link_url ?? null,
+      showAfterSeconds: input.show_after_seconds ?? 3,
       showOnlyOnce: input.show_only_once ?? true,
       showOnPages: input.show_on_pages,
       startsAt,
       endsAt,
     });
 
-    await invalidateByPattern(this.redis, `popup:list:${tenantId}:*`);
+    await this.invalidateCaches(tenantId);
     return serializePopup(newPopup);
   }
 
@@ -112,11 +132,9 @@ export class PopupService {
     const popup = await this.popupRepo.findByIdForCurrentTenant(id);
     if (!popup) throw new PopupNotFoundError();
 
-    const mergedStartsAt = input.starts_at ? new Date(input.starts_at) : popup.starts_at;
-    const mergedEndsAt = input.ends_at ? new Date(input.ends_at) : popup.ends_at;
+    const mergedStartsAt = input.starts_at ? new Date(input.starts_at) : popup.startsAt;
+    const mergedEndsAt = input.ends_at ? new Date(input.ends_at) : popup.endsAt;
 
-    if (input.starts_at && new Date(input.starts_at) < new Date())
-      throw new PopupStartDateInPastError();
     if (mergedEndsAt <= mergedStartsAt) throw new PopupEndDateMinorOrEqualStartDateError();
 
     const updated = await this.popupRepo.updateForCurrentTenant(id, {
@@ -124,7 +142,7 @@ export class PopupService {
       imageUrl: input.image_url,
       htmlContent: input.html_content,
       linkUrl: input.link_url,
-      showAfter_seconds: input.show_after_seconds,
+      showAfterSeconds: input.show_after_seconds,
       showOnlyOnce: input.show_only_once,
       showOnPages: input.show_on_pages,
       startsAt: input.starts_at ? new Date(input.starts_at) : undefined,
@@ -133,8 +151,7 @@ export class PopupService {
 
     if (!updated) throw new PopupNotFoundError();
 
-    await this.redis.del(buildCacheKey(tenantId, id));
-    await invalidateByPattern(this.redis, `popup:list:${tenantId}:*`);
+    await this.invalidateCaches(tenantId, id);
 
     return serializePopup(updated);
   }
@@ -147,8 +164,7 @@ export class PopupService {
 
     await this.popupRepo.deleteForCurrentTenant(id);
 
-    await this.redis.del(buildCacheKey(tenantId, id));
-    await invalidateByPattern(this.redis, `popup:list:${tenantId}:*`);
+    await this.invalidateCaches(tenantId, id);
   }
 
   async activateForCurrentTenant(id: string): Promise<PopupDetailResponse> {
@@ -165,8 +181,7 @@ export class PopupService {
     const activatedPopup = await this.popupRepo.findByIdForCurrentTenant(id);
     if (!activatedPopup) throw new PopupNotFoundError();
 
-    await this.redis.del(buildCacheKey(tenantId, id));
-    await invalidateByPattern(this.redis, `popup:list:${tenantId}:*`);
+    await this.invalidateCaches(tenantId, id);
 
     return serializePopup(activatedPopup);
   }
@@ -182,33 +197,40 @@ export class PopupService {
     const deactivatedPopup = await this.popupRepo.findByIdForCurrentTenant(id);
     if (!deactivatedPopup) throw new PopupNotFoundError();
 
-    await this.redis.del(buildCacheKey(tenantId, id));
-    await invalidateByPattern(this.redis, `popup:list:${tenantId}:*`);
+    await this.invalidateCaches(tenantId, id);
 
     return serializePopup(deactivatedPopup);
   }
 
   async listForCurrentTenant(): Promise<PopupDetailResponse[]> {
     const { tenantId } = requireTenantContext();
-    const cacheKey = `popup:list:${tenantId}:all`;
 
-    const result = await cached<PopupDetailResponse[]>(this.redis, cacheKey, 300, async () => {
-      const data = await this.popupRepo.findAllForCurrentTenant();
-      return data.map(serializePopup);
-    });
+    const result = await cached<PopupDetailResponse[]>(
+      this.redis,
+      listCacheKey(tenantId),
+      300,
+      async () => {
+        const data = await this.popupRepo.findAllForCurrentTenant();
+        return data.map(serializePopup);
+      },
+    );
 
     return result.data;
   }
 
   async getActivePopupForClient(): Promise<PopupDetailResponse | null> {
     const { tenantId } = requireTenantContext();
-    const cacheKey = `popup:active:${tenantId}`;
 
-    const result = await cached<PopupDetailResponse | null>(this.redis, cacheKey, 300, async () => {
-      const popup = await this.popupRepo.findActiveForCurrentTenant(new Date());
-      if (!popup) return null;
-      return serializePopup(popup);
-    });
+    const result = await cached<PopupDetailResponse | null>(
+      this.redis,
+      activeCacheKey(tenantId),
+      300,
+      async () => {
+        const popup = await this.popupRepo.findActiveForCurrentTenant(new Date());
+        if (!popup) return null;
+        return serializePopup(popup);
+      },
+    );
 
     return result.data;
   }

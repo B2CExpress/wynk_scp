@@ -1,11 +1,7 @@
 import type { Request, Response } from 'express';
 import type { PopupService } from '../services/popup.service';
 import { parsePopupInput, validatePopupInput } from '../dtos/popup.dto';
-import {
-  PopupNotFoundError,
-  PopupStartDateInPastError,
-  PopupEndDateMinorOrEqualStartDateError,
-} from '../services/popup.service';
+import { PopupNotFoundError, PopupEndDateMinorOrEqualStartDateError } from '../services/popup.service';
 
 export class PopupController {
   constructor(private readonly popupService: PopupService) {}
@@ -50,9 +46,6 @@ export class PopupController {
       const popup = await this.popupService.createForCurrentTenant(input);
       return res.status(201).json(popup);
     } catch (error) {
-      if (error instanceof PopupStartDateInPastError) {
-        return res.status(400).json({ error: 'starts_at_too_far_in_past' });
-      }
       if (error instanceof PopupEndDateMinorOrEqualStartDateError) {
         return res.status(400).json({ error: 'ends_before_or_at_start' });
       }
@@ -78,9 +71,6 @@ export class PopupController {
     } catch (error) {
       if (error instanceof PopupNotFoundError) {
         return res.status(404).json({ error: 'popup_not_found' });
-      }
-      if (error instanceof PopupStartDateInPastError) {
-        return res.status(400).json({ error: 'starts_at_too_far_in_past' });
       }
       if (error instanceof PopupEndDateMinorOrEqualStartDateError) {
         return res.status(400).json({ error: 'ends_before_or_at_start' });

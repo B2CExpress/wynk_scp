@@ -33,7 +33,7 @@ function isValidISO8601(value: string): boolean {
   return !isNaN(d.getTime());
 }
 
-export function parsePopupInput(input: Record<string, any>): Partial<PopupDTO> {
+export function parsePopupInput(input: Record<string, unknown>): Partial<PopupDTO> {
   const output: Partial<PopupDTO> = {};
 
   if (typeof input.title === 'string') output.title = input.title.trim();
