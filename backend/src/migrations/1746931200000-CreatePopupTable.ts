@@ -90,12 +90,7 @@ export class CreatePopupTable1746931200000 implements MigrationInterface {
         indices: [
           new TableIndex({
             name: 'ix_tb_popup_tenant_active_schedule',
-            columnNames: [
-              'tenant_id',
-              'popup_is_active',
-              'popup_starts_at',
-              'popup_ends_at',
-            ],
+            columnNames: ['tenant_id', 'popup_is_active', 'popup_starts_at', 'popup_ends_at'],
           }),
         ],
       }),

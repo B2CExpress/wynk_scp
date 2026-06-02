@@ -1,7 +1,10 @@
 import type { Request, Response } from 'express';
 import type { PopupService } from '../services/popup.service';
 import { parsePopupInput, validatePopupInput } from '../dtos/popup.dto';
-import { PopupNotFoundError, PopupEndDateMinorOrEqualStartDateError } from '../services/popup.service';
+import {
+  PopupNotFoundError,
+  PopupEndDateMinorOrEqualStartDateError,
+} from '../services/popup.service';
 
 export class PopupController {
   constructor(private readonly popupService: PopupService) {}
