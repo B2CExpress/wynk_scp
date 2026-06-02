@@ -1,10 +1,10 @@
 # SPEC-20260602-1057: Popup overlay admin com regras de exibição
 
-**Status:** active
+**Status:** done
 **Criada:** 2026-06-02 10:57
 **Ativada:** 2026-06-02 10:57
-**Concluída:** —
-**Commit final:** —
+**Concluída:** 2026-06-02 12:46
+**Commit final:** `3317420`
 **Keywords:** popup, overlay, modal, campanha, ativacao-exclusiva, agendamento, cookie, multitenant, editorial
 **Features:** editorial-content
 **Branch:** feature/SQU-60/44-api-admin-popup-com-regras-de-exibicao
@@ -52,17 +52,17 @@ Modelo de referência: **banners** (mesma família, mesma feature) — `entities
 
 ## Critério de aceite
 
-- [ ] Entity `Popup` criada e registrada em `config/database.ts`; backend compila (`typecheck -w backend` verde)
-- [ ] Migration criando `tb_popup` no schema `scp` (`migration:run` aplica limpo)
-- [ ] Rotas plugadas em `server.ts`/`app.ts`; endpoints admin sobem com `requireAuth`
-- [ ] Ativação mutuamente exclusiva funcionando em transação (criar 2, ativar A, ativar B → só B ativo)
-- [ ] Rota pública `GET /api/v1/popups/active` retorna popup ativo respeitando janela `starts_at`/`ends_at` (ou null)
-- [ ] Validação `starts_at` no passado removida; agendamento retroativo aceito
-- [ ] `html_content` sanitizado em POST/PUT
-- [ ] Testes backend cobrindo validação, ativação exclusiva, 404s e endpoint público (verdes)
-- [ ] Portal builda: `popup.module.css` criado e `<Popup>` montado no `layout.tsx`
-- [ ] Client respeita `show_on_pages` (pathname) e usa cookie 30d para `show_only_once` (fechar + clique no link)
-- [ ] **Features tocadas (editorial-content) atualizadas** com timestamp e referência a esta SPEC
-- [ ] Decisões da feature revisadas: obsoletas marcadas, ativas confirmadas
-- [ ] `state.md` com entrada `[conclusão]`
-- [ ] `memory.md` com TL;DR final atualizado
+- [x] Entity `Popup` criada e registrada em `config/database.ts`; backend compila (`typecheck -w backend` verde) (2026-06-02 12:46, commit `ca09b53`)
+- [x] Migration criando `tb_popup` no schema `scp` (`migration:run` aplica limpo — aplicada via `./setup.sh` do usuário, apps sobem sem erro de migration) (2026-06-02 12:46, commit `ca09b53`)
+- [x] Rotas plugadas em `server.ts`/`app.ts`; endpoints admin sobem com `requireAuth` (2026-06-02 12:46, commit `ca09b53`)
+- [x] Ativação mutuamente exclusiva funcionando em transação (coberto por teste `activate` → deactivateAll + updateStatus em transação) (2026-06-02 12:46, commit `ca09b53`)
+- [x] Rota pública `GET /api/v1/popups/active` retorna popup ativo respeitando janela `starts_at`/`ends_at` (ou null) (2026-06-02 12:46, commit `ca09b53`)
+- [x] Validação `starts_at` no passado removida; agendamento retroativo aceito (2026-06-02 12:46, commit `ca09b53`)
+- [x] `html_content` sanitizado em POST/PUT (via `sanitizeRichTextHtml` no `parsePopupInput`) (2026-06-02 12:46, commit `ca09b53`)
+- [x] Testes backend cobrindo validação, ativação exclusiva, 404s e endpoint público (23 testes verdes; suíte 102) (2026-06-02 12:46, commit `3317420`)
+- [x] Portal builda: `popup.module.css` criado e `<Popup>` montado no `layout.tsx` (build 13 rotas verde) (2026-06-02 12:46, commit `ca09b53`)
+- [x] Client respeita `show_on_pages` (pathname) e usa cookie 30d para `show_only_once` (fechar + clique no link) (2026-06-02 12:46, commit `ca09b53`)
+- [x] **Features tocadas (editorial-content) atualizadas** com timestamp e referência a esta SPEC (2026-06-02 12:46)
+- [x] Decisões da feature revisadas: obsoletas marcadas, ativas confirmadas (nenhuma obsoleta; popup é adição) (2026-06-02 12:46)
+- [x] `state.md` com entrada `[conclusão]` (2026-06-02 12:46)
+- [x] `memory.md` com TL;DR final atualizado (2026-06-02 12:46)

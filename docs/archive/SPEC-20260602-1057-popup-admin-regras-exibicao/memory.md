@@ -8,12 +8,14 @@
 
 ## TL;DR (sobrescrever ao fim de cada sessão)
 
-**Última atualização:** 2026-06-02 11:40 (sessão #1)
-**Onde tô:** Implementação 100% feita e verificada local (backend typecheck/lint/102 testes; portal typecheck/lint/build 13 rotas). Falta só commit + bookkeeping de conclusão.
-**Próximo passo:** commitar; preencher hashes no critério de aceite do main.md; atualizar feature `editorial-content` (R.7); mover SPEC para `archive/` (R.5.3).
+**Última atualização:** 2026-06-02 12:46 (sessão #1)
+**Onde tô:** SPEC CONCLUÍDA (done) e arquivada. Tudo commitado/pushado e verde. Popup admin + público + client no portal entregues.
+**Próximo passo:** nenhum. Pendências fora do escopo: swap do mock `lib/popup/api.ts` pela API real; UI de admin no backoffice; bug `ok()` no `run.sh`.
 **Última decisão:** realinhar entity/repository/service ao padrão Banner (camelCase→`popup_*`); incluir `popup:active` na invalidação de cache.
 **Bloqueio atual:** nenhum.
-**Se retomar, ler:** este TL;DR + state.md (log de 2026-06-02 11:40 + Status snapshot).
+**Se retomar, ler:** `state.md` entrada `[conclusão]` de 2026-06-02 12:46.
+
+> SPEC concluída em 2026-06-02 12:46, commit `3317420`.
 
 ---
 

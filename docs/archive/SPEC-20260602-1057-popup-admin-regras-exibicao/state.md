@@ -8,12 +8,12 @@
 
 ## TL;DR (sobrescrever ao fim de cada sessão)
 
-**Última atualização:** 2026-06-02 11:40
-**Onde tô:** Implementação completa. Backend (entity+migration+wiring+rota pública+testes) e frontend (css module + montagem no layout + show_on_pages + cookie 30d) entregues. Tudo verde local.
-**Próximo passo:** commit; depois marcar critério de aceite em main.md com hashes, atualizar feature `editorial-content` (R.7) e arquivar (R.5.3). Validação manual opcional (migration:run + fluxo real).
-**Última decisão:** entity/repository/service realinhados ao padrão Banner (camelCase props → colunas `popup_*`); `serializePopup` camelCase; invalidação de cache passou a incluir a chave `popup:active`.
+**Última atualização:** 2026-06-02 12:46
+**Onde tô:** SPEC CONCLUÍDA e arquivada. Código commitado (`ca09b53`/`c13b23e`/`3317420`) e pushado. Tudo verde (backend typecheck/lint/102 testes; portal typecheck/lint/build).
+**Próximo passo:** nenhum — SPEC done. Pendência futura (fora do escopo): swap do mock `lib/popup/api.ts` pelo `GET /api/v1/popups/active` real; UI de admin no backoffice.
+**Última decisão:** entity/repository/service realinhados ao padrão Banner (camelCase props → colunas `popup_*`); invalidação de cache passou a incluir a chave `popup:active`.
 **Bloqueio atual:** nenhum.
-**Se retomar, ler:** este TL;DR + Status snapshot + log de 2026-06-02 11:40.
+**Se retomar, ler:** entrada `[conclusão]` de 2026-06-02 12:46.
 
 ---
 
@@ -30,7 +30,7 @@
 | 5 | Remover `PopupStartDateInPastError` | concluído | 2026-06-02 11:40 | — |
 | 6 | Testes backend (23 popup + suíte 102 verdes) | concluído | 2026-06-02 11:40 | — |
 | 7 | Frontend: css module + montar no layout + show_on_pages + cookie 30d | concluído | 2026-06-02 11:40 | — |
-| 8 | Commit + arquivamento (R.5.3/R.7) | pendente | 2026-06-02 11:40 | — |
+| 8 | Commit + arquivamento (R.5.3/R.7) | concluído | 2026-06-02 12:46 | `3317420` |
 
 ### Próximos passos
 
@@ -99,3 +99,19 @@ Verificação (2026-06-02 11:40):
 - `typecheck -w portal` ✓ | `lint -w portal` ✓ | `build -w portal` ✓ (13 rotas)
 
 Frontend: `popup.module.css` criado, `<Popup>` montado no `layout.tsx`, regra `show_on_pages` via `usePathname()`, cookie `popup-seen-{id}` (`max-age` 30d) setado no fechar e no clique do link; `setIsVisible` só em setTimeout (evita `react-hooks/set-state-in-effect`). Mock `lib/popup/api.ts` alinhado ao shape camelCase do backend.
+
+## 2026-06-02 12:46 — [conclusão] SPEC concluída e arquivada
+
+Implementação completa, commitada e pushada na branch `feature/SQU-60/44-api-admin-popup-com-regras-de-exibicao`:
+- `ca09b53` feat: implement popup overlay admin with display rules (backend completo + frontend)
+- `c13b23e` feat: add demo setup script for shopping-x tenant (`run-demo-shopping-x.sh`, tooling)
+- `3317420` feat: capture input in createForCurrentTenant test (fix do `tsc` da CI — `mock.calls[0][0]` em tupla vazia → captura tipada)
+
+Pós-implementação nesta sessão (devex + fixes da CI):
+- `prettier --write` em `popup.controller.ts` e na migration (format:check estava vermelho).
+- Fix do typecheck da CI no teste (ts-jest era leniente; `tsc --noEmit` pegou). **Lição:** rodar `tsc --noEmit` após escrever testes, não só `jest`.
+- Diagnóstico do ambiente local do usuário: o `seed` básico só cria tenants (não lojas) — quem popula conteúdo é `seed:demo`; `/lojas` é dado real do backend (não mock). Bug no `run.sh` (`ok: command not found` no caminho `--seed`, função `ok()` não definida lá) — NÃO corrigido (fora de escopo; `run-demo-shopping-x.sh` evita o caminho `--seed`).
+
+Critério de aceite 100% marcado em `main.md`. Feature `editorial-content` atualizada (R.7): linha em Concluídas, Estado atual com a seção de popups, 4 decisões arquiteturais novas, 5 gotchas novos, arquivos principais + keywords. `main.md` Status=done, Commit final=`3317420`. Pasta movida `active/` → `archive/`.
+
+**FORA do escopo (pendências futuras):** swap do mock `portal/src/lib/popup/api.ts` pelo `GET /api/v1/popups/active` real; UI de admin no backoffice (formulário CRUD do popup); correção do bug `ok()` no `run.sh`.

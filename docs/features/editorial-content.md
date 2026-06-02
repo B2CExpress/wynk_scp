@@ -1,6 +1,6 @@
 # Feature: editorial-content
 
-**Keywords:** eventos, theater-shows, news, noticias, banners, carrossel, editorial, content-management, crud-admin, scheduler, publicacao-automatica, state-machine, cron-secret, reorder
+**Keywords:** eventos, theater-shows, news, noticias, banners, carrossel, popup, overlay, modal, editorial, content-management, crud-admin, scheduler, publicacao-automatica, state-machine, cron-secret, reorder, ativacao-exclusiva
 **Arquivos principais:**
   - backend/src/entities/Event.ts
   - backend/src/entities/TheaterShow.ts
@@ -19,6 +19,14 @@
   - backend/src/repositories/banner.repository.ts
   - backend/src/dtos/banner.dto.ts
   - backend/src/routes/banner.routes.ts
+  - backend/src/entities/Popup.ts
+  - backend/src/controllers/popup.controller.ts
+  - backend/src/services/popup.service.ts
+  - backend/src/repositories/popup.repository.ts
+  - backend/src/dtos/popup.dto.ts
+  - backend/src/routes/popup.routes.ts
+  - portal/src/app/_components/Popup.tsx
+  - portal/src/lib/popup/api.ts
   - backend/src/repositories/event.repository.ts
   - backend/src/repositories/theater-show.repository.ts
   - backend/src/repositories/theater-session.repository.ts
@@ -40,6 +48,7 @@
 | SPEC-20260518-1625 | 2026-05-25 | `42197eb` | API Admin CRUD de Eventos e Apresentações Teatrais |
 | SPEC-20260522-1100 | 2026-05-25 | _(commit pendente)_ | API Admin CRUD de Notícias com fluxo de publicação (introduz entity `News`, state machine `lib/news/state.ts`, endpoint cron externo `POST /api/cron/publish-scheduled` com `X-Cron-Secret`, e estende `jobs/publish-scheduled.ts` setInterval para cobrir `tb_news`) |
 | SPEC-20260526-1900 | 2026-05-29 | `8e0df51` | API Admin Gerenciar Banners com reordenação e agendamento (introduz entity `Banner` para o carrossel da home: CRUD + `POST /reorder` transacional + `POST /:id/toggle`, versões desktop/mobile, janela `starts_at`/`ends_at`, `alt_text` obrigatório, bloqueio `javascript:` em `link_url`) |
+| SPEC-20260602-1057 | 2026-06-02 | `3317420` | Popup overlay admin com regras de exibição (introduz entity `Popup`: CRUD + ativação mutuamente exclusiva em transação `POST /:id/activate`+`/deactivate`, endpoint público `GET /api/v1/popups/active`, agendamento `starts_at`/`ends_at`, `show_on_pages` home/all, e `<Popup>` client no portal com cookie 30d) |
 
 ### Planejadas (future/)
 | ID | Título | Motivo |
@@ -50,7 +59,7 @@
 ### Em execução (só em branches — não aparece em main)
 | ID | Título | Branch |
 |---|---|---|
-| SPEC-20260602-1057 | Popup overlay admin com regras de exibição | feature/SQU-60/44-api-admin-popup-com-regras-de-exibicao |
+| _(nenhuma)_ | | |
 
 ## Estado atual
 
@@ -62,6 +71,7 @@ Endpoints admin entregues:
 - Theater sessions (SPEC-20260518-1625): POST `/api/admin/theater-shows/:id/sessions`, PUT/DELETE `/api/admin/theater-sessions/:id`
 - Notícias (SPEC-20260522-1100): GET/POST/PUT/DELETE `/api/admin/news`, POST `/api/admin/news/:id/publish`, POST `/api/admin/news/:id/archive`
 - Banners (SPEC-20260526-1900): GET/POST `/api/admin/banners`, GET/PUT/DELETE `/api/admin/banners/:id`, POST `/api/admin/banners/reorder`, POST `/api/admin/banners/:id/toggle`. Carrossel da home com versões desktop/mobile, agendamento (`starts_at`/`ends_at`), ordenação por `sort_order` e ativação sem deletar. Sem state machine (diferente de news) — `is_active` é booleano simples.
+- Popups (SPEC-20260602-1057): GET/POST `/api/admin/popups`, GET/PUT/DELETE `/api/admin/popups/:id`, POST `/api/admin/popups/:id/activate`, POST `/api/admin/popups/:id/deactivate`, e público `GET /api/v1/popups/active`. Overlay modal de campanha, **1 ativo por tenant** — `activate` desativa todos os outros e ativa este numa transação (`PopupRepository.runInTransaction`). Agendamento por janela `starts_at`/`ends_at` (ambos NOT NULL); `show_on_pages` (`home`|`all`); `show_after_seconds` (0-60); `image_url` OU `html_content` (pelo menos um). Frontend: client component `<Popup>` no `portal/src/app/layout.tsx` lê o endpoint público (hoje via mock `lib/popup/api.ts`), aplica `show_on_pages` por `pathname` e grava cookie `popup-seen-{id}` (30d) para `show_only_once`.
 
 Validação:
 - Eventos: ISO 8601 com timezone, ends_at >= starts_at, starts_at até 5 anos futuro
@@ -85,7 +95,7 @@ State machine (apenas notícias):
 - Transições válidas via `canTransition(current, next)`: `draft → {scheduled, published}`, `scheduled → published`, `qualquer → archived`. Resto rejeitado com `NewsInvalidTransitionError` → 409.
 - Delete via `canDelete(status)`: aceita só `draft` e `archived`. Senão 409 `cannot_delete_<status>`.
 
-> Última atualização: 2026-05-29 13:53 (SPEC-20260526-1900)
+> Última atualização: 2026-06-02 12:46 (SPEC-20260602-1057)
 
 ## Decisões arquiteturais ativas
 
@@ -104,6 +114,10 @@ State machine (apenas notícias):
 - **Reorder de banners em transação atômica (`dataSource.transaction()`)** (origem: SPEC-20260526-1900, 2026-05-29 13:53) — `POST /api/admin/banners/reorder` recebe lista `{id, sort_order}` e atualiza todos os `sort_order` numa transação única. Evita race condition quando dois admins reordenam o carrossel simultaneamente (estado intermediário inconsistente). Trade-off: lock mais longo vs consistência da ordem.
 - **`alt_text` obrigatório em banners (5-300 chars)** (origem: SPEC-20260526-1900, 2026-05-29 13:53) — Banner sem `alt_text` quebra acessibilidade (WCAG) e SEO da home. Validação 400 se ausente. Mesma filosofia de acessibilidade-por-default do resto do conteúdo editorial.
 - **`is_active` booleano simples em banners (sem state machine)** (origem: SPEC-20260526-1900, 2026-05-29 13:53) — Diferente de news (que tem `draft→scheduled→published→archived` via `lib/news/state.ts`), banner liga/desliga via `POST /:id/toggle` num booleano. A "agenda" de exibição é resolvida por janela `starts_at`/`ends_at` na API pública (Fase 4.7), não por status. Trade-off: menos granularidade de fluxo, mas o caso de uso de banner (campanha on/off) não pede.
+- **Popup: ativação mutuamente exclusiva em transação (1 ativo por tenant)** (origem: SPEC-20260602-1057, 2026-06-02 12:46) — `POST /api/admin/popups/:id/activate` roda `deactivateAllForCurrentTenant()` + `updateStatusForCurrentTenant(id, true)` dentro de `PopupRepository.runInTransaction` (`dataSource.transaction`). Garante invariante "no máximo 1 popup ativo por tenant" sem race entre o desativar-todos e o ativar-este. Diferente do `toggle` de banner (que permite N ativos). Trade-off: lock curto vs consistência do invariante.
+- **Popup: `starts_at`/`ends_at` NOT NULL (agendamento sempre obrigatório)** (origem: SPEC-20260602-1057, 2026-06-02 12:46) — A validação já exige ambos; tornar as colunas NOT NULL simplifica o filtro do endpoint público (`starts_at <= now AND ends_at >= now`, sem o `IS NULL OR` do ticket original). Divergência consciente do texto do ticket. Trade-off: não dá pra criar popup "sem janela" (sempre visível) — caso de uso não pedido.
+- **Popup: sem validação de `starts_at` no passado (agendamento retroativo permitido)** (origem: SPEC-20260602-1057, 2026-06-02 12:46) — Removida a `PopupStartDateInPastError` do rascunho. **Diverge de [[promotions-admin]]/news** (que rejeitam `publish_at` retroativo): popup é overlay de campanha que pode começar "agora/ontem"; só `ends_at > starts_at` é exigido. Trade-off: admin pode criar janela já encerrada sem aviso (vem como inativo no público, sem erro).
+- **Popup: rota pública padronizada `GET /api/v1/popups/active`** (origem: SPEC-20260602-1057, 2026-06-02 12:46) — Alinhada com os demais públicos (`/api/v1/stores|events|promotions|store-categories`). O rascunho expunha `/api/popups/active` (sem `/v1`) — corrigido para consistência. Plural + sub-path `active` (retorna o único ativo ou `null`).
 
 ## Alternativas consideradas e rejeitadas
 
@@ -124,6 +138,10 @@ State machine (apenas notícias):
 - **Cron interno e externo podem rodar simultâneo** (2026-05-22 11:00, SPEC-20260522-1100) — Em deploy persistente, setInterval roda E cron externo (se configurado) também chama o endpoint. `UPDATE ... WHERE status='scheduled'` é idempotente, mas o segundo encontra menos rows. Logs vão mostrar duplo trabalho — aceitar como custo da defesa em profundidade.
 - **Banner agendado não é filtrado por cron — só pela API pública** (2026-05-29 13:53, SPEC-20260526-1900) — Diferente de events/shows/news (que têm `status` promovido por `jobs/publish-scheduled.ts`), banner não tem job de publicação. A janela `starts_at`/`ends_at` é aplicada em tempo de leitura pela API pública `GET /api/v1/banners` (Fase 4.7, ainda não implementada). Logo, no admin um banner agendado aparece sempre na listagem; o filtro de visibilidade é responsabilidade do endpoint público. Esquecer esse filtro na Fase 4.7 = banner fora de janela vaza pro portal.
 - **`link_url` aceita path interno além de http/https — mas bloqueia `javascript:`** (2026-05-29 13:53, SPEC-20260526-1900) — `containsJavaScriptProtocol()` rejeita `javascript:` (vetor XSS no clique do banner). URLs válidas: `http://`, `https://` ou paths internos `/...`. Diferente da sanitização HTML de body/synopsis (que usa `sanitizeRichTextHtml` de [[infra-base]]) — banner não tem corpo HTML, só a URL do link, então a defesa é checagem de protocolo, não allowlist de tags.
+- **Popup: SQL cru do repository usa nome de coluna completo (`popup.popup_*`), não a property** (2026-06-02 12:46, SPEC-20260602-1057) — Em `.andWhere`/`.orderBy` o TypeORM passa a string literal pro SQL; com alias `popup`, `popup.popup_is_active` referencia a coluna real. O rascunho original usava `popup.isActive`/`popup.starts_at` (property names) — não bateria com as colunas `popup_*` e quebraria em runtime. Já `.create()/.update({where},{set})` usam **property names** (camelCase). Mesma convenção do `banner.repository.ts`. Errar isso = erro de coluna inexistente só em runtime (não no typecheck).
+- **Popup: cache `popup:active:{tenant}` precisa cair em TODA mutação** (2026-06-02 12:46, SPEC-20260602-1057) — `getActivePopupForClient` cacheia o popup ativo por 300s. `invalidateCaches(tenantId, id?)` (chamado em create/update/delete/activate/deactivate) faz `del('popup:active:{tenant}')` + `invalidateByPattern('popup:list:{tenant}:*')` + del detail. O rascunho **não** invalidava a chave `active` no activate/deactivate → o público serviria popup obsoleto por até 5 min após uma troca de ativo. Coberto por teste.
+- **Popup no portal lê mock, não o backend real ainda** (2026-06-02 12:46, SPEC-20260602-1057) — `<Popup>` no `layout.tsx` consome `portal/src/lib/popup/api.ts` (mock fixo), igual às páginas de conteúdo da SPEC-20260601-1909. O swap pro `GET /api/v1/popups/active` real ficou FORA do escopo. A lib mock já está no shape camelCase do backend pra swap trivial. Esquecer isso = achar que o popup do portal reflete o que está no admin (não reflete — é mock).
+- **Popup: cookie de "já vi" é setado no fechar E no clique do link** (2026-06-02 12:46, SPEC-20260602-1057) — `popup-seen-{id}` (`max-age` 30d, `SameSite=Lax`) só é gravado se `show_only_once=true`. Setado tanto no X quanto ao clicar a imagem/link. `setIsVisible(true)` só roda dentro do `setTimeout` (deferido) pra não violar `react-hooks/set-state-in-effect` (mesmo cuidado do `Countdown` da SPEC-20260601-1909).
 
 ## Estado congelado (se houver)
 
