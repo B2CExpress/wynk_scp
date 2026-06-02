@@ -15,6 +15,7 @@ import { PromotionRepository } from './repositories/promotion.repository';
 import { NewsRepository } from './repositories/news.repository';
 import { BannerRepository } from './repositories/banner.repository';
 import { PopupRepository } from './repositories/popup.repository';
+import { HeroRepository } from './repositories/hero.repository';
 import { StoreCategoryRepository } from './repositories/store-category.repository';
 import { TenantResolverService } from './services/tenant-resolver.service';
 import { AuthService } from './services/auth.service';
@@ -25,6 +26,7 @@ import { PromotionService } from './services/promotion.service';
 import { NewsService } from './services/news.service';
 import { BannerService } from './services/banner.service';
 import { PopupService } from './services/popup.service';
+import { HeroService } from './services/hero.service';
 import { AdminDashboardService } from './services/admin-dashboard.service';
 import { AuthController } from './controllers/auth.controller';
 import { StoreController } from './controllers/store.controller';
@@ -35,6 +37,7 @@ import { PromotionController } from './controllers/promotion.controller';
 import { NewsController } from './controllers/news.controller';
 import { BannerController } from './controllers/banner.controller';
 import { PopupController } from './controllers/popup.controller';
+import { HeroController } from './controllers/hero.controller';
 import { CronController } from './controllers/cron.controller';
 import { AdminDashboardController } from './controllers/admin-dashboard.controller';
 import { PublicPromotionController } from './controllers/public-promotion.controller';
@@ -72,6 +75,7 @@ async function main(): Promise<void> {
   const newsRepo = new NewsRepository(AppDataSource);
   const bannerRepo = new BannerRepository(AppDataSource);
   const popupRepo = new PopupRepository(AppDataSource);
+  const heroRepo = new HeroRepository(AppDataSource);
   const storeCategoryRepo = new StoreCategoryRepository(AppDataSource);
 
   const tenantResolver = new TenantResolverService(tenantRepo, redis);
@@ -83,6 +87,7 @@ async function main(): Promise<void> {
   const newsService = new NewsService(newsRepo, redis);
   const bannerService = new BannerService(bannerRepo, redis);
   const popupService = new PopupService(popupRepo, redis);
+  const heroService = new HeroService(heroRepo, redis);
   const dashboardService = new AdminDashboardService(AppDataSource, redis);
   const storeCategoryService = new StoreCategoryService(storeCategoryRepo);
   const authController = new AuthController(authService, userRepo);
@@ -94,6 +99,7 @@ async function main(): Promise<void> {
   const newsController = new NewsController(newsService);
   const bannerController = new BannerController(bannerService);
   const popupController = new PopupController(popupService);
+  const heroController = new HeroController(heroService);
   const dashboardController = new AdminDashboardController(dashboardService);
   const cronController = new CronController(newsService);
   const publicPromotionController = new PublicPromotionController(promotionService);
@@ -112,6 +118,7 @@ async function main(): Promise<void> {
     newsController,
     bannerController,
     popupController,
+    heroController,
     dashboardController,
     cronController,
     publicPromotionController,

@@ -15,6 +15,7 @@ import type { PromotionController } from './controllers/promotion.controller';
 import type { NewsController } from './controllers/news.controller';
 import type { BannerController } from './controllers/banner.controller';
 import type { PopupController } from './controllers/popup.controller';
+import type { HeroController } from './controllers/hero.controller';
 import type { CronController } from './controllers/cron.controller';
 import type { AdminDashboardController } from './controllers/admin-dashboard.controller';
 import type { PublicPromotionController } from './controllers/public-promotion.controller';
@@ -30,6 +31,7 @@ import { createPromotionRoutes } from './routes/promotion.routes';
 import { createNewsRoutes } from './routes/news.routes';
 import { createBannerRoutes } from './routes/banner.routes';
 import { createPopupRoutes } from './routes/popup.routes';
+import { createHeroRoutes } from './routes/hero.routes';
 import { createCronRoutes } from './routes/cron.routes';
 import { createAdminDashboardRoutes } from './routes/admin-dashboard.routes';
 import { createStoreCategoryRoutes } from './routes/store-category.routes';
@@ -45,6 +47,7 @@ export interface AppDeps {
   newsController: NewsController;
   bannerController: BannerController;
   popupController: PopupController;
+  heroController: HeroController;
   dashboardController: AdminDashboardController;
   cronController: CronController;
   publicPromotionController: PublicPromotionController;
@@ -115,6 +118,7 @@ export function createApp(deps: AppDeps): Express {
   app.use(createNewsRoutes(deps.newsController));
   app.use(createBannerRoutes(deps.bannerController));
   app.use(createPopupRoutes(deps.popupController));
+  app.use(createHeroRoutes(deps.heroController));
   app.use(createAdminDashboardRoutes(deps.dashboardController));
   app.use(createCronRoutes(deps.cronController));
 
