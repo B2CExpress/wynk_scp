@@ -8,12 +8,12 @@
 
 ## TL;DR (sobrescrever ao fim de cada sessão)
 
-**Última atualização:** 2026-06-03 17:17 (sessão #1)
-**Onde tô:** Backend do superadmin COMPLETO, testado e verde (typecheck+lint+146 testes; +30 na Fase 8). CRUD + auth + cobertura (validator, service c/ fake DataSource, e2e autorização+login). Migration NÃO rodada; nada commitado.
-**Próximo passo:** Fase 7 (UI backoffice `/admin/tenants`). Ou encerrar backend + rodar migration/seed + arquivar.
+**Última atualização:** 2026-06-03 17:58 (sessão #1)
+**Onde tô:** Implementação COMPLETA — backend (CRUD+auth+testes, 146 verdes) + UI backoffice (`TenantsPage` reescrita, build verde). Migration NÃO rodada; NADA commitado.
+**Próximo passo:** conclusão R.5.3+R.7 — atualizar 3 features, marcar aceite, commitar, arquivar (mesmo PR). Aguarda dev (commit + migration).
 **Última decisão:** auth superadmin opção (a); posts_count=notícias.
-**Bloqueio atual:** nenhum. Pendências operacionais: dev rodar migration + `seed:superadmin`.
-**Se retomar, ler:** `state.md` — entrada de 2026-06-03 17:17 + tabela de fases.
+**Bloqueio atual:** conclusão precisa de commits (R.6) + migration rodada.
+**Se retomar, ler:** `state.md` — entrada de 2026-06-03 17:58 + tabela de fases.
 
 ---
 

@@ -1,217 +1,452 @@
-import * as React from 'react';
+import { useEffect, useState } from 'react';
+
+/**
+ * Painel do Superadmin — CRUD de tenants (SPEC-20260603-1149).
+ *
+ * Self-contained: gerencia a própria sessão de superadmin (login global via
+ * `POST /auth/superadmin/login`, sem tenant) já que o App.tsx é tenant-scoped.
+ * Branding NÃO entra na criação — usa `flavor_slug` (Modelo A), nunca cores.
+ */
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL ?? 'http://localhost:3001';
+
+type Status = 'active' | 'trial' | 'inactive' | 'suspended';
 
 interface TenantItem {
   id: string;
   name: string;
   slug: string;
   host: string;
-  status: 'active' | 'trial' | 'inactive' | 'suspended';
+  status: Status;
   stores_count: number;
   posts_count: number;
   created_at: string;
 }
 
+interface CreateForm {
+  name: string;
+  slug: string;
+  host: string;
+  status: Status;
+  flavor_slug: string;
+  admin_email: string;
+  admin_password: string;
+}
+
+const EMPTY_FORM: CreateForm = {
+  name: '',
+  slug: '',
+  host: '',
+  status: 'trial',
+  flavor_slug: 'default',
+  admin_email: '',
+  admin_password: '',
+};
+
+function slugify(value: string): string {
+  return value
+    .toLowerCase()
+    .trim()
+    .replace(/[^\w\s-]/g, '')
+    .replace(/[\s_-]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+}
+
 export function TenantsPage() {
-  const [tenants, setTenants] = React.useState<TenantItem[]>([]);
-  const [total, setTotal] = React.useState(0);
-  const [statusFilter, setStatusFilter] = React.useState('all');
-  
-  const [isModalOpen, setIsModalOpen] = React.useState(false);
-  const [step, setStep] = React.useState(1);
-  const [form, setForm] = React.useState({
-    name: '', slug: '', host: '', status: 'trial',
-    primary_color: '#0066CC', secondary_color: '#003D7A',
-    admin_email: '', admin_password: ''
-  });
-  const [formErrors, setFormErrors] = React.useState<Record<string, string>>({});
+  const [authed, setAuthed] = useState(false);
+  const [login, setLogin] = useState({ email: '', password: '' });
+  const [loginError, setLoginError] = useState<string | null>(null);
 
-  const fetchTenants = React.useCallback(() => {
-    const queryParam = statusFilter !== 'all' ? `?status=${statusFilter}` : '';
-    fetch(`/api/superadmin/tenants${queryParam}`)
-      .then(res => res.json())
-      .then(resData => {
-        setTenants(resData.data || []);
-        setTotal(resData.total || 0);
-      })
-      .catch(err => console.error('Erro ao buscar shoppings:', err));
-  }, [statusFilter]);
+  const [tenants, setTenants] = useState<TenantItem[]>([]);
+  const [total, setTotal] = useState(0);
+  const [statusFilter, setStatusFilter] = useState<'all' | Status>('all');
+  const [listError, setListError] = useState<string | null>(null);
 
-  React.useEffect(() => {
-    fetchTenants();
-  }, [fetchTenants]);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [step, setStep] = useState(1);
+  const [form, setForm] = useState<CreateForm>(EMPTY_FORM);
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
 
-  const handleCreateTenant = async () => {
+  async function fetchTenants() {
+    const query = statusFilter !== 'all' ? `?status=${statusFilter}` : '';
+    try {
+      const res = await fetch(`${BACKEND_URL}/api/superadmin/tenants${query}`, {
+        credentials: 'include',
+      });
+      if (res.status === 401) {
+        setAuthed(false);
+        return;
+      }
+      if (res.status === 403) {
+        setListError('Acesso restrito ao superadmin.');
+        return;
+      }
+      const data = (await res.json()) as { data?: TenantItem[]; total?: number };
+      setTenants(data.data ?? []);
+      setTotal(data.total ?? 0);
+      setListError(null);
+    } catch {
+      setListError('Falha ao conectar com o servidor.');
+    }
+  }
+
+  // Recarrega ao autenticar e ao mudar o filtro. `fetchTenants` só faz setState
+  // pós-await (data-fetch legítimo, não render cascateado); o disable é pontual.
+  useEffect(() => {
+    if (!authed) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    void fetchTenants();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [authed, statusFilter]);
+
+  async function handleLogin(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setLoginError(null);
+    try {
+      const res = await fetch(`${BACKEND_URL}/auth/superadmin/login`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(login),
+      });
+      if (res.ok) {
+        setAuthed(true);
+        return;
+      }
+      setLoginError(res.status === 401 ? 'Credenciais inválidas.' : 'Falha no login.');
+    } catch {
+      setLoginError('Falha ao conectar com o servidor.');
+    }
+  }
+
+  function resetModal() {
+    setIsModalOpen(false);
+    setStep(1);
+    setForm(EMPTY_FORM);
+    setFormErrors({});
+  }
+
+  async function handleCreate() {
     setFormErrors({});
     try {
-      const res = await fetch('/api/superadmin/tenants', {
+      const res = await fetch(`${BACKEND_URL}/api/superadmin/tenants`, {
         method: 'POST',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form)
+        body: JSON.stringify(form),
       });
-      const data = await res.json();
-      
-      if (res.status === 400 && data.errors) {
+      const data = (await res.json().catch(() => null)) as {
+        error?: string;
+        errors?: Record<string, string>;
+      } | null;
+
+      if (res.status === 400 && data?.errors) {
         setFormErrors(data.errors);
-      } else if (res.status === 409) {
-        alert('Erro: O slug ou o domínio fornecido já está em uso globalmente.');
-      } else if (res.ok) {
-        alert('Shopping e usuário administrador criados com absoluto sucesso em transação atômica!');
-        setIsModalOpen(false);
         setStep(1);
-        setForm({
-          name: '', slug: '', host: '', status: 'trial',
-          primary_color: '#0066CC', secondary_color: '#003D7A',
-          admin_email: '', admin_password: ''
-        });
-        fetchTenants();
+      } else if (res.status === 409) {
+        setFormErrors(
+          data?.error === 'host_already_taken'
+            ? { host: 'Host já está em uso.' }
+            : { slug: 'Slug já está em uso.' },
+        );
+        setStep(1);
+      } else if (res.ok) {
+        resetModal();
+        void fetchTenants();
       }
-    } catch (err) {
-      alert('Erro crítico ao conectar com o servidor.');
+    } catch {
+      setFormErrors({ name: 'Falha ao conectar com o servidor.' });
     }
-  };
+  }
 
-  const handleToggleStatus = async (id: string, currentStatus: string) => {
-    const nextStatus = currentStatus === 'active' ? 'suspended' : 'active';
-    try {
-      const res = await fetch(`/api/superadmin/tenants/${id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: nextStatus })
-      });
-      if (res.ok) {
-        fetchTenants();
-      }
-    } catch (err) {
-      console.error(err);
-    }
-  };
+  async function patchTenant(id: string, body: Record<string, unknown>) {
+    const res = await fetch(`${BACKEND_URL}/api/superadmin/tenants/${id}`, {
+      method: 'PUT',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    if (res.ok) void fetchTenants();
+  }
 
-  const handleDeleteTenant = async (id: string, name: string) => {
-    const confirm1 = window.confirm(`Atenção: Você tem certeza que deseja desativar o shopping "${name}"?`);
-    if (!confirm1) return;
-    const confirm2 = window.confirm(`CONFIRMAÇÃO FINAL: Isso mudará o status para 'inactive' e liberará o host corporativo. Os dados históricos serão preservados para auditoria. Deseja prosseguir?`);
-    if (!confirm2) return;
+  async function handleToggleStatus(t: TenantItem) {
+    const next: Status = t.status === 'active' ? 'suspended' : 'active';
+    await patchTenant(t.id, { name: t.name, host: t.host, status: next });
+  }
 
-    try {
-      const res = await fetch(`/api/superadmin/tenants/${id}`, { method: 'DELETE' });
-      if (res.ok) {
-        alert('Soft-delete realizado com sucesso. O domínio antigo foi liberado.');
-        fetchTenants();
-      }
-    } catch (err) {
-      console.error(err);
-    }
-  };
-
-  const handleNameChange = (val: string) => {
-    const generatedSlug = val
-      .toLowerCase()
-      .trim()
-      .replace(/[^\w\s-]/g, '')
-      .replace(/[\s_-]+/g, '-')
-      .replace(/^-+|-+$/g, '');
-    setForm({ ...form, name: val, slug: generatedSlug });
-  };
-
-  return React.createElement('div', { style: { padding: '32px', fontFamily: 'sans-serif', backgroundColor: '#f9fafb', minHeight: '100vh' } },
-    React.createElement('div', { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' } },
-      React.createElement('div', null,
-        React.createElement('h1', { style: { fontSize: '26px', fontWeight: 'bold', color: '#111827', margin: 0 } }, 'Gerenciamento Global de Tenants'),
-        React.createElement('p', { style: { fontSize: '14px', color: '#6b7280', marginTop: '4px' } }, `Total de shoppings integrados na plataforma: ${total}`)
-      ),
-      React.createElement('button', {
-        onClick: () => setIsModalOpen(true),
-        style: { padding: '12px 20px', backgroundColor: '#2563eb', color: 'white', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }
-      }, '+ Novo Shopping')
-    ),
-
-    React.createElement('div', { style: { marginBottom: '20px', display: 'flex', gap: '12px' } },
-      React.createElement('span', { style: { alignSelf: 'center', fontSize: '14px', fontWeight: '600' } }, 'Filtrar por Status:'),
-      React.createElement('select', {
-        value: statusFilter,
-        onChange: (e: any) => setStatusFilter(e.target.value),
-        style: { padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: '6px', backgroundColor: '#fff' }
-      },
-        React.createElement('option', { value: 'all' }, 'Todos os shoppings'),
-        React.createElement('option', { value: 'active' }, 'Ativos'),
-        React.createElement('option', { value: 'trial' }, 'Período de Teste (Trial)'),
-        React.createElement('option', { value: 'suspended' }, 'Suspensos'),
-        React.createElement('option', { value: 'inactive' }, 'Inativos (Removidos)')
+  async function handleDelete(t: TenantItem) {
+    if (!window.confirm(`Desativar o shopping "${t.name}"?`)) return;
+    if (
+      !window.confirm(
+        'CONFIRMAÇÃO FINAL: status vira "inactive" e o host é liberado. Dados são preservados para auditoria. Prosseguir?',
       )
-    ),
+    )
+      return;
+    const res = await fetch(`${BACKEND_URL}/api/superadmin/tenants/${t.id}`, {
+      method: 'DELETE',
+      credentials: 'include',
+    });
+    if (res.ok) void fetchTenants();
+  }
 
-    React.createElement('table', { style: { width: '100%', borderCollapse: 'collapse', backgroundColor: '#fff', borderRadius: '8px', overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' } },
-      React.createElement('thead', { style: { backgroundColor: '#f3f4f6', borderBottom: '1px solid #e5e7eb' } },
-        React.createElement('tr', null,
-          React.createElement('th', { style: { padding: '14px', textAlign: 'left', fontSize: '13px', color: '#374151' } }, 'Shopping / ID'),
-          React.createElement('th', { style: { padding: '14px', textAlign: 'left', fontSize: '13px', color: '#374151' } }, 'Slug / Host'),
-          React.createElement('th', { style: { padding: '14px', textAlign: 'left', fontSize: '13px', color: '#374151' } }, 'Status'),
-          React.createElement('th', { style: { padding: '14px', textAlign: 'center', fontSize: '13px', color: '#374151' } }, 'Lojas'),
-          React.createElement('th', { style: { padding: '14px', textAlign: 'center', fontSize: '13px', color: '#374151' } }, 'Posts'),
-          React.createElement('th', { style: { padding: '14px', textAlign: 'left', fontSize: '13px', color: '#374151' } }, 'Ações')
-        )
-      ),
-      React.createElement('tbody', null,
-        tenants.map((t) => 
-          React.createElement('tr', { key: t.id, style: { borderBottom: '1px solid #e5e7eb' } },
-            React.createElement('td', { style: { padding: '14px' } },
-              React.createElement('div', { style: { fontWeight: '600', color: '#111827' } }, t.name),
-              React.createElement('div', { style: { fontSize: '11px', color: '#9ca3af' } }, t.id)
-            ),
-            React.createElement('td', { style: { padding: '14px' } },
-              React.createElement('div', { style: { color: '#4b5563', fontSize: '14px' } }, t.slug),
-              React.createElement('div', { style: { color: '#2563eb', fontSize: '12px' } }, t.host)
-            ),
-            React.createElement('td', { style: { padding: '14px' } },
-              React.createElement('span', { style: { padding: '4px 8px', borderRadius: '12px', fontSize: '12px', fontWeight: '500', backgroundColor: t.status === 'active' ? '#dcfce7' : t.status === 'suspended' ? '#fee2e2' : '#f3f4f6', color: t.status === 'active' ? '#166534' : t.status === 'suspended' ? '#991b1b' : '#374151' } }, t.status)
-            ),
-            React.createElement('td', { style: { padding: '14px', textAlign: 'center', fontWeight: '500' } }, t.stores_count),
-            React.createElement('td', { style: { padding: '14px', textAlign: 'center', fontWeight: '500' } }, t.posts_count),
-            React.createElement('td', { style: { padding: '14px', display: 'flex', gap: '8px' } },
-              React.createElement('button', {
-                onClick: () => handleToggleStatus(t.id, t.status),
-                disabled: t.status === 'inactive',
-                style: { padding: '6px 12px', fontSize: '12px', borderRadius: '4px', border: '1px solid #d1d5db', cursor: t.status === 'inactive' ? 'not-allowed' : 'pointer', backgroundColor: '#fff' }
-              }, t.status === 'active' ? 'Suspender' : 'Reativar'),
-              React.createElement('button', {
-                onClick: () => handleDeleteTenant(t.id, t.name),
-                disabled: t.status === 'inactive',
-                style: { padding: '6px 12px', fontSize: '12px', borderRadius: '4px', border: 'none', cursor: t.status === 'inactive' ? 'not-allowed' : 'pointer', backgroundColor: '#ef4444', color: 'white' }
-              }, 'Excluir')
-            )
-          )
-        )
-      )
-    ),
+  if (!authed) {
+    return (
+      <div style={{ maxWidth: 360, margin: '80px auto', fontFamily: 'sans-serif' }}>
+        <h1 style={{ fontSize: 22 }}>Superadmin</h1>
+        <p style={{ color: '#6b7280', fontSize: 14 }}>
+          Acesso global à plataforma — provisionamento de shoppings.
+        </p>
+        <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <input
+            type="email"
+            placeholder="email"
+            value={login.email}
+            onChange={(e) => setLogin((c) => ({ ...c, email: e.target.value }))}
+            required
+          />
+          <input
+            type="password"
+            placeholder="senha"
+            value={login.password}
+            onChange={(e) => setLogin((c) => ({ ...c, password: e.target.value }))}
+            required
+          />
+          <button type="submit">Entrar</button>
+          {loginError ? <p style={{ color: 'red', fontSize: 13 }}>{loginError}</p> : null}
+        </form>
+      </div>
+    );
+  }
 
-    isModalOpen && React.createElement('div', { style: { position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 9999 } },
-    React.createElement('div', { style: { backgroundColor: '#fff', padding: '32px', borderRadius: '8px', width: '500px', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' } },
-    React.createElement('div', { style: { display: 'flex', justifyContent: 'space-between', marginBottom: '16px', borderBottom: '1px solid #e5e7eb', paddingBottom: '8px' } },
-    React.createElement('h3', { style: { fontSize: '18px', fontWeight: 'bold', margin: 0 } }, `Novo Shopping - Passo ${step} de 3`),
-    React.createElement('button', { onClick: () => { setIsModalOpen(false); setStep(1); }, style: { border: 'none', background: 'none', fontSize: '18px', cursor: 'pointer' } }, '×')),step === 1 && 
-    React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: '14px' } },
-    React.createElement('div', null,React.createElement('label', { style: { display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '4px' } }, 'Nome Comercial do Shopping'),
+  return (
+    <div style={{ padding: 32, fontFamily: 'sans-serif' }}>
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          marginBottom: 24,
+        }}
+      >
+        <div>
+          <h1 style={{ fontSize: 26, margin: 0 }}>Gerenciamento Global de Tenants</h1>
+          <p style={{ fontSize: 14, color: '#6b7280' }}>Shoppings na plataforma: {total}</p>
+        </div>
+        <button type="button" onClick={() => setIsModalOpen(true)}>
+          + Novo Shopping
+        </button>
+      </div>
 
-    React.createElement('input', { type: 'text', value: form.name, onChange: (e: any) => handleNameChange(e.target.value), style: { width: '100%', padding: '8px', border: '1px solid #ccc', borderRadius: '4px' } }),formErrors.name && 
-    React.createElement('p', { style: { color: 'red', fontSize: '11px', margin: '4px 0 0' } }, formErrors.name)),
-    React.createElement('div', null,React.createElement('label', { style: { display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '4px' } }, 'Slug da URL (Auto-gerado)'),
-    React.createElement('input', { type: 'text', value: form.slug, onChange: (e: any) => setForm({ ...form, slug: e.target.value }), style: { width: '100%', padding: '8px', border: '1px solid #ccc', borderRadius: '4px', backgroundColor: '#f3f4f6' } }),formErrors.slug && 
-    React.createElement('p', { style: { color: 'red', fontSize: '11px', margin: '4px 0 0' } }, formErrors.slug)),
-    React.createElement('div', null,React.createElement('label', { style: { display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '4px' } }, 'Domínio Corporativo (Host)'),
-    React.createElement('input', { type: 'text', value: form.host, placeholder: 'ex: shoppingnovo.com.br', onChange: (e: any) => setForm({ ...form, host: e.target.value }), style: { width: '100%', padding: '8px', border: '1px solid #ccc', borderRadius: '4px' } }),formErrors.host && React.createElement('p', { style: { color: 'red', fontSize: '11px', margin: '4px 0 0' } }, formErrors.host)),
+      <div style={{ marginBottom: 16, display: 'flex', gap: 8, alignItems: 'center' }}>
+        <span style={{ fontSize: 14 }}>Status:</span>
+        <select
+          value={statusFilter}
+          onChange={(e) => setStatusFilter(e.target.value as 'all' | Status)}
+        >
+          <option value="all">Todos</option>
+          <option value="active">Ativos</option>
+          <option value="trial">Trial</option>
+          <option value="suspended">Suspensos</option>
+          <option value="inactive">Inativos</option>
+        </select>
+      </div>
 
-    React.createElement('button', {onClick: () => setStep(2),disabled: !form.name || !form.slug || !form.host,style: { padding: '10px', backgroundColor: '#2563eb', color: 'white', border: 'none', borderRadius: '4px', marginTop: '12px', cursor: 'pointer' }}, 'Avançar ➡️')),step === 2 && React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: '14px' } },
-                       React.createElement('div', null,React.createElement('label', { style: { display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '4px' } }, 'Cor Primária (Hexadecimal)'),
-                        React.createElement('input', { type: 'color', value: form.primary_color || '#0066CC', onChange: (e: any) => setForm({ ...form, primary_color: e.target.value }), style: { width: '60px', height: '36px', border: 'none', cursor: 'pointer' } }),formErrors.primary_color && React.createElement('p', { style: { color: 'red', fontSize: '11px', margin: '4px 0 0' } }, formErrors.primary_color)),
-                         React.createElement('div', null,React.createElement('label', { style: { display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '4px' } }, 'Cor Secundária (Hexadecimal)'),
-                          React.createElement('input', { type: 'color', value: form.secondary_color || '#003D7A', onChange: (e: any) => setForm({ ...form, secondary_color: e.target.value }), style: { width: '60px', height: '36px', border: 'none', cursor: 'pointer' } }),formErrors.secondary_color && React.createElement('p', { style: { color: 'red', fontSize: '11px', margin: '4px 0 0' } }, formErrors.secondary_color)),
-                           React.createElement('div', { style: { display: 'flex', justifyContent: 'space-between', marginTop: '12px' } },
-                            React.createElement('button', { onClick: () => setStep(1), style: { padding: '10px 16px', border: '1px solid #ccc', borderRadius: '4px', background: '#fff', cursor: 'pointer' } }, '⬅️ Voltar'),
-    React.createElement('button', { onClick: () => setStep(3), style: { padding: '10px 16px', backgroundColor: '#2563eb', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' } }, 'Avançar ➡️'))),step === 3 && React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: '14px' } },
-    React.createElement('div', null,React.createElement('label', { style: { display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '4px' } }, 'E-mail do Administrador Inicial'),
-    React.createElement('input', { type: 'email', value: form.admin_email, placeholder: 'admin@shopping.com.br', onChange: (e: any) => setForm({ ...form, admin_email: e.target.value }), style: { width: '100%', padding: '8px', border: '1px solid #ccc', borderRadius: '4px' } }),formErrors.admin_email && React.createElement('p', { style: { color: 'red', fontSize: '11px', margin: '4px 0 0' } }, formErrors.admin_email)),
-    React.createElement('div', null,React.createElement('label', { style: { display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '4px' } }, 'Senha Temporária (Mínimo 12 caracteres)'),
-    React.createElement('input', { type: 'password', value: form.admin_password, placeholder: 'SenhaSegura123!', onChange: (e: any) => setForm({ ...form, admin_password: e.target.value }), style: { width: '100%', padding: '8px', border: '1px solid #ccc', borderRadius: '4px' } }),formErrors.admin_password && React.createElement('p', { style: { color: 'red', fontSize: '11px', margin: '4px 0 0' } }, formErrors.admin_password)),
-    React.createElement('div', { style: { display: 'flex', justifyContent: 'space-between', marginTop: '12px' } },
-    React.createElement('button', { onClick: () => setStep(2), style: { padding: '10px 16px', border: '1px solid #ccc', borderRadius: '4px', background: '#fff', cursor: 'pointer' } }, '⬅️ Voltar'),
-    React.createElement('button', { onClick: handleCreateTenant, style: { padding: '10px 20px', backgroundColor: '#166534', color: 'white', border: 'none', borderRadius: '4px', fontWeight: 'bold', cursor: 'pointer' } }, '🚀 Finalizar e Criar'))))));}
+      {listError ? <p style={{ color: 'red' }}>{listError}</p> : null}
+
+      <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+        <thead>
+          <tr style={{ textAlign: 'left', borderBottom: '1px solid #e5e7eb' }}>
+            <th style={{ padding: 12 }}>Nome / ID</th>
+            <th style={{ padding: 12 }}>Slug / Host</th>
+            <th style={{ padding: 12 }}>Status</th>
+            <th style={{ padding: 12 }}>Lojas</th>
+            <th style={{ padding: 12 }}>Posts</th>
+            <th style={{ padding: 12 }}>Criado em</th>
+            <th style={{ padding: 12 }}>Ações</th>
+          </tr>
+        </thead>
+        <tbody>
+          {tenants.map((t) => (
+            <tr key={t.id} style={{ borderBottom: '1px solid #f3f4f6' }}>
+              <td style={{ padding: 12 }}>
+                <div style={{ fontWeight: 600 }}>{t.name}</div>
+                <div style={{ fontSize: 11, color: '#9ca3af' }}>{t.id}</div>
+              </td>
+              <td style={{ padding: 12 }}>
+                <div>{t.slug}</div>
+                <div style={{ fontSize: 12, color: '#2563eb' }}>{t.host}</div>
+              </td>
+              <td style={{ padding: 12 }}>{t.status}</td>
+              <td style={{ padding: 12, textAlign: 'center' }}>{t.stores_count}</td>
+              <td style={{ padding: 12, textAlign: 'center' }}>{t.posts_count}</td>
+              <td style={{ padding: 12, fontSize: 12 }}>
+                {new Date(t.created_at).toLocaleDateString('pt-BR')}
+              </td>
+              <td style={{ padding: 12, display: 'flex', gap: 8 }}>
+                <button
+                  type="button"
+                  onClick={() => void handleToggleStatus(t)}
+                  disabled={t.status === 'inactive'}
+                >
+                  {t.status === 'active' ? 'Suspender' : 'Reativar'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void handleDelete(t)}
+                  disabled={t.status === 'inactive'}
+                >
+                  Excluir
+                </button>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+
+      {isModalOpen ? (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0,0,0,0.5)',
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+          }}
+        >
+          <div style={{ background: '#fff', padding: 32, borderRadius: 8, width: 480 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}>
+              <h3 style={{ margin: 0 }}>Novo Shopping — Passo {step} de 3</h3>
+              <button type="button" onClick={resetModal}>
+                ×
+              </button>
+            </div>
+
+            {step === 1 ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                <label>
+                  Nome
+                  <input
+                    type="text"
+                    value={form.name}
+                    onChange={(e) =>
+                      setForm((c) => ({
+                        ...c,
+                        name: e.target.value,
+                        slug: slugify(e.target.value),
+                      }))
+                    }
+                  />
+                  {formErrors.name ? (
+                    <small style={{ color: 'red' }}>{formErrors.name}</small>
+                  ) : null}
+                </label>
+                <label>
+                  Slug
+                  <input
+                    type="text"
+                    value={form.slug}
+                    onChange={(e) => setForm((c) => ({ ...c, slug: e.target.value }))}
+                  />
+                  {formErrors.slug ? (
+                    <small style={{ color: 'red' }}>{formErrors.slug}</small>
+                  ) : null}
+                </label>
+                <label>
+                  Host
+                  <input
+                    type="text"
+                    placeholder="ex: shoppingnovo.com.br"
+                    value={form.host}
+                    onChange={(e) => setForm((c) => ({ ...c, host: e.target.value }))}
+                  />
+                  {formErrors.host ? (
+                    <small style={{ color: 'red' }}>{formErrors.host}</small>
+                  ) : null}
+                </label>
+                <button
+                  type="button"
+                  onClick={() => setStep(2)}
+                  disabled={!form.name || !form.slug || !form.host}
+                >
+                  Avançar
+                </button>
+              </div>
+            ) : null}
+
+            {step === 2 ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                <label>
+                  Flavor (identidade visual versionada em git — Modelo A)
+                  <input
+                    type="text"
+                    value={form.flavor_slug}
+                    onChange={(e) => setForm((c) => ({ ...c, flavor_slug: e.target.value }))}
+                  />
+                  {formErrors.flavor_slug ? (
+                    <small style={{ color: 'red' }}>{formErrors.flavor_slug}</small>
+                  ) : null}
+                  <small style={{ display: 'block', color: '#6b7280' }}>
+                    Deve existir em portal/flavors/&lt;slug&gt;/. Padrão: default.
+                  </small>
+                </label>
+                <label>
+                  Status inicial
+                  <select
+                    value={form.status}
+                    onChange={(e) => setForm((c) => ({ ...c, status: e.target.value as Status }))}
+                  >
+                    <option value="trial">trial</option>
+                    <option value="active">active</option>
+                  </select>
+                </label>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <button type="button" onClick={() => setStep(1)}>
+                    Voltar
+                  </button>
+                  <button type="button" onClick={() => setStep(3)}>
+                    Avançar
+                  </button>
+                </div>
+              </div>
+            ) : null}
+
+            {step === 3 ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                <label>
+                  E-mail do admin inicial
+                  <input
+                    type="email"
+                    value={form.admin_email}
+                    onChange={(e) => setForm((c) => ({ ...c, admin_email: e.target.value }))}
+                  />
+                  {formErrors.admin_email ? (
+                    <small style={{ color: 'red' }}>{formErrors.admin_email}</small>
+                  ) : null}
+                </label>
+                <label>
+                  Senha temporária (mín. 12 caracteres)
+                  <input
+                    type="password"
+                    value={form.admin_password}
+                    onChange={(e) => setForm((c) => ({ ...c, admin_password: e.target.value }))}
+                  />
+                  {formErrors.admin_password ? (
+                    <small style={{ color: 'red' }}>{formErrors.admin_password}</small>
+                  ) : null}
+                </label>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <button type="button" onClick={() => setStep(2)}>
+                    Voltar
+                  </button>
+                  <button type="button" onClick={() => void handleCreate()}>
+                    Finalizar e criar
+                  </button>
+                </div>
+              </div>
+            ) : null}
+          </div>
+        </div>
+      ) : null}
+    </div>
+  );
+}

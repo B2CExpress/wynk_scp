@@ -8,12 +8,12 @@
 
 ## TL;DR (sobrescrever ao fim de cada sessão)
 
-**Última atualização:** 2026-06-03 17:17
-**Onde tô:** Backend COMPLETO, testado e verde (typecheck+lint+146 testes). Fases 1-6, 5b, 8 feitas. Só falta Fase 7 (UI backoffice). Migration NÃO rodada; nada commitado.
-**Próximo passo:** Fase 7 — UI `/admin/tenants` no backoffice (Vite+React): tabela + criação multi-step + guarda de papel superadmin. (Ou: encerrar backend, rodar migration+seed, e arquivar parcialmente.)
+**Última atualização:** 2026-06-03 17:58
+**Onde tô:** TODAS as fases de implementação feitas (backend + testes + UI), tudo verde (backend: typecheck+lint+146 testes; backoffice: lint+typecheck+build). Migration NÃO rodada; NADA commitado.
+**Próximo passo:** ciclo de conclusão (R.5.3 + R.7) — atualizar features superadmin/auth/tenant-resolution, marcar critérios de aceite no main.md, commitar e arquivar (active/→archive/) NO MESMO PR. Aguarda decisão do dev (commit + migration).
 **Última decisão:** auth superadmin opção (a); `posts_count`=notícias (2026-06-03 14:00).
-**Bloqueio atual:** nenhum. Pendências operacionais: dev rodar migration + `seed:superadmin`.
-**Se retomar, ler:** este TL;DR + tabela de fases + entrada de log de 2026-06-03 17:17.
+**Bloqueio atual:** conclusão depende de commits (R.6 exige hash) e de o dev rodar a migration. Sem isso, não arquivar.
+**Se retomar, ler:** este TL;DR + tabela de fases + entrada de log de 2026-06-03 17:58.
 
 ---
 
@@ -30,7 +30,7 @@
 | 5 | Controller real (substituir mock) + validação + rotas sob auth + tolerância superadmin no requireAuth | concluído (typecheck+lint+116 testes verdes) | 2026-06-03 14:55 | _(commit pendente)_ |
 | 5b | Login de superadmin (emitir JWT sem tenant) + seeding + isentar superadmin no TenantSubscriber | concluído (typecheck+lint+116 testes verdes) | 2026-06-03 16:21 | _(commit pendente)_ |
 | 6 | Invalidação cache `tenant:resolve:{host}` + logs de auditoria | concluído (no service, Fase 4) | 2026-06-03 14:55 | _(commit pendente)_ |
-| 7 | UI backoffice `/admin/tenants` (tabela + criação multi-step + guarda de papel) | pendente | 2026-06-03 12:16 | — |
+| 7 | UI backoffice `/admin/tenants` (tabela + criação multi-step + guarda de papel) | concluído (lint+typecheck+build verdes) | 2026-06-03 17:58 | _(commit pendente)_ |
 | 8 | Testes do CRUD superadmin (409 unicidade, 403 papéis, soft-delete, login) | concluído (146 testes verdes; +30) | 2026-06-03 17:17 | _(commit pendente)_ |
 | 9 | Atualizar features + arquivar (R.5.3 + R.7) | pendente | 2026-06-03 12:16 | — |
 
@@ -109,6 +109,16 @@ Pendências antes de prosseguir: dev rodar `migration:run` localmente; resolver 
 ## 2026-06-03 13:49 — [refactor] Fase 3 — middleware `requireSuperadmin`
 
 Criado `middleware/require-superadmin.ts` espelhando `require-tenant-admin.ts`: aceita SOMENTE `req.user.role === 'superadmin'`, senão 403 `forbidden`. Sem herança de privilégio (tenant_admin/admin/editor → 403). Pressupõe `requireAuth` antes. Typecheck verde (`req.user` tem augmentation global de Request).
+
+## 2026-06-03 17:58 — [MARCO] [refactor] Fase 7 — UI backoffice `/admin/tenants`
+
+`backoffice/src/pages/tenants/TenantsPage.tsx` reescrito (era `React.createElement` + campos de cor + fetch sem auth). Agora: JSX/TS, self-contained com login próprio de superadmin (`POST /auth/superadmin/login`, `credentials: 'include'`), tabela (Nome/ID, Slug/Host, Status, Lojas, Posts, Criado, Ações), filtro de status, criação multi-step (1: nome→slug auto + host; 2: **flavor_slug** [default 'default'] + status; 3: admin email/senha), suspender/reativar, soft-delete com dupla confirmação. Erros do backend mapeados (validation_failed por campo, 409 slug/host). 401→volta pro login; 403→aviso.
+
+Wiring: `backoffice/src/main.tsx` seleciona view por path (`/admin/tenants` → TenantsPage; resto → App tenant-scoped). Sem react-router (não instalado; App.tsx e AdminDashboard.tsx também são ad-hoc) — interim, trocar por roteamento real depois.
+
+Lint React 19 `react-hooks/set-state-in-effect` reclamou do data-fetch no effect; resolvido com disable pontual (setState é pós-await, padrão legítimo; App.tsx usa o mesmo sem disable por nuance de config). Verificação: `npm run lint`/`typecheck`/`build` do backoffice todos verdes.
+
+Backend + UI completos. Resta apenas o ciclo de conclusão (R.5.3 + R.7): atualizar features superadmin/auth/tenant-resolution, marcar critérios de aceite, arquivar — tudo no mesmo PR, com commits. Pendências operacionais do dev: rodar migration + `seed:superadmin`.
 
 ## 2026-06-03 17:17 — [refactor] Fase 8 — testes (validator, service, e2e auth)
 
