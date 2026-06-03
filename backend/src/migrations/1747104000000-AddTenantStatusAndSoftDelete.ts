@@ -62,9 +62,7 @@ export class AddTenantStatusAndSoftDelete1747104000000 implements MigrationInter
         ALTER COLUMN tenant_id SET NOT NULL
     `);
 
-    await queryRunner.query(
-      `DROP INDEX IF EXISTS ${schemaName}.uq_tb_user_superadmin_email`,
-    );
+    await queryRunner.query(`DROP INDEX IF EXISTS ${schemaName}.uq_tb_user_superadmin_email`);
 
     // Reverter nullable exige que não haja usuários sem tenant (superadmins).
     await queryRunner.query(`

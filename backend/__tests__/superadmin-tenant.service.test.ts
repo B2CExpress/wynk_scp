@@ -147,9 +147,9 @@ describe('SuperadminTenantService.update', () => {
     state.tenantsByHost.set('novo.com.br', { id: 't2', host: 'novo.com.br' });
     const service = new SuperadminTenantService(makeFakeDataSource(state));
 
-    await expect(
-      service.update('t1', { host: 'novo.com.br' }, 'actor'),
-    ).rejects.toBeInstanceOf(HostConflictError);
+    await expect(service.update('t1', { host: 'novo.com.br' }, 'actor')).rejects.toBeInstanceOf(
+      HostConflictError,
+    );
   });
 });
 

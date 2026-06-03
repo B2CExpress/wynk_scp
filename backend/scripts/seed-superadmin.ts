@@ -66,9 +66,6 @@ async function main(): Promise<void> {
 }
 
 main().catch((err: unknown) => {
-  console.error(
-    '[seed:superadmin] erro:',
-    err instanceof Error ? (err.stack ?? err.message) : err,
-  );
+  console.error('[seed:superadmin] erro:', err instanceof Error ? (err.stack ?? err.message) : err);
   process.exit(1);
 });

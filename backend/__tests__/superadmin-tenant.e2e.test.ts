@@ -56,9 +56,7 @@ describe('autorização de /api/superadmin/tenants', () => {
   });
 
   it('200 para superadmin (chega no controller, sem abrir contexto de tenant)', async () => {
-    const res = await request(app)
-      .get('/api/superadmin/tenants')
-      .set('Cookie', superadminCookie());
+    const res = await request(app).get('/api/superadmin/tenants').set('Cookie', superadminCookie());
     expect(res.status).toBe(200);
     expect(res.body).toEqual({ reached: true });
   });
@@ -68,9 +66,9 @@ describe('autorização de /api/superadmin/tenants', () => {
     expect((await request(app).post('/api/superadmin/tenants').set('Cookie', cookie)).status).toBe(
       403,
     );
-    expect(
-      (await request(app).put('/api/superadmin/tenants/x').set('Cookie', cookie)).status,
-    ).toBe(403);
+    expect((await request(app).put('/api/superadmin/tenants/x').set('Cookie', cookie)).status).toBe(
+      403,
+    );
     expect(
       (await request(app).delete('/api/superadmin/tenants/x').set('Cookie', cookie)).status,
     ).toBe(403);

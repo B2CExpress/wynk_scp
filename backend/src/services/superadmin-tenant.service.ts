@@ -293,10 +293,7 @@ export class SuperadminTenantService {
    * Soft-delete: marca `inactive`, libera o host original (renomeia para
    * `deleted-<id>.local`) e seta `deletedAt`. Dados permanecem para auditoria.
    */
-  async softDelete(
-    id: string,
-    actorUserId: string,
-  ): Promise<{ ok: true; soft_deleted: true }> {
+  async softDelete(id: string, actorUserId: string): Promise<{ ok: true; soft_deleted: true }> {
     const repo = this.dataSource.getRepository(Tenant);
     const tenant = await repo.findOne({ where: { id } });
     if (!tenant) {
