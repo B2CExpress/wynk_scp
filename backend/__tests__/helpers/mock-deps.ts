@@ -15,6 +15,7 @@ import type { CronController } from '../../src/controllers/cron.controller';
 import type { PublicPromotionController } from '../../src/controllers/public-promotion.controller';
 import type { StoreCategoryController } from '../../src/controllers/store-category.controller';
 import type { AdminDashboardController } from '../../src/controllers/admin-dashboard.controller';
+import type { SuperadminTenantController } from '../../src/controllers/superadminTenantController';
 import type { AppDeps } from '../../src/app';
 
 /**
@@ -44,6 +45,7 @@ export function makeStubAuthController(): AuthController {
   };
   return {
     login: notImplemented,
+    loginSuperadmin: notImplemented,
     refresh: notImplemented,
     logout: notImplemented,
     me: notImplemented,
@@ -223,6 +225,22 @@ export function makeStubAdminDashboardController(): AdminDashboardController {
   } as unknown as AdminDashboardController;
 }
 
+/**
+ * Stub do `SuperadminTenantController` que responde 501. Usado por testes que
+ * não exercitam o CRUD de tenants do superadmin.
+ */
+export function makeStubSuperadminTenantController(): SuperadminTenantController {
+  const notImplemented = async (_req: Request, res: Response): Promise<void> => {
+    res.status(501).json({ error: 'not_implemented_in_test' });
+  };
+  return {
+    list: notImplemented,
+    create: notImplemented,
+    update: notImplemented,
+    remove: notImplemented,
+  } as unknown as SuperadminTenantController;
+}
+
 export function makeAppDeps(overrides: Partial<AppDeps> = {}): AppDeps {
   return {
     tenantResolver: makeFakeTenantResolver(),
@@ -240,6 +258,7 @@ export function makeAppDeps(overrides: Partial<AppDeps> = {}): AppDeps {
     publicPromotionController: makeStubPublicPromotionController(),
     storeCategoryController: undefined as StoreCategoryController | undefined,
     dashboardController: makeStubAdminDashboardController(),
+    superadminTenantController: makeStubSuperadminTenantController(),
     ...overrides,
   };
 }

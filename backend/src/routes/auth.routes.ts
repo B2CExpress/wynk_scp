@@ -5,6 +5,10 @@ import { requireAuth } from '../middleware/require-auth';
 export function createAuthRoutes(controller: AuthController): Router {
   const router = Router();
 
+  // Login de superadmin (global, sem tenant) — SPEC-20260603-1149. DEVE vir antes
+  // de `/auth/:slug/login`, senão "superadmin" seria capturado como slug de tenant.
+  router.post('/auth/superadmin/login', controller.loginSuperadmin);
+
   // Login: tenant vem da URL (slug), não do Host. Permite domínio único
   // do backoffice (`admin.scp.local/<slug>/login`) sem precisar de subdomínio
   // por tenant.

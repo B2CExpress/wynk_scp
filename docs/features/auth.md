@@ -40,7 +40,7 @@
 ### Em execução (só em branches — não aparece em main)
 | ID | Título | Branch |
 |---|---|---|
-| _(nenhuma)_ | | |
+| SPEC-20260603-1149 | Superadmin — CRUD de tenants (introduz papel `superadmin` em `tb_user` com `tenant_id` nullable + middleware `requireSuperadmin`) | feature/SQU-72-SuperadminCRUD-de-tenants |
 
 ## Estado atual
 

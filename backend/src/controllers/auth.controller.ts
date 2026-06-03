@@ -92,6 +92,28 @@ export class AuthController {
     }
   };
 
+  loginSuperadmin = async (req: Request, res: Response): Promise<void> => {
+    const { email, password } = (req.body ?? {}) as { email?: string; password?: string };
+
+    if (!email || !password) {
+      res.status(400).json({ error: 'invalid_request' });
+      return;
+    }
+
+    try {
+      const result = await this.authService.loginSuperadmin(email, password);
+      setAccessCookie(res, result.accessToken);
+      setRefreshCookie(res, result.refreshToken);
+      res.status(200).json({ user: result.user });
+    } catch (err) {
+      if (err instanceof InvalidCredentialsError) {
+        res.status(401).json({ error: 'invalid_credentials' });
+        return;
+      }
+      throw err;
+    }
+  };
+
   refresh = async (req: Request, res: Response): Promise<void> => {
     const cookies = (req as Request & { cookies?: Record<string, string> }).cookies ?? {};
     const refreshToken = cookies[REFRESH_COOKIE];

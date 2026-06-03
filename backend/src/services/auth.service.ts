@@ -87,6 +87,32 @@ export class AuthService {
   }
 
   /**
+   * Login do superadmin global (sem tenant) — SPEC-20260603-1149. JWT é emitido
+   * SEM campos de tenant; `requireAuth` reconhece `role=superadmin` e não abre
+   * contexto de tenant. Refresh token é tenant-less (`tenantId=null`).
+   */
+  async loginSuperadmin(email: string, password: string): Promise<LoginResult> {
+    const user = await this.userRepo.findSuperadminByEmail(email);
+    if (!user) {
+      throw new InvalidCredentialsError();
+    }
+
+    const ok = await verifyPassword(password, user.passwordHash);
+    if (!ok) {
+      throw new InvalidCredentialsError();
+    }
+
+    const accessToken = signAccessToken({ sub: user.id, role: user.role });
+    const refreshToken = await this.issueRefreshToken(user.id, null);
+
+    return {
+      user: { id: user.id, email: user.email, name: user.name, role: user.role },
+      accessToken,
+      refreshToken,
+    };
+  }
+
+  /**
    * Rotação de refresh: revoga o atual e emite novo. Se refresh recebido
    * já está revogado, levanta `RefreshTokenReusedError` (caller revoga todos
    * os tokens do user pra mitigar leak).
@@ -111,6 +137,14 @@ export class AuthService {
     if (!user) {
       // User foi deletado mas o token ficou — trata como inválido.
       throw new RefreshTokenInvalidError();
+    }
+
+    // Sessão de superadmin: token tenant-less → emite novo sem tenant.
+    if (valid.tenantId === null) {
+      await this.refreshTokenRepo.revoke(valid.id);
+      const accessToken = signAccessToken({ sub: user.id, role: user.role });
+      const refreshToken = await this.issueRefreshToken(user.id, null);
+      return { accessToken, refreshToken };
     }
 
     const tenant = await this.tenantRepo.findById(valid.tenantId);
@@ -146,7 +180,7 @@ export class AuthService {
     }
   }
 
-  private async issueRefreshToken(userId: string, tenantId: string): Promise<string> {
+  private async issueRefreshToken(userId: string, tenantId: string | null): Promise<string> {
     const plain = generateRefreshToken();
     const tokenHash = hashRefreshToken(plain);
     const expiresAt = new Date(Date.now() + config.jwt.refreshTtlSeconds * 1000);

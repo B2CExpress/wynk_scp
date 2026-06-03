@@ -1,4 +1,4 @@
-import type { DataSource, Repository } from 'typeorm';
+import { IsNull, type DataSource, type Repository } from 'typeorm';
 import { User } from '../entities/User';
 
 /**
@@ -17,6 +17,11 @@ export class UserRepository {
 
   findByTenantAndEmail(tenantId: string, email: string): Promise<User | null> {
     return this.repo.findOne({ where: { tenantId, email } });
+  }
+
+  /** Superadmin global: `tenant_id IS NULL` + `role = 'superadmin'` (SPEC-20260603-1149). */
+  findSuperadminByEmail(email: string): Promise<User | null> {
+    return this.repo.findOne({ where: { email, role: 'superadmin', tenantId: IsNull() } });
   }
 
   findById(id: string): Promise<User | null> {

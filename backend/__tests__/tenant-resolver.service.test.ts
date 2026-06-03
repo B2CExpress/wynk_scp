@@ -39,6 +39,8 @@ const tenantRow: Tenant = {
   host: 'shopping-x.local',
   flavorSlug: 'shopping-x',
   name: 'Shopping X',
+  status: 'active',
+  deletedAt: null,
   createdAt: new Date(),
   updatedAt: new Date(),
 };

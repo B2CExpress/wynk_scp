@@ -12,7 +12,8 @@ export const REFRESH_COOKIE = 'scp_refresh';
  */
 export interface AuthedUser {
   userId: string;
-  tenantId: string;
+  /** `null` para o papel `superadmin` (global, sem tenant) — SPEC-20260603-1149. */
+  tenantId: string | null;
   role: string;
 }
 
@@ -45,18 +46,26 @@ export function requireAuth(req: Request, res: Response, next: NextFunction): vo
     throw err;
   }
 
-  const tenantCtx: TenantContext = {
-    tenantId: payload.tenantId,
-    slug: payload.tenantSlug,
-    flavorSlug: payload.tenantFlavorSlug,
-  };
-
-  req.tenant = tenantCtx;
   (req as Request & { user?: AuthedUser }).user = {
     userId: payload.sub,
-    tenantId: payload.tenantId,
+    tenantId: payload.tenantId ?? null,
     role: payload.role,
   };
 
+  // Superadmin (SPEC-20260603-1149) opera fora de contexto de tenant: autentica
+  // mas NÃO abre `runWithTenantContext`, senão o `TenantSubscriber` rejeitaria
+  // operações cross-tenant (ex.: provisionar um tenant + seu admin).
+  if (payload.role === 'superadmin' || !payload.tenantId) {
+    next();
+    return;
+  }
+
+  const tenantCtx: TenantContext = {
+    tenantId: payload.tenantId,
+    slug: payload.tenantSlug ?? '',
+    flavorSlug: payload.tenantFlavorSlug ?? '',
+  };
+
+  req.tenant = tenantCtx;
   runWithTenantContext(tenantCtx, () => next());
 }
