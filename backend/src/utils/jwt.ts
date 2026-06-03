@@ -11,9 +11,11 @@ import { config } from '../config';
  */
 export interface AccessTokenPayload {
   sub: string; // userId
-  tenantId: string;
-  tenantSlug: string;
-  tenantFlavorSlug: string;
+  // Campos de tenant ausentes para o papel `superadmin` (global, sem tenant) —
+  // SPEC-20260603-1149. Para os demais papéis, sempre presentes.
+  tenantId?: string;
+  tenantSlug?: string;
+  tenantFlavorSlug?: string;
   role: string;
 }
 

@@ -3,8 +3,9 @@ export interface CreateTenantPayload {
   slug: string;
   host: string;
   status: 'active' | 'trial' | 'inactive' | 'suspended';
-  primary_color?: string | null;
-  secondary_color?: string | null;
+  // Branding via flavor versionado em git (Modelo A) — NÃO cores no banco
+  // (SPEC-20260603-1149). Opcional; default 'default' aplicado no service.
+  flavor_slug?: string;
   admin_email: string;
   admin_password: string;
 }
@@ -62,13 +63,10 @@ export function validateCreateTenant(data: Partial<CreateTenantPayload>) {
     errors.admin_password = "A senha temporária do administrador deve possuir no mínimo 12 caracteres.";
   }
 
-  // Validação Opcional das Cores (Hexadecimal #RRGGBB)
-  const hexRegex = /^#[0-9A-Fa-f]{6}$/;
-  if (data.primary_color && !hexRegex.test(data.primary_color)) {
-    errors.primary_color = "A cor primária deve ser um Hexadecimal válido (ex: #0066CC).";
-  }
-  if (data.secondary_color && !hexRegex.test(data.secondary_color)) {
-    errors.secondary_color = "A cor secundária deve ser um Hexadecimal válido (ex: #003D7A).";
+  // Validação opcional do flavor (slug de pasta em portal/flavors/<slug>/)
+  const flavorRegex = /^[a-z0-9-]+$/;
+  if (data.flavor_slug !== undefined && !flavorRegex.test(data.flavor_slug)) {
+    errors.flavor_slug = "flavor_slug inválido. Use apenas letras minúsculas, números e hífens.";
   }
 
   return {

@@ -43,6 +43,8 @@ import { AdminDashboardController } from './controllers/admin-dashboard.controll
 import { PublicPromotionController } from './controllers/public-promotion.controller';
 import { StoreCategoryService } from './services/store-category.service';
 import { StoreCategoryController } from './controllers/store-category.controller';
+import { SuperadminTenantService } from './services/superadmin-tenant.service';
+import { SuperadminTenantController } from './controllers/superadminTenantController';
 import { startPublishScheduledLoop } from './jobs/publish-scheduled';
 
 async function main(): Promise<void> {
@@ -104,6 +106,8 @@ async function main(): Promise<void> {
   const cronController = new CronController(newsService);
   const publicPromotionController = new PublicPromotionController(promotionService);
   const storeCategoryController = new StoreCategoryController(storeCategoryService);
+  const superadminTenantService = new SuperadminTenantService(AppDataSource);
+  const superadminTenantController = new SuperadminTenantController(superadminTenantService);
 
   const app = createApp({
     tenantResolver,
@@ -123,6 +127,7 @@ async function main(): Promise<void> {
     cronController,
     publicPromotionController,
     storeCategoryController,
+    superadminTenantController,
   });
 
   if (config.nodeEnv !== 'test') {

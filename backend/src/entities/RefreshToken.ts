@@ -19,8 +19,9 @@ export class RefreshToken {
   @Column({ name: 'user_id', type: 'uuid' })
   userId: string;
 
-  @Column({ name: 'tenant_id', type: 'uuid' })
-  tenantId: string;
+  /** `null` para sessões de `superadmin` (global, sem tenant) — SPEC-20260603-1149. */
+  @Column({ name: 'tenant_id', type: 'uuid', nullable: true })
+  tenantId: string | null;
 
   @Index('uq_tb_refresh_token_hash', { unique: true })
   @Column({ name: 'token_hash', type: 'varchar', length: 64 })

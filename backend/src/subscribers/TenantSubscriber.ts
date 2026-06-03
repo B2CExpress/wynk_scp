@@ -27,9 +27,16 @@ export class TenantSubscriber implements EntitySubscriberInterface {
     }
 
     const ctx = getTenantContext();
-    const entity = event.entity as { tenantId?: string };
+    const entity = event.entity as { tenantId?: string | null };
 
-    if (!entity.tenantId) {
+    // `tenantId` explicitamente `null` = insert global intencional (ex.: superadmin
+    // e seu refresh token, SPEC-20260603-1149). Permitido. Só `undefined` (omitido)
+    // dispara o fallback de contexto / erro de acidente.
+    if (entity.tenantId === null) {
+      return;
+    }
+
+    if (entity.tenantId === undefined) {
       if (!ctx) {
         throw new Error(
           `INSERT em ${event.metadata.tableName} sem tenant_id: nem o entity tinha tenantId, nem havia TenantContext ativo. Use runWithTenantContext() ou middleware antes da operação.`,

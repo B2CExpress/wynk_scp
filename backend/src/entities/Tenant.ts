@@ -33,6 +33,17 @@ export class Tenant {
   @Column({ name: 'tenant_name', type: 'varchar', length: 255 })
   name: string;
 
+  /**
+   * Ciclo de vida do shopping. `inactive` é o estado de soft-delete (junto com
+   * `deletedAt`). Validado por CHECK constraint `ck_tb_tenant_status`.
+   */
+  @Column({ name: 'tenant_status', type: 'varchar', length: 20, default: 'trial' })
+  status: 'active' | 'trial' | 'inactive' | 'suspended';
+
+  /** Soft-delete: preenchido ao desativar; dados permanecem no banco para auditoria. */
+  @Column({ name: 'tenant_deleted_at', type: 'timestamptz', nullable: true })
+  deletedAt: Date | null;
+
   @CreateDateColumn({ name: 'tenant_created_at', type: 'timestamptz' })
   createdAt: Date;
 

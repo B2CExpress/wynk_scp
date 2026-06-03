@@ -13,6 +13,7 @@
     "db:setup": "npm run prepare:schema && npm run migration:run",
     "seed": "ts-node scripts/seed.ts",
     "seed:demo": "ts-node scripts/seed-demo.ts",
+    "seed:superadmin": "ts-node scripts/seed-superadmin.ts",
     "migration:generate": "npm run typeorm -- migration:generate -d typeorm.config.ts",
     "migration:create": "npm run typeorm -- migration:create",
     "migration:run": "npm run typeorm -- migration:run -d typeorm.config.ts",

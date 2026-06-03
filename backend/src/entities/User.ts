@@ -8,11 +8,13 @@ import {
 } from 'typeorm';
 
 /**
- * User — operador do backoffice (Tenant Admin / Editor / outros papéis).
+ * User — operador do backoffice (Tenant Admin / Editor / Superadmin / outros papéis).
  *
- * Pertence sempre a um tenant (FK obrigatória, sem superadmin global nesta SPEC).
- * Email é único por tenant — o mesmo email pode existir em tenants diferentes
- * (intencional: operador que trabalha em 2 shoppings tem 2 contas).
+ * Em geral pertence a um tenant. **Exceção:** o papel `superadmin` é global e tem
+ * `tenantId = null` (não pertence a nenhum shopping) — introduzido por
+ * SPEC-20260603-1149. Email é único por tenant (`uq_tb_user_tenant_email`); entre
+ * superadmins, a unicidade é garantida pelo índice parcial `uq_tb_user_superadmin_email`
+ * (`WHERE tenant_id IS NULL`), porque NULL não colide no índice composto.
  *
  * `userPasswordHash` armazena hash bcrypt — nunca a senha em texto plano.
  *
@@ -24,8 +26,9 @@ export class User {
   @PrimaryGeneratedColumn('uuid', { name: 'user_id' })
   id: string;
 
-  @Column({ name: 'tenant_id', type: 'uuid' })
-  tenantId: string;
+  /** `null` apenas para o papel `superadmin` (global, sem tenant). */
+  @Column({ name: 'tenant_id', type: 'uuid', nullable: true })
+  tenantId: string | null;
 
   @Column({ name: 'user_email', type: 'varchar', length: 255 })
   email: string;

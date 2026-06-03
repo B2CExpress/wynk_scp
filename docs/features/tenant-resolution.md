@@ -46,7 +46,7 @@
 ### Em execução (só em branches — não aparece em main)
 | ID | Título | Branch |
 |---|---|---|
-| _(nenhuma)_ | | |
+| SPEC-20260603-1149 | Superadmin — CRUD de tenants (adiciona `tenant_status`/`tenant_deleted_at` em `tb_tenant`; soft-delete libera host; invalida cache `tenant:resolve:{host}`) | feature/SQU-72-SuperadminCRUD-de-tenants |
 
 ## Estado atual
 
