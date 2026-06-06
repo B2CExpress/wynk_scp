@@ -21,6 +21,7 @@ import type { AdminDashboardController } from './controllers/admin-dashboard.con
 import type { PublicPromotionController } from './controllers/public-promotion.controller';
 import type { StoreCategoryController } from './controllers/store-category.controller';
 import type { SuperadminTenantController } from './controllers/superadminTenantController';
+import type { ImpersonationController } from './controllers/impersonation.controller';
 import { createResolveTenantByHostMiddleware } from './middleware/resolve-tenant-by-host';
 import { tenantContextMiddleware } from './middleware/tenant-context';
 import { tenantRoutes } from './routes/tenant.routes';
@@ -37,9 +38,11 @@ import { createCronRoutes } from './routes/cron.routes';
 import { createAdminDashboardRoutes } from './routes/admin-dashboard.routes';
 import { createStoreCategoryRoutes } from './routes/store-category.routes';
 import { createSuperadminRoutes } from './routes/superadmin.routes';
+import { createImpersonationRoutes } from './routes/impersonation.routes';
 
 export interface AppDeps {
   tenantResolver: TenantResolverService;
+  tenantRepository?: any;
   authController: AuthController;
   storeController: StoreController;
   eventController: EventController;
@@ -55,6 +58,7 @@ export interface AppDeps {
   publicPromotionController: PublicPromotionController;
   storeCategoryController?: StoreCategoryController;
   superadminTenantController: SuperadminTenantController;
+  impersonationController: ImpersonationController;
 }
 
 /**
@@ -91,6 +95,7 @@ export function createApp(deps: AppDeps): Express {
   app.use(express.urlencoded({ extended: true }));
   app.use(cookieParser());
   app.use('/api', createSuperadminRoutes(deps.superadminTenantController));
+  app.use('/api', createImpersonationRoutes(deps.impersonationController));
 
   if (config.nodeEnv !== 'test') {
     app.use(morgan(config.nodeEnv === 'production' ? 'combined' : 'dev'));
@@ -107,7 +112,7 @@ export function createApp(deps: AppDeps): Express {
   app.use(
     bypassFor(
       shouldBypassTenantResolution,
-      createResolveTenantByHostMiddleware(deps.tenantResolver),
+      createResolveTenantByHostMiddleware(deps.tenantResolver, deps.tenantRepository),
     ),
   );
   app.use(bypassFor(shouldBypassTenantResolution, tenantContextMiddleware));

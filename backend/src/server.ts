@@ -45,6 +45,8 @@ import { StoreCategoryService } from './services/store-category.service';
 import { StoreCategoryController } from './controllers/store-category.controller';
 import { SuperadminTenantService } from './services/superadmin-tenant.service';
 import { SuperadminTenantController } from './controllers/superadminTenantController';
+import { ImpersonationService } from './services/impersonation.service';
+import { ImpersonationController } from './controllers/impersonation.controller';
 import { startPublishScheduledLoop } from './jobs/publish-scheduled';
 
 async function main(): Promise<void> {
@@ -108,9 +110,12 @@ async function main(): Promise<void> {
   const storeCategoryController = new StoreCategoryController(storeCategoryService);
   const superadminTenantService = new SuperadminTenantService(AppDataSource);
   const superadminTenantController = new SuperadminTenantController(superadminTenantService);
+  const impersonationService = new ImpersonationService(AppDataSource, tenantRepo);
+  const impersonationController = new ImpersonationController(AppDataSource, impersonationService);
 
   const app = createApp({
     tenantResolver,
+    tenantRepository: tenantRepo,
 
     authController,
 
@@ -128,6 +133,7 @@ async function main(): Promise<void> {
     publicPromotionController,
     storeCategoryController,
     superadminTenantController,
+    impersonationController,
   });
 
   if (config.nodeEnv !== 'test') {
