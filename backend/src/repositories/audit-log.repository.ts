@@ -24,7 +24,7 @@ export class AuditLogRepository {
     actorRole: string;
     targetTenantId?: string | null;
     targetUserId?: string | null;
-    metadata?: Record<string, any> | null;
+    metadata?: Record<string, unknown> | null;
     ipAddress?: string | null;
     userAgent?: string | null;
   }): Promise<AuditLog> {
