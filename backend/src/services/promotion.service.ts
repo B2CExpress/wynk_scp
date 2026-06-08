@@ -3,6 +3,7 @@ import type {
   PromotionRepository,
   ListPromotionsQuery,
 } from '../repositories/promotion.repository';
+import type { Promotion } from '../entities/Promotion';
 import { requireTenantContext } from '../middleware/tenant-context';
 import { invalidateByPattern } from '../utils/cache';
 import type { CreatePromotionInput, UpdatePromotionInput } from '../dtos/promotion.dto';
@@ -61,7 +62,7 @@ export class CannotDeleteError extends Error {
   }
 }
 
-function serializePromotion(promotion: any): PromotionDetailResponse {
+function serializePromotion(promotion: Promotion): PromotionDetailResponse {
   return {
     id: promotion.id,
     tenantId: promotion.tenantId,

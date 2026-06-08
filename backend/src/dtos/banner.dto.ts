@@ -250,13 +250,16 @@ export function parseBannerReorderInput(input: Record<string, unknown>): BannerR
     return null;
   }
 
-  const order = input.order
-    .filter((item: any) => typeof item === 'object' && item !== null)
-    .map((item: any) => ({
+  const order = (input.order as unknown[])
+    .filter((item): item is Record<string, unknown> => typeof item === 'object' && item !== null)
+    .map((item) => ({
       id: typeof item.id === 'string' ? item.id : null,
       sort_order: typeof item.sort_order === 'number' ? item.sort_order : null,
     }))
-    .filter((item: any) => item.id && item.sort_order !== null && item.sort_order >= 0);
+    .filter(
+      (item): item is { id: string; sort_order: number } =>
+        !!item.id && item.sort_order !== null && item.sort_order >= 0,
+    );
 
   return order.length > 0 ? { order } : null;
 }

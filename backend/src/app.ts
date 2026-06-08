@@ -6,6 +6,7 @@ import morgan from 'morgan';
 import { config } from './config';
 import { logger } from './utils/logger';
 import type { TenantResolverService } from './services/tenant-resolver.service';
+import type { TenantRepository } from './repositories/tenant.repository';
 import type { AuthController } from './controllers/auth.controller';
 import type { StoreController } from './controllers/store.controller';
 import type { EventController } from './controllers/event.controller';
@@ -42,7 +43,7 @@ import { createImpersonationRoutes } from './routes/impersonation.routes';
 
 export interface AppDeps {
   tenantResolver: TenantResolverService;
-  tenantRepository?: any;
+  tenantRepository?: TenantRepository;
   authController: AuthController;
   storeController: StoreController;
   eventController: EventController;
