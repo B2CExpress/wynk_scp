@@ -188,6 +188,31 @@ export function TenantsPage() {
     if (res.ok) void fetchTenants();
   }
 
+  async function handleImpersonate(t: TenantItem) {
+    if (t.status !== 'active') {
+      alert('Só é possível impersonar tenants ativos.');
+      return;
+    }
+
+    try {
+      const res = await fetch(`${BACKEND_URL}/api/superadmin/impersonate`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tenant_id: t.id }),
+      });
+
+      if (res.ok) {
+        const data = (await res.json()) as { redirect_url?: string };
+        window.location.assign(data.redirect_url ?? `https://${t.host}/admin`);
+      } else {
+        alert('Erro ao iniciar impersonação');
+      }
+    } catch {
+      alert('Erro ao conectar com o servidor');
+    }
+  }
+
   if (!authed) {
     return (
       <div style={{ maxWidth: 360, margin: '80px auto', fontFamily: 'sans-serif' }}>
@@ -282,6 +307,16 @@ export function TenantsPage() {
                 {new Date(t.created_at).toLocaleDateString('pt-BR')}
               </td>
               <td style={{ padding: 12, display: 'flex', gap: 8 }}>
+                <button
+                  type="button"
+                  onClick={() => void handleImpersonate(t)}
+                  disabled={t.status !== 'active'}
+                  title={
+                    t.status !== 'active' ? 'Apenas tenants ativos podem ser impersonados' : ''
+                  }
+                >
+                  Acessar como
+                </button>
                 <button
                   type="button"
                   onClick={() => void handleToggleStatus(t)}

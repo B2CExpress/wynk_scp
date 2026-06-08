@@ -58,7 +58,7 @@ export class Store {
   externalUrl: string | null;
 
   @Column({ name: 'store_opening_hours', type: 'jsonb', nullable: true })
-  openingHours: Record<string, any> | null;
+  openingHours: Record<string, unknown> | null;
 
   @Column({ name: 'store_is_restaurant', type: 'boolean', default: false })
   isRestaurant: boolean;

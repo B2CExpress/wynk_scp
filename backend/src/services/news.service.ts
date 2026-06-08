@@ -1,4 +1,5 @@
 import type Redis from 'ioredis';
+import type { News } from '../entities/News';
 import type { NewsRepository } from '../repositories/news.repository';
 import { requireTenantContext } from '../middleware/tenant-context';
 import { invalidateByPattern } from '../utils/cache';
@@ -61,7 +62,7 @@ export class NewsPublishDateInPastError extends Error {
   }
 }
 
-function serializeNews(news: any): NewsDetailResponse {
+function serializeNews(news: News): NewsDetailResponse {
   return {
     id: news.id,
     tenantId: news.tenantId,

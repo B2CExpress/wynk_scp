@@ -1,5 +1,6 @@
 import type Redis from 'ioredis';
 import type { BannerRepository } from '../repositories/banner.repository';
+import type { Banner } from '../entities/Banner';
 import type { CreateBannerInput, UpdateBannerInput } from '../dtos/banner.dto';
 import { requireTenantContext } from '../middleware/tenant-context';
 import { invalidateByPattern } from '../utils/cache';
@@ -36,7 +37,7 @@ export class BannerNotFoundError extends Error {
   }
 }
 
-function serializeBanner(banner: any): BannerDetailResponse {
+function serializeBanner(banner: Banner): BannerDetailResponse {
   return {
     id: banner.id,
     title: banner.title,
