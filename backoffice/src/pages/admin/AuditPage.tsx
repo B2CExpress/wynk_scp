@@ -18,7 +18,7 @@ interface AuditLogEntry {
   event_type: string;
   actor: Actor;
   target_tenant: TargetTenant | null;
-  metadata: Record<string, any> | null;
+  metadata: Record<string, unknown> | null;
   ip_address: string | null;
   created_at: string;
 }
@@ -78,17 +78,10 @@ export function AuditPage() {
   };
 
   useEffect(() => {
-    if (!authed && page === 1) {
-      // Tentar autenticar e carregar
-      fetchLogs();
-    }
-  }, []);
-
-  useEffect(() => {
-    if (authed) {
-      fetchLogs();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // Busca inicial e a cada mudança de página/filtro. O setState síncrono de
+    // loading é intrínseco ao data-fetch em effect (falso-positivo da regra).
+    // eslint-disable-next-line react-hooks/set-state-in-effect, react-hooks/exhaustive-deps
+    void fetchLogs();
   }, [page, eventFilter]);
 
   if (!authed && error) {
@@ -250,7 +243,10 @@ export function AuditPage() {
                 </tr>
               ) : logs.length === 0 ? (
                 <tr>
-                  <td colSpan={5} style={{ padding: '20px', textAlign: 'center', color: '#6b7280' }}>
+                  <td
+                    colSpan={5}
+                    style={{ padding: '20px', textAlign: 'center', color: '#6b7280' }}
+                  >
                     Nenhum log encontrado
                   </td>
                 </tr>
@@ -268,11 +264,13 @@ export function AuditPage() {
                         style={{
                           display: 'inline-block',
                           backgroundColor:
-                            log.event_type.includes('impersonate') || log.event_type.includes('delete')
+                            log.event_type.includes('impersonate') ||
+                            log.event_type.includes('delete')
                               ? '#fecaca'
                               : '#bfdbfe',
                           color:
-                            log.event_type.includes('impersonate') || log.event_type.includes('delete')
+                            log.event_type.includes('impersonate') ||
+                            log.event_type.includes('delete')
                               ? '#7f1d1d'
                               : '#1e3a8a',
                           padding: '4px 8px',

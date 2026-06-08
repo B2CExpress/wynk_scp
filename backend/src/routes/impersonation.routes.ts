@@ -18,9 +18,7 @@ export function createImpersonationRoutes(controller: ImpersonationController): 
   const guards = [requireAuth, requireSuperadmin];
 
   router.post('/superadmin/impersonate', ...guards, (req, res) => controller.start(req, res));
-  router.post('/superadmin/impersonate/stop', requireAuth, (req, res) =>
-    controller.stop(req, res),
-  );
+  router.post('/superadmin/impersonate/stop', requireAuth, (req, res) => controller.stop(req, res));
   router.get('/admin/audit', ...guards, (req, res) => controller.getAuditLog(req, res));
 
   return router;

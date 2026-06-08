@@ -64,11 +64,7 @@ export class AuditLogRepository {
       query = query.andWhere('audit.target_tenant_id = :tenantId', { tenantId: params.tenantId });
     }
 
-    const data = await query
-      .orderBy('audit.created_at', 'DESC')
-      .skip(offset)
-      .take(limit)
-      .getMany();
+    const data = await query.orderBy('audit.created_at', 'DESC').skip(offset).take(limit).getMany();
 
     const total = await query.getCount();
 

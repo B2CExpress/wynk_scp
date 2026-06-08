@@ -204,7 +204,7 @@ export function TenantsPage() {
 
       if (res.ok) {
         const data = (await res.json()) as { redirect_url?: string };
-        window.location.href = data.redirect_url ?? `https://${t.host}/admin`;
+        window.location.assign(data.redirect_url ?? `https://${t.host}/admin`);
       } else {
         alert('Erro ao iniciar impersonação');
       }
@@ -311,7 +311,9 @@ export function TenantsPage() {
                   type="button"
                   onClick={() => void handleImpersonate(t)}
                   disabled={t.status !== 'active'}
-                  title={t.status !== 'active' ? 'Apenas tenants ativos podem ser impersonados' : ''}
+                  title={
+                    t.status !== 'active' ? 'Apenas tenants ativos podem ser impersonados' : ''
+                  }
                 >
                   Acessar como
                 </button>

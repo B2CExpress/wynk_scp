@@ -16,6 +16,7 @@ import type { PublicPromotionController } from '../../src/controllers/public-pro
 import type { StoreCategoryController } from '../../src/controllers/store-category.controller';
 import type { AdminDashboardController } from '../../src/controllers/admin-dashboard.controller';
 import type { SuperadminTenantController } from '../../src/controllers/superadminTenantController';
+import type { ImpersonationController } from '../../src/controllers/impersonation.controller';
 import type { AppDeps } from '../../src/app';
 
 /**
@@ -241,6 +242,21 @@ export function makeStubSuperadminTenantController(): SuperadminTenantController
   } as unknown as SuperadminTenantController;
 }
 
+/**
+ * Stub do `ImpersonationController` que responde 501. Usado por testes que não
+ * exercitam impersonação nem auditoria.
+ */
+export function makeStubImpersonationController(): ImpersonationController {
+  const notImplemented = async (_req: Request, res: Response): Promise<void> => {
+    res.status(501).json({ error: 'not_implemented_in_test' });
+  };
+  return {
+    start: notImplemented,
+    stop: notImplemented,
+    getAuditLog: notImplemented,
+  } as unknown as ImpersonationController;
+}
+
 export function makeAppDeps(overrides: Partial<AppDeps> = {}): AppDeps {
   return {
     tenantResolver: makeFakeTenantResolver(),
@@ -259,6 +275,7 @@ export function makeAppDeps(overrides: Partial<AppDeps> = {}): AppDeps {
     storeCategoryController: undefined as StoreCategoryController | undefined,
     dashboardController: makeStubAdminDashboardController(),
     superadminTenantController: makeStubSuperadminTenantController(),
+    impersonationController: makeStubImpersonationController(),
     ...overrides,
   };
 }

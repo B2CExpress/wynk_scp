@@ -19,10 +19,10 @@ import { Tenant } from './Tenant';
  * Convenções de naming: tabela `tb_audit_log`, colunas `audit_<col>`.
  */
 @Entity('tb_audit_log')
-@Index('idx_tb_audit_log_actor_created', ['actorUserId', 'createdAt'], { order: { createdAt: 'DESC' } })
-@Index('idx_tb_audit_log_tenant_created', ['targetTenantId', 'createdAt'], { order: { createdAt: 'DESC' } })
-@Index('idx_tb_audit_log_event_created', ['eventType', 'createdAt'], { order: { createdAt: 'DESC' } })
-@Index('idx_tb_audit_log_created', ['createdAt'], { order: { createdAt: 'DESC' } })
+@Index('idx_tb_audit_log_actor_created', ['actorUserId', 'createdAt'])
+@Index('idx_tb_audit_log_tenant_created', ['targetTenantId', 'createdAt'])
+@Index('idx_tb_audit_log_event_created', ['eventType', 'createdAt'])
+@Index('idx_tb_audit_log_created', ['createdAt'])
 export class AuditLog {
   @PrimaryGeneratedColumn('uuid', { name: 'audit_id' })
   id: string;

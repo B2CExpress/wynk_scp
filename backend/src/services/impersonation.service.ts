@@ -87,7 +87,12 @@ export class ImpersonationService {
    * - Cria entrada de audit log
    * - Retorna URL de redirecionamento
    */
-  async stop(actorId: string, actorRole: string, req: Request, res: Response): Promise<{ ok: true; redirect_url: string }> {
+  async stop(
+    actorId: string,
+    actorRole: string,
+    req: Request,
+    res: Response,
+  ): Promise<{ ok: true; redirect_url: string }> {
     // Buscar tenant que está sendo impersonado (antes de limpar)
     const impersonatedTenantId = this.getImpersonatedTenantId(req);
 

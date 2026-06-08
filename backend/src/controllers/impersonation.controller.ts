@@ -74,12 +74,8 @@ export class ImpersonationController {
       return;
     }
 
-    try {
-      const result = await this.impersonationService.stop(authed.userId, authed.role, req, res);
-      res.status(200).json(result);
-    } catch (err) {
-      throw err;
-    }
+    const result = await this.impersonationService.stop(authed.userId, authed.role, req, res);
+    res.status(200).json(result);
   };
 
   getAuditLog = async (req: Request, res: Response): Promise<void> => {
@@ -103,42 +99,38 @@ export class ImpersonationController {
     const page = parseInt((req.query.page as string) ?? '1', 10);
     const limit = parseInt((req.query.limit as string) ?? '50', 10);
 
-    try {
-      const { data, total } = await this.auditLogRepo.list({
-        eventType,
-        actorId,
-        tenantId,
-        page,
-        limit,
-      });
+    const { data, total } = await this.auditLogRepo.list({
+      eventType,
+      actorId,
+      tenantId,
+      page,
+      limit,
+    });
 
-      // Serializar resposta
-      const formattedData = data.map((log) => ({
-        id: log.id,
-        event_type: log.eventType,
-        actor: {
-          id: log.actor?.id,
-          email: log.actor?.email,
-          role: log.actorRole,
-        },
-        target_tenant: log.targetTenant
-          ? {
-              id: log.targetTenant.id,
-              name: log.targetTenant.name,
-            }
-          : null,
-        metadata: log.metadata,
-        ip_address: log.ipAddress,
-        created_at: log.createdAt.toISOString(),
-      }));
+    // Serializar resposta
+    const formattedData = data.map((log) => ({
+      id: log.id,
+      event_type: log.eventType,
+      actor: {
+        id: log.actor?.id,
+        email: log.actor?.email,
+        role: log.actorRole,
+      },
+      target_tenant: log.targetTenant
+        ? {
+            id: log.targetTenant.id,
+            name: log.targetTenant.name,
+          }
+        : null,
+      metadata: log.metadata,
+      ip_address: log.ipAddress,
+      created_at: log.createdAt.toISOString(),
+    }));
 
-      res.status(200).json({
-        data: formattedData,
-        total,
-        page,
-      });
-    } catch (err) {
-      throw err;
-    }
+    res.status(200).json({
+      data: formattedData,
+      total,
+      page,
+    });
   };
 }

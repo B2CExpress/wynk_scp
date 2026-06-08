@@ -52,7 +52,7 @@ export function ImpersonationBanner({ tenantName, refreshTrigger }: Impersonatio
       } else {
         alert('Erro ao encerrar impersonação');
       }
-    } catch (err) {
+    } catch {
       alert('Erro ao conectar com o servidor');
     } finally {
       setIsLoading(false);
@@ -82,7 +82,8 @@ export function ImpersonationBanner({ tenantName, refreshTrigger }: Impersonatio
       }}
     >
       <span>
-        Você está impersonando <strong>{tenantName ?? 'Tenant'}</strong> — suas ações serão auditadas.
+        Você está impersonando <strong>{tenantName ?? 'Tenant'}</strong> — suas ações serão
+        auditadas.
       </span>
       <button
         onClick={handleStop}
