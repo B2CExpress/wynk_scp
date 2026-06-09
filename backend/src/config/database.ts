@@ -15,6 +15,9 @@ import { Promotion } from '../entities/Promotion';
 import { News } from '../entities/News';
 import { Banner } from '../entities/Banner';
 
+//Novo import 
+import { ShoppingInfo } from '../entities/ShoppingInfo';
+
 // Resolve globs de migrations/subscribers absolutos ao próprio módulo, não ao
 // CWD. Necessário pra Vitest da raiz (`npm run test:isolation`) achar os mesmos
 // arquivos que o Jest/CLI do backend acham.
@@ -61,6 +64,7 @@ export const AppDataSource = new DataSource({
     Promotion,
     News,
     Banner,
+    ShoppingInfo,
   ],
   migrations: [MIGRATIONS_GLOB],
   subscribers: [SUBSCRIBERS_GLOB],

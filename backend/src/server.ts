@@ -39,6 +39,12 @@ import { StoreCategoryService } from './services/store-category.service';
 import { StoreCategoryController } from './controllers/store-category.controller';
 import { startPublishScheduledLoop } from './jobs/publish-scheduled';
 
+//Novos imports 
+import { ShoppingInfoRepository } from './repositories/ShoppingInfoRepository';
+import { ShoppingInfoService } from './services/ShoppingInfoService';
+import { ShoppingInfoController } from './controllers/ShoppingInfoController';
+import { createShoppingInfoRoutes } from './routes/shoppingInfo.routes';
+
 async function main(): Promise<void> {
   // Inicialização do banco e Redis fica opt-in pra ambiente: em dev/prod conectamos,
   // em testes preferimos test containers ou mocks.
@@ -93,6 +99,13 @@ async function main(): Promise<void> {
   const publicPromotionController = new PublicPromotionController(promotionService);
   const storeCategoryController = new StoreCategoryController(storeCategoryService);
 
+//Novas instâncias 
+  const shoppingInfoRepo = new ShoppingInfoRepository(AppDataSource);
+  const shoppingInfoService = new ShoppingInfoService(shoppingInfoRepo, redis);
+  const shoppingInfoController = new ShoppingInfoController(shoppingInfoService);
+
+
+
   const app = createApp({
     tenantResolver,
 
@@ -109,6 +122,7 @@ async function main(): Promise<void> {
     cronController,
     publicPromotionController,
     storeCategoryController,
+    shoppingInfoController,
   });
 
   if (config.nodeEnv !== 'test') {

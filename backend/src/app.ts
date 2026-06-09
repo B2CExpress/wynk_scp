@@ -32,6 +32,11 @@ import { createCronRoutes } from './routes/cron.routes';
 import { createAdminDashboardRoutes } from './routes/admin-dashboard.routes';
 import { createStoreCategoryRoutes } from './routes/store-category.routes';
 
+
+// imports
+import type { ShoppingInfoController } from './controllers/ShoppingInfoController';
+import { createShoppingInfoRoutes } from './routes/shoppingInfo.routes';
+
 export interface AppDeps {
   tenantResolver: TenantResolverService;
   authController: AuthController;
@@ -46,6 +51,8 @@ export interface AppDeps {
   cronController: CronController;
   publicPromotionController: PublicPromotionController;
   storeCategoryController?: StoreCategoryController;
+  // interface AppDeps, após storeCategoryController
+  shoppingInfoController: ShoppingInfoController;
 }
 
 /**
@@ -111,6 +118,10 @@ export function createApp(deps: AppDeps): Express {
   app.use(createStoreCategoryRoutes(deps.storeCategoryController));
   app.use(createNewsRoutes(deps.newsController));
   app.use(createBannerRoutes(deps.bannerController));
+
+  
+  app.use(createShoppingInfoRoutes(deps.shoppingInfoController));
+  
   app.use(createAdminDashboardRoutes(deps.dashboardController));
   app.use(createCronRoutes(deps.cronController));
 
